@@ -6,7 +6,7 @@ export const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl">
           <div className="mb-6 rounded-lg bg-card p-6 shadow-sm border border-border">
-            <div className="mb-3 flex items-center gap-2 flex-row-reverse justify-end">
+            <div className="mb-3 flex items-center gap-2 flex-row-reverse justify-center">
               <Info className="h-5 w-5 text-muted-foreground" />
               <h3 className="text-lg font-semibold text-card-foreground">
                 גילוי נאות
