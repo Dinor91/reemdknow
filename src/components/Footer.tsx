@@ -30,9 +30,7 @@ export const Footer = () => {
               </p>
             </div>
             
-            <p className="mt-6 text-xs text-muted-foreground">
-              © 2025 (D)Know. כל הזכויות שמורות.
-            </p>
+            <p className="mt-6 text-xs text-muted-foreground">© 2025 Rקקצ(D)Know. כל הזכויות שמורות.</p>
           </div>
         </div>
       </div>
