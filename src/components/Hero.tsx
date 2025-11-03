@@ -21,10 +21,8 @@ export const Hero = () => {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2"
               >
-                <span dir="rtl">הצטרפו לקבוצת</span>
-                <span dir="ltr" className="flex items-center gap-1">
-                  WhatsApp <MessageCircle className="h-5 w-5" />
-                </span>
+                הצטרפו אלינו בווטסאפ
+                <MessageCircle className="h-5 w-5" />
               </a>
             </Button>
             
@@ -39,10 +37,8 @@ export const Hero = () => {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2"
               >
-                <span dir="rtl">הצטרפו לקבוצת</span>
-                <span dir="ltr" className="flex items-center gap-1">
-                  Telegram <Send className="h-5 w-5" />
-                </span>
+                הצטרפו אלינו בטלגרם
+                <Send className="h-5 w-5" />
               </a>
             </Button>
           </div>
