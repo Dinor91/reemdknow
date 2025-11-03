@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Send } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
-
 export const Hero = () => {
   return <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-16 md:py-24">
       <div className="container mx-auto px-4 text-center">
@@ -11,27 +10,7 @@ export const Hero = () => {
           <p className="mb-4 text-xl text-muted-foreground md:text-2xl">המלצות מבוססות שימוש אישי, דירוגים גבוהים וסינון קפדני</p>
           
           
-          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Button size="lg" className="bg-whatsapp hover:bg-whatsapp/90 text-white text-lg px-8 py-6" asChild>
-              <a href="https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                <span dir="rtl">הצטרפו לקבוצת</span>
-                <span dir="ltr" className="flex items-center gap-2">
-                  WhatsApp
-                  <MessageCircle className="h-5 w-5" />
-                </span>
-              </a>
-            </Button>
-            
-            <Button size="lg" className="bg-telegram hover:bg-telegram/90 text-white text-lg px-8 py-6" asChild>
-              <a href="https://t.me/+wJIFEYTlOuUzZjBk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                <span dir="rtl">הצטרפו לקבוצת</span>
-                <span dir="ltr" className="flex items-center gap-2">
-                  Telegram
-                  <Send className="h-5 w-5" />
-                </span>
-              </a>
-            </Button>
-          </div>
+          
         </div>
       </div>
     </section>;
