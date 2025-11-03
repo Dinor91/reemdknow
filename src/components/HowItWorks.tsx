@@ -1,13 +1,8 @@
-
-
 export const HowItWorks = () => {
-  return (
-    <section className="py-16 md:py-20">
+  return <section className="py-16 md:py-20">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground md:text-4xl">
-            איך נבחרים המוצרים? 🔍
-          </h2>
+          <h2 className="mb-8 text-center text-3xl font-bold text-foreground md:text-4xl">?איך נבחרים המוצרים 🔍</h2>
           
           <div className="grid gap-6 md:grid-cols-3">
             <div className="flex flex-col items-center text-center rounded-lg bg-card p-6 shadow-sm border border-border">
@@ -48,6 +43,5 @@ export const HowItWorks = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
