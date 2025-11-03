@@ -16,22 +16,25 @@ export const Footer = () => {
           </div>
 
           <div className="text-center">
-            <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12">
-              <div className="flex flex-col items-center gap-2">
-                <img src={logo} alt="Reem(D)Know Logo" className="w-32 h-32 rounded-full" />
-                <p className="text-lg font-semibold text-foreground">Reem(D)Know</p>
-                <p className="text-sm text-muted-foreground">
-                  קהילה של המלצות אמיתיות על מוצרים שימושיים
-                </p>
-              </div>
-              
-              <div className="space-y-2">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-center gap-8 md:gap-12">
+              <div className="space-y-2 md:order-1">
                 <p className="text-base font-semibold text-foreground">:מידע נוסף / יצירת קשר</p>
                 <p className="text-sm text-muted-foreground" dir="rtl">
                   מייל: <a href="mailto:reemdknow@gmail.com" className="text-primary hover:underline" dir="ltr">reemdknow@gmail.com</a>
                 </p>
                 <p className="text-sm text-muted-foreground" dir="rtl">
                   טלפון: <a href="tel:+972507818321" className="text-primary hover:underline" dir="ltr">+972-50-781-8321</a>
+                </p>
+              </div>
+              
+              <div className="flex flex-col items-center gap-2 md:order-2">
+                <img src={logo} alt="Reem(D)Know Logo" className="w-32 h-32 rounded-full" />
+              </div>
+              
+              <div className="flex flex-col items-center gap-2 md:order-3">
+                <p className="text-lg font-semibold text-foreground">Reem(D)Know</p>
+                <p className="text-sm text-muted-foreground">
+                  קהילה של המלצות אמיתיות על מוצרים שימושיים
                 </p>
               </div>
             </div>
