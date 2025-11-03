@@ -22,13 +22,11 @@ export const Footer = () => {
             
             <div className="mt-6 space-y-2">
               <p className="text-base font-semibold text-foreground">מידע נוסף / יצירת קשר:</p>
-              <p className="text-sm text-muted-foreground">
-                <span className="inline-block">מייל: </span>
-                <a href="mailto:reemdknow@gmail.com" className="text-primary hover:underline">reemdknow@gmail.com</a>
+              <p className="text-sm text-muted-foreground" dir="rtl">
+                מייל: <a href="mailto:reemdknow@gmail.com" className="text-primary hover:underline" dir="ltr">reemdknow@gmail.com</a>
               </p>
-              <p className="text-sm text-muted-foreground">
-                <span className="inline-block">טלפון: </span>
-                <a href="tel:+972507818321" className="text-primary hover:underline" dir="ltr">+972-50-781-8321</a>
+              <p className="text-sm text-muted-foreground" dir="rtl">
+                טלפון: <a href="tel:+972507818321" className="text-primary hover:underline" dir="ltr">+972-50-781-8321</a>
               </p>
             </div>
             
