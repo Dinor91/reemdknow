@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Send } from "lucide-react";
+import heroImage from "@/assets/hero-image.jpg";
+
 export const Hero = () => {
   return <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-16 md:py-24">
       <div className="container mx-auto px-4 text-center">
         <div className="mx-auto max-w-3xl">
+          <img src={heroImage} alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה לרכב, לבית ולילדים" className="mb-8 w-full rounded-lg" />
           <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground md:text-6xl">-המלצות אמיתיות מלאזדה מוצרים שכל אחד צריך</h1>
           <p className="mb-4 text-xl text-muted-foreground md:text-2xl">המלצות מבוססות שימוש אישי, דירוגים גבוהים וסינון קפדני</p>
           
