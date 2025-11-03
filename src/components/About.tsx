@@ -3,7 +3,7 @@ export const About = () => {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
           <h2 className="mb-8 text-3xl font-bold text-foreground md:text-4xl">למה להצטרף לקהילה של
-Reem(D)Know?</h2>
+Reem(D)Know?<br /></h2>
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="flex gap-4 rounded-lg bg-card p-6 shadow-sm border border-border">
