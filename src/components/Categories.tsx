@@ -134,7 +134,7 @@ const categories: Category[] = [{
     link: "https://c.lazada.co.th/t/c.X31tRC?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know"
   }, {
     name: "מגנטים Marble",
-    link: "https://c.lazada.co.th/t/c.X31tij?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know"
+    link: "https://c.lazada.co.th/t/c.X4kEIE?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know"
   }, {
     name: "משחק איות אנגלית",
     link: "https://c.lazada.co.th/t/c.X31va0"
