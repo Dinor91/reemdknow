@@ -15,8 +15,8 @@ export const Footer = () => {
           </div>
 
           <div className="text-center">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-center gap-8 md:gap-12">
-              <div className="space-y-2 md:order-1">
+            <div className="flex flex-col md:flex-row items-center md:items-center justify-center gap-4 md:gap-12">
+              <div className="space-y-2 md:order-1 text-center md:text-right">
                 <p className="text-base font-semibold text-foreground">:מידע נוסף / יצירת קשר</p>
                 <p className="text-sm text-muted-foreground" dir="rtl">
                   מייל: <a href="mailto:reemdknow@gmail.com" className="text-primary hover:underline" dir="ltr">reemdknow@gmail.com</a>
@@ -26,11 +26,14 @@ export const Footer = () => {
                 </p>
               </div>
               
-              <div className="flex flex-col items-center gap-2 md:order-2">
+              <div className="flex flex-col items-center gap-1 md:gap-2 md:order-2">
                 <img src={logo} alt="Reem(D)Know Logo" className="w-32 h-32 rounded-full" />
+                <p className="text-sm text-muted-foreground">
+                  קהילה של המלצות אמיתיות על מוצרים שימושיים
+                </p>
               </div>
               
-              <div className="flex flex-col items-center gap-2 md:order-3">
+              <div className="hidden md:flex flex-col items-center gap-2 md:order-3">
                 <p className="text-lg font-semibold text-foreground">Reem(D)Know</p>
                 <p className="text-sm text-muted-foreground">
                   קהילה של המלצות אמיתיות על מוצרים שימושיים
