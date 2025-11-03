@@ -192,7 +192,7 @@ export const Categories = () => {
             הקטגוריות שלנו
           </h2>
           <p className="mb-12 text-center text-lg text-muted-foreground">
-            לחצו על קטגוריה כדי לראות את המוצרים והקישורים ל-<span dir="ltr">LAZADA</span>
+            לחצו על קטגוריה כדי לראות את המוצרים והקישורים ל-LAZADA
           </p>
 
           <Accordion type="single" collapsible className="space-y-4">
