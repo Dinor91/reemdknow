@@ -3,13 +3,17 @@ import { About } from "@/components/About";
 import { Categories } from "@/components/Categories";
 import { HowItWorks } from "@/components/HowItWorks";
 import { Footer } from "@/components/Footer";
+
 const Index = () => {
-  return <div className="min-h-screen">
+  return (
+    <div className="min-h-screen">
       <Hero />
-      
+      <About />
       <Categories />
       <HowItWorks />
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
