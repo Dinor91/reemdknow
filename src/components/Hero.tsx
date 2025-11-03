@@ -21,8 +21,8 @@ export const Hero = () => {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2"
               >
-                הצטרפו אלינו בווטסאפ
                 <MessageCircle className="h-5 w-5" />
+                הצטרפו אלינו בווטסאפ
               </a>
             </Button>
             
@@ -37,8 +37,8 @@ export const Hero = () => {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2"
               >
-                הצטרפו אלינו בטלגרם
                 <Send className="h-5 w-5" />
+                הצטרפו אלינו בטלגרם
               </a>
             </Button>
           </div>
