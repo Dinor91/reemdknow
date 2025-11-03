@@ -318,16 +318,18 @@ const categories: Category[] = [{
 export const Categories = () => {
   return <section className="bg-muted py-16 md:py-20">
       <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-2xl">
+        <div className="mx-auto max-w-6xl">
           <h2 className="mb-4 text-center text-3xl font-bold text-foreground md:text-4xl">
             הקטגוריות שלנו
           </h2>
           <p className="mb-12 text-center text-lg text-muted-foreground">לחצו על קטגוריה כדי לראות את המוצרים והקישורים ל- LAZADA</p>
 
-          <Accordion type="single" collapsible className="space-y-4">
-            {categories.map((category, index) => {
-            const Icon = category.icon;
-            return <AccordionItem key={index} value={`item-${index}`} className="rounded-lg bg-card shadow-sm border border-border overflow-hidden">
+          {/* First 8 categories in 2 columns */}
+          <div className="grid md:grid-cols-2 gap-6 mb-6">
+            {categories.slice(0, 8).map((category, index) => {
+              const Icon = category.icon;
+              return <Accordion key={index} type="single" collapsible>
+                <AccordionItem value={`item-${index}`} className="rounded-lg bg-card shadow-sm border border-border overflow-hidden">
                   <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-3 flex-row-reverse w-full">
                       <div className="rounded-full bg-primary/10 p-2">
@@ -353,9 +355,48 @@ export const Categories = () => {
                         </Button>)}
                     </div>
                   </AccordionContent>
-                </AccordionItem>;
-          })}
-          </Accordion>
+                </AccordionItem>
+              </Accordion>;
+            })}
+          </div>
+
+          {/* 9th category centered */}
+          {categories[8] && (
+            <div className="max-w-2xl mx-auto">
+              <Accordion type="single" collapsible>
+                <AccordionItem value="item-8" className="rounded-lg bg-card shadow-sm border border-border overflow-hidden">
+                  <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3 flex-row-reverse w-full">
+                      <div className="rounded-full bg-primary/10 p-2">
+                        {(() => {
+                          const Icon = categories[8].icon;
+                          return <Icon className="h-6 w-6 text-primary" />;
+                        })()}
+                      </div>
+                      <div className="text-right flex-1">
+                        <h3 className="text-xl font-semibold text-card-foreground">
+                          {categories[8].title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {categories[8].description}
+                        </p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-4">
+                    <div className="grid gap-3 sm:grid-cols-2 mt-2">
+                      {categories[8].products.map((product, productIndex) => <Button key={productIndex} variant="outline" className="justify-between h-auto py-3 px-4" asChild>
+                          <a href={product.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-row-reverse">
+                            <span className="text-right flex-1">{product.name}</span>
+                            <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                          </a>
+                        </Button>)}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+          )}
         </div>
       </div>
     </section>;
