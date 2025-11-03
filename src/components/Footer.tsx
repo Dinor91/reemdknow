@@ -12,7 +12,7 @@ export const Footer = () => {
               </h3>
             </div>
             <p className="text-muted-foreground leading-relaxed text-center">חלק מהקישורים באתר הם קישורי שותפים
-אם תקנו דרכם, נקבל עמלה קטנה – עבורכם זה ללא תוספת תשלום
+אם תקנו דרכם, נקבל עמלה קטנה – עבורכם זה ללא תוספת תשלום<br className="hidden md:block" />
 זה עוזר לנו להמשיך לחפש, לבדוק ולהמליץ עבורכם על מוצרים שווים באמת.</p>
           </div>
 
