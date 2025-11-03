@@ -3,9 +3,9 @@ import { MessageCircle, Send } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
 export const Hero = () => {
   return <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-16 md:py-24">
+      <img src={heroImage} alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה לרכב, לבית ולילדים" className="mb-8 w-full" />
       <div className="container mx-auto px-4 text-center">
         <div className="mx-auto max-w-3xl">
-          <img src={heroImage} alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה לרכב, לבית ולילדים" className="mb-8 w-full rounded-bl-lg " />
           <h1 className="mb-6 font-bold tracking-tight md:text-6xl mx-0 text-center text-2xl text-stone-950">המלצות אמיתיות מלאזדה- מוצרים שכל אחד צריך</h1>
           
           
