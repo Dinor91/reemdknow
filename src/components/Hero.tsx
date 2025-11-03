@@ -1,0 +1,54 @@
+import { Button } from "@/components/ui/button";
+import { MessageCircle, Send } from "lucide-react";
+
+export const Hero = () => {
+  return (
+    <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-16 md:py-24">
+      <div className="container mx-auto px-4 text-center">
+        <div className="mx-auto max-w-3xl">
+          <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground md:text-6xl">
+            ברוכים הבאים ל-(D)Know
+          </h1>
+          <p className="mb-4 text-xl text-muted-foreground md:text-2xl">
+            קהילה של המלצות אמיתיות על מוצרים שימושיים
+          </p>
+          <p className="mb-10 text-lg text-muted-foreground">
+            המלצות מבוססות שימוש אישי וסינון לפי דירוגים 🔥
+          </p>
+          
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+            <Button
+              size="lg"
+              className="bg-whatsapp hover:bg-whatsapp/90 text-white text-lg px-8 py-6"
+              asChild
+            >
+              <a 
+                href="https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j?mode=wwt"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <MessageCircle className="ml-2 h-5 w-5" />
+                הצטרפו לקבוצת WhatsApp
+              </a>
+            </Button>
+            
+            <Button
+              size="lg"
+              className="bg-telegram hover:bg-telegram/90 text-white text-lg px-8 py-6"
+              asChild
+            >
+              <a 
+                href="https://t.me/+wJIFEYTlOuUzZjBk"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Send className="ml-2 h-5 w-5" />
+                הצטרפו לקבוצת Telegram
+              </a>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};

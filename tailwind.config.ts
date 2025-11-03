@@ -57,6 +57,8 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        whatsapp: "hsl(var(--whatsapp))",
+        telegram: "hsl(var(--telegram))",
       },
       borderRadius: {
         lg: "var(--radius)",
