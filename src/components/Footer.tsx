@@ -11,14 +11,14 @@ export const Footer = () => {
                 גילוי נאות
               </h3>
             </div>
-            <p className="text-muted-foreground leading-relaxed text-center">חלק מהקישורים באתר הם קישורי שותפים. אם תקנו דרכם, נקבל עמלה קטנה – עבורכם זה ללא תוספת תשלום. 
-זה עוזר לנו להמשיך לחפש, לבדוק ולהמליץ עבורכם על מוצרים שווים באמת</p>
+            <p className="text-muted-foreground leading-relaxed text-center">חלק מהקישורים באתר הם קישורי שותפים. 
+אם תקנו דרכם, נקבל עמלה קטנה – עבורכם זה ללא תוספת תשלום. זה עוזר לנו להמשיך לחפש, לבדוק ולהמליץ עבורכם על מוצרים שווים באמת</p>
           </div>
 
           <div className="text-center">
-            <div className="flex flex-col items-center justify-center gap-6">
-              <div className="space-y-2 text-center">
-                <p className="text-base font-semibold text-foreground">:למידע נוסף  ויצירת קשר</p>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-center gap-8 md:gap-12">
+              <div className="space-y-2 md:order-1">
+                <p className="text-base font-semibold text-foreground">:מידע נוסף / יצירת קשר</p>
                 <p className="text-sm text-muted-foreground" dir="rtl">
                   מייל: <a href="mailto:reemdknow@gmail.com" className="text-primary hover:underline" dir="ltr">reemdknow@gmail.com</a>
                 </p>
@@ -27,9 +27,15 @@ export const Footer = () => {
                 </p>
               </div>
               
-              <div className="flex flex-col items-center gap-1">
+              <div className="flex flex-col items-center gap-2 md:order-2">
                 <img src={logo} alt="Reem(D)Know Logo" className="w-32 h-32 rounded-full" />
-                <p className="text-sm text-muted-foreground">קהילה של המלצות אמיתיות על מוצרים שימושיים</p>
+              </div>
+              
+              <div className="flex flex-col items-center gap-2 md:order-3">
+                <p className="text-lg font-semibold text-foreground">Reem(D)Know</p>
+                <p className="text-sm text-muted-foreground">
+                  קהילה של המלצות אמיתיות על מוצרים שימושיים
+                </p>
               </div>
             </div>
             
