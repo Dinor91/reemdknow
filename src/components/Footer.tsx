@@ -11,7 +11,7 @@ export const Footer = () => {
                 גילוי נאות
               </h3>
             </div>
-            <p className="text-muted-foreground leading-relaxed text-center">
+            <p className="text-xs md:text-base text-muted-foreground leading-relaxed text-center">
               חלק מהקישורים באתר הם קישורי שותפים.<br />
               אם תקנו דרכם, נקבל עמלה קטנה – עבורכם זה ללא תוספת תשלום.<br />
               זה עוזר לנו להמשיך לחפש, לבדוק ולהמליץ עבורכם על מוצרים שווים באמת.
