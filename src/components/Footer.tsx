@@ -1,8 +1,6 @@
 import { Info } from "lucide-react";
-
 export const Footer = () => {
-  return (
-    <footer className="bg-muted py-12">
+  return <footer className="bg-muted py-12">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl">
           <div className="mb-6 rounded-lg bg-card p-6 shadow-sm border border-border">
@@ -12,7 +10,7 @@ export const Footer = () => {
                 גילוי נאות
               </h3>
             </div>
-            <p className="text-muted-foreground leading-relaxed text-right">
+            <p className="text-muted-foreground leading-relaxed text-center">
               חלק מהקישורים באתר הם קישורי שותפים. אם תקנו דרכם, נקבל עמלה קטנה – 
               <span className="font-semibold"> ללא תוספת תשלום עבורכם</span>. 
               זה עוזר לנו להמשיך לבדוק ולהמליץ על מוצרים שווים באמת 🙏
@@ -20,9 +18,7 @@ export const Footer = () => {
           </div>
 
           <div className="text-center">
-            <p className="mb-2 text-lg font-semibold text-foreground">
-              (D)Know
-            </p>
+            <p className="mb-2 text-lg font-semibold text-foreground">Reem(D)Know</p>
             <p className="text-sm text-muted-foreground">
               קהילה של המלצות אמיתיות על מוצרים שימושיים
             </p>
@@ -32,6 +28,5 @@ export const Footer = () => {
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
