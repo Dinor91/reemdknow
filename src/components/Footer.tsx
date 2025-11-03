@@ -21,7 +21,7 @@ export const Footer = () => {
             </p>
             
             <div className="mt-6 space-y-2">
-              <p className="text-base font-semibold text-foreground">מידע נוסף / יצירת קשר:</p>
+              <p className="text-base font-semibold text-foreground">:מידע נוסף / יצירת קשר</p>
               <p className="text-sm text-muted-foreground" dir="rtl">
                 מייל: <a href="mailto:reemdknow@gmail.com" className="text-primary hover:underline" dir="ltr">reemdknow@gmail.com</a>
               </p>
