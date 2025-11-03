@@ -36,7 +36,7 @@ export const HowItWorks = () => {
 
           <div className="mt-12 rounded-lg bg-primary/10 p-6 border border-primary/30">
             <p className="text-center text-lg text-foreground">
-              הסינון שלנו מתחחשב במספר פרמטרים כמו דירוג המוצר איכות הביקורות אימנות החנות ומשלוח מהיר
+              הסינון שלנו בוחן מספר פרמטרים כמו דירוג המוצר, איכות הביקורות, אמינות החנות ומשלוח מהיר
             </p>
           </div>
         </div>
