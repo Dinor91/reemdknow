@@ -7,13 +7,13 @@ export const Hero = () => {
       <div className="container mx-auto px-4 text-center">
         <div className="mx-auto max-w-3xl">
           <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground md:text-6xl">
-            ברוכים הבאים ל-(D)Know
+            (D)Know – קהילה של המלצות אמיתיות על מוצרים שימושיים
           </h1>
           <p className="mb-4 text-xl text-muted-foreground md:text-2xl">
-            קהילה של המלצות אמיתיות על מוצרים שימושיים
+            המלצות מבוססות שימוש אישי, דירוגים גבוהים וסינון קפדני
           </p>
           <p className="mb-10 text-lg text-muted-foreground">
-            המלצות מבוססות שימוש אישי וסינון לפי דירוגים 🔥
+            כל מוצר נבחר בקפידה – כדי לחסוך לכם זמן, כסף ותסכול
           </p>
           
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
