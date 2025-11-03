@@ -9,7 +9,43 @@ export const Hero = () => {
           <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground md:text-6xl">-המלצות אמיתיות מלאזדה מוצרים שכל אחד צריך</h1>
           <p className="mb-4 text-xl text-muted-foreground md:text-2xl">המלצות מבוססות שימוש אישי, דירוגים גבוהים וסינון קפדני</p>
           
-          
+          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button 
+              asChild
+              size="lg"
+              className="bg-whatsapp hover:bg-whatsapp/90 text-white w-full sm:w-auto"
+            >
+              <a 
+                href="https://chat.whatsapp.com/J5w8NJTGSWpDGEEBxTTH7L" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2"
+              >
+                <span dir="rtl">הצטרפו לקבוצת</span>
+                <span dir="ltr" className="flex items-center gap-1">
+                  WhatsApp <MessageCircle className="h-5 w-5" />
+                </span>
+              </a>
+            </Button>
+            
+            <Button 
+              asChild
+              size="lg"
+              className="bg-telegram hover:bg-telegram/90 text-white w-full sm:w-auto"
+            >
+              <a 
+                href="https://t.me/+sDJV1Y-Gy803NGM0" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2"
+              >
+                <span dir="rtl">הצטרפו לקבוצת</span>
+                <span dir="ltr" className="flex items-center gap-1">
+                  Telegram <Send className="h-5 w-5" />
+                </span>
+              </a>
+            </Button>
+          </div>
           
         </div>
       </div>
