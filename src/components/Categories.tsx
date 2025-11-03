@@ -322,7 +322,7 @@ export const Categories = () => {
           <h2 className="mb-4 text-center text-3xl font-bold text-foreground md:text-4xl">
             הקטגוריות שלנו
           </h2>
-          <p className="mb-12 text-center text-lg text-muted-foreground">לחצו על קטגוריה כדי לראות את המוצרים והקישורים ל- LAZADA </p>
+          <p className="mb-12 text-center text-lg text-muted-foreground">לחצו על הקטגוריה הרצויה כדי לראות את המוצרים והקישור לאתר לאזד</p>
 
           {/* First 8 categories in 2 columns */}
           <div className="grid md:grid-cols-2 gap-6 mb-6">
