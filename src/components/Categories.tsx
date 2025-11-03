@@ -322,13 +322,13 @@ export const Categories = () => {
           <h2 className="mb-4 text-center text-3xl font-bold text-foreground md:text-4xl">
             הקטגוריות שלנו
           </h2>
-          <p className="mb-12 text-center text-lg text-muted-foreground">לחצו על קטגוריה כדי לראות את המוצרים והקישורים ל- LAZADA</p>
+          <p className="mb-12 text-center text-lg text-muted-foreground">לחצו על קטגוריה כדי לראות את המוצרים והקישורים ל- LAZADA </p>
 
           {/* First 8 categories in 2 columns */}
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             {categories.slice(0, 8).map((category, index) => {
-              const Icon = category.icon;
-              return <Accordion key={index} type="single" collapsible>
+            const Icon = category.icon;
+            return <Accordion key={index} type="single" collapsible>
                 <AccordionItem value={`item-${index}`} className="rounded-lg bg-card shadow-sm border border-border overflow-hidden">
                   <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-3 flex-row-reverse w-full">
@@ -357,21 +357,20 @@ export const Categories = () => {
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>;
-            })}
+          })}
           </div>
 
           {/* 9th category centered */}
-          {categories[8] && (
-            <div className="max-w-2xl mx-auto">
+          {categories[8] && <div className="max-w-2xl mx-auto">
               <Accordion type="single" collapsible>
                 <AccordionItem value="item-8" className="rounded-lg bg-card shadow-sm border border-border overflow-hidden">
                   <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-3 flex-row-reverse w-full">
                       <div className="rounded-full bg-primary/10 p-2">
                         {(() => {
-                          const Icon = categories[8].icon;
-                          return <Icon className="h-6 w-6 text-primary" />;
-                        })()}
+                      const Icon = categories[8].icon;
+                      return <Icon className="h-6 w-6 text-primary" />;
+                    })()}
                       </div>
                       <div className="text-right flex-1">
                         <h3 className="text-xl font-semibold text-card-foreground">
@@ -395,8 +394,7 @@ export const Categories = () => {
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
-            </div>
-          )}
+            </div>}
         </div>
       </div>
     </section>;
