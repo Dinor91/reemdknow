@@ -205,11 +205,11 @@ export const Categories = () => {
                   className="rounded-lg bg-card shadow-sm border border-border overflow-hidden"
                 >
                   <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-row-reverse w-full">
                       <div className="rounded-full bg-primary/10 p-2">
                         <Icon className="h-6 w-6 text-primary" />
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex-1">
                         <h3 className="text-xl font-semibold text-card-foreground">
                           {category.title}
                         </h3>
@@ -232,7 +232,7 @@ export const Categories = () => {
                             href={product.link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 flex-row-reverse"
                           >
                             <span className="text-right flex-1">{product.name}</span>
                             <ExternalLink className="h-4 w-4 flex-shrink-0" />

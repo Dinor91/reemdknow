@@ -6,13 +6,13 @@ export const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl">
           <div className="mb-6 rounded-lg bg-card p-6 shadow-sm border border-border">
-            <div className="mb-3 flex items-center gap-2">
+            <div className="mb-3 flex items-center gap-2 flex-row-reverse justify-end">
               <Info className="h-5 w-5 text-muted-foreground" />
               <h3 className="text-lg font-semibold text-card-foreground">
                 גילוי נאות
               </h3>
             </div>
-            <p className="text-muted-foreground leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed text-right">
               חלק מהקישורים באתר הם קישורי שותפים. אם תקנו דרכם, נקבל עמלה קטנה – 
               <span className="font-semibold"> ללא תוספת תשלום עבורכם</span>. 
               זה עוזר לנו להמשיך לבדוק ולהמליץ על מוצרים שווים באמת 🙏
