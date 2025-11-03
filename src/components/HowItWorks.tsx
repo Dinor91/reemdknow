@@ -10,9 +10,7 @@ export const HowItWorks = () => {
               <h3 className="mb-2 text-xl font-semibold text-card-foreground">
                 נבדק אישי
               </h3>
-              <p className="text-muted-foreground">
-                מוצר שנקנה ונמצא יעיל
-              </p>
+              <p className="text-muted-foreground">מוצר שנקנה ונמצא פרקטי יעיל</p>
             </div>
 
             <div className="flex flex-col items-center text-center rounded-lg bg-card p-6 shadow-sm border border-border">
