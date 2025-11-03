@@ -17,7 +17,7 @@ export const Footer = () => {
           <div className="text-center">
             <div className="flex flex-col md:flex-row items-center md:items-center justify-center gap-4 md:gap-12">
               <div className="space-y-2 md:order-1 text-center md:text-right">
-                <p className="text-base font-semibold text-foreground">:מידע נוסף / יצירת קשר</p>
+                <p className="text-base font-semibold text-foreground">:למידע נוסף ויצירת קשר</p>
                 <p className="text-sm text-muted-foreground" dir="rtl">
                   מייל: <a href="mailto:reemdknow@gmail.com" className="text-primary hover:underline" dir="ltr">reemdknow@gmail.com</a>
                 </p>
