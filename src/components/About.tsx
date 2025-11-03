@@ -1,13 +1,9 @@
-
-
 export const About = () => {
-  return (
-    <section className="py-16 md:py-20">
+  return <section className="py-16 md:py-20">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
-          <h2 className="mb-8 text-3xl font-bold text-foreground md:text-4xl">
-            למה להצטרף ל-(D)Know?
-          </h2>
+          <h2 className="mb-8 text-3xl font-bold text-foreground md:text-4xl">למה להצטרף לקהילה של
+Reem(D)Know?</h2>
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="flex gap-4 rounded-lg bg-card p-6 shadow-sm border border-border">
@@ -60,6 +56,5 @@ export const About = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
