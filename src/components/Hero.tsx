@@ -11,7 +11,7 @@ export const Hero = () => {
           <p className="mb-4 text-xl text-muted-foreground md:text-2xl">המלצות מבוססות שימוש אישי, דירוגים גבוהים וסינון קפדני</p>
           
           
-          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center" dir="ltr">
             <Button size="lg" className="bg-whatsapp hover:bg-whatsapp/90 text-white text-lg px-8 py-6" asChild>
               <a href="https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j?mode=wwt" target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="ml-2 h-5 w-5" />
