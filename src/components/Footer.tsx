@@ -28,7 +28,7 @@ export const Footer = () => {
               
               <div className="flex flex-col items-center gap-1 md:gap-2 md:order-2">
                 <img src={logo} alt="Reem(D)Know Logo" className="w-32 h-32 rounded-full" />
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground md:hidden">
                   קהילה של המלצות אמיתיות על מוצרים שימושיים
                 </p>
               </div>
