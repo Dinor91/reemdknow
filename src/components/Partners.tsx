@@ -1,0 +1,34 @@
+import ddSamuiTours from "@/assets/dd-samui-tours.jpg";
+
+export const Partners = () => {
+  return (
+    <section className="bg-muted/50 py-12">
+      <div className="container mx-auto px-4">
+        <div className="mx-auto max-w-4xl text-center">
+          <h2 className="mb-8 text-2xl font-bold text-foreground">השותפים שלנו</h2>
+          
+          <div className="flex justify-center">
+            <a 
+              href="https://www.facebook.com/ddsamuitours" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="group"
+            >
+              <div className="inline-block rounded-lg bg-card p-4 shadow-sm border border-border transition-all hover:shadow-md hover:scale-105">
+                <img 
+                  src={ddSamuiTours} 
+                  alt="D.D SAMUI Tours - מדברים עברית" 
+                  className="w-32 h-32 object-cover rounded-lg mb-2"
+                />
+                <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                  D.D SAMUI Tours
+                </p>
+                <p className="text-xs text-muted-foreground">מדברים עברית</p>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
