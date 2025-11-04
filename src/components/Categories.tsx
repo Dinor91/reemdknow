@@ -319,9 +319,7 @@ export const Categories = () => {
   return <section className="bg-muted py-16 md:py-20">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-6xl">
-          <h2 className="mb-4 text-center text-3xl font-bold md:text-4xl">
-            מוצרים נבחרות
-          </h2>
+          <h2 className="mb-4 text-center text-3xl font-bold md:text-4xl">מוצרים נבחרים</h2>
           <p className="mb-12 text-center text-lg text-muted-foreground">לחצו על הקטגוריה הרצויה כדי לראות את המוצרים והקישור לאתר לאזדה</p>
 
           {/* First 8 categories in 2 columns */}
