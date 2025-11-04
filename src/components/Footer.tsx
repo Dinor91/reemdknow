@@ -36,7 +36,7 @@ export const Footer = () => {
               <div className="hidden md:flex flex-col items-center gap-2 md:order-3">
                 <p className="text-lg font-semibold text-foreground">Reem(D)Know</p>
                 <p className="text-sm text-muted-foreground">
-                  קהילה של המלצות אמיתיות על מוצרים שימושיים
+                  קהילה של המלצות אמיתיות<br className="hidden md:block" />על מוצרים שימושיים
                 </p>
               </div>
             </div>
