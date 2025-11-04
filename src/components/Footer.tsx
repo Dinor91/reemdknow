@@ -15,24 +15,30 @@ export const Footer = () => {
           </div>
 
           <div className="text-center">
-            <div className="flex flex-col items-center justify-center gap-4 mb-6">
-              <img src={logo} alt="Reem(D)Know Logo" className="w-32 h-32 rounded-full" />
-              <div className="space-y-2">
+            <div className="flex flex-col md:flex-row items-center md:items-center justify-center gap-4 md:gap-12">
+              <div className="space-y-2 md:order-1 text-center md:text-right">
+                <p className="text-base font-semibold text-foreground">:למידע נוסף ויצירת קשר</p>
+                <p className="text-sm text-muted-foreground" dir="rtl">
+                  מייל: <a href="mailto:reemdknow@gmail.com" className="text-primary hover:underline" dir="ltr">reemdknow@gmail.com</a>
+                </p>
+                <p className="text-sm text-muted-foreground" dir="rtl">
+                  טלפון: <a href="tel:+972507818321" className="text-primary hover:underline" dir="ltr">+972-50-781-8321</a>
+                </p>
+              </div>
+              
+              <div className="flex flex-col items-center gap-1 md:gap-2 md:order-2">
+                <img src={logo} alt="Reem(D)Know Logo" className="w-32 h-32 rounded-full mx-auto" />
+                <p className="text-sm text-muted-foreground md:hidden">
+                  קהילה של המלצות אמיתיות על מוצרים שימושיים
+                </p>
+              </div>
+              
+              <div className="hidden md:flex flex-col items-center gap-2 md:order-3">
                 <p className="text-lg font-semibold text-foreground">Reem(D)Know</p>
                 <p className="text-sm text-muted-foreground">
                   קהילה של המלצות אמיתיות על מוצרים שימושיים
                 </p>
               </div>
-            </div>
-            
-            <div className="space-y-2 mb-6">
-              <p className="text-base font-semibold text-foreground">:למידע נוסף ויצירת קשר</p>
-              <p className="text-sm text-muted-foreground" dir="rtl">
-                מייל: <a href="mailto:reemdknow@gmail.com" className="text-primary hover:underline" dir="ltr">reemdknow@gmail.com</a>
-              </p>
-              <p className="text-sm text-muted-foreground" dir="rtl">
-                טלפון: <a href="tel:+972507818321" className="text-primary hover:underline" dir="ltr">+972-50-781-8321</a>
-              </p>
             </div>
             
             <p className="mt-6 text-xs text-muted-foreground">© 2025 Reem(D)Know. כל הזכויות שמורות.</p>
