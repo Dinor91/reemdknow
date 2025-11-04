@@ -5,7 +5,7 @@ export const Partners = () => {
     <section className="bg-muted/50 py-12">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
-          <h2 className="mb-8 text-2xl font-bold text-foreground">שווה לקפוץ לביקור.</h2>
+          <h2 className="mb-8 text-2xl font-bold text-foreground">המלצות על חברים</h2>
           
           <div className="flex justify-center">
             <a 
@@ -17,8 +17,8 @@ export const Partners = () => {
               <div className="inline-block rounded-lg bg-card p-4 shadow-sm border border-border transition-all hover:shadow-md hover:scale-105">
                 <img 
                   src={ddSamuiTours} 
-                  alt="D.D SAMUI Tours - מדברים עברית" 
-                  className="w-32 h-32 object-cover rounded-lg mb-2"
+                  alt="D.D SAMUI Tours - טיולים ואטרקציות נבחרים בקוסמוי" 
+                  className="w-32 h-32 object-contain rounded-lg mb-2 mx-auto"
                 />
                 <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                   D.D SAMUI Tours
