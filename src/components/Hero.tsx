@@ -11,7 +11,7 @@ export const Hero = () => {
           
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button asChild size="lg" className="bg-whatsapp hover:bg-whatsapp/90 text-white w-full sm:w-auto">
-              <a href="https://chat.whatsapp.com/J5w8NJTGSWpDGEEBxTTH7L" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+              <a href="https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5" />
                 הצטרפו אלינו בווטסאפ
               </a>
