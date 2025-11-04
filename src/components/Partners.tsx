@@ -17,13 +17,13 @@ export const Partners = () => {
               <div className="inline-block rounded-lg bg-card p-4 shadow-sm border border-border transition-all hover:shadow-md hover:scale-105">
                 <img 
                   src={ddSamuiTours} 
-                  alt="D.D SAMUI Tours - טיולים ואטרקציות נבחרים בקוסמוי" 
+                  alt="D.D SAMUI Tours - טיולים ואטרקציות נבחרות בקוסמוי" 
                   className="w-32 h-32 object-contain rounded-lg mb-2 mx-auto"
                 />
                 <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                   D.D SAMUI Tours
                 </p>
-                <p className="text-xs text-muted-foreground">טיולים ואטרקציות נבחרים בקוסמוי</p>
+                <p className="text-xs text-muted-foreground">טיולים ואטרקציות נבחרות בקוסמוי</p>
               </div>
             </a>
           </div>
