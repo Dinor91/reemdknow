@@ -5,7 +5,7 @@ export const Partners = () => {
     <section className="bg-muted/50 py-12">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
-          <h2 className="mb-8 text-2xl font-bold text-foreground">השותפים שלנו</h2>
+          <h2 className="mb-8 text-2xl font-bold text-foreground">שווה לקפוץ לביקור.</h2>
           
           <div className="flex justify-center">
             <a 
@@ -23,7 +23,7 @@ export const Partners = () => {
                 <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                   D.D SAMUI Tours
                 </p>
-                <p className="text-xs text-muted-foreground">מדברים עברית</p>
+                <p className="text-xs text-muted-foreground">טיולים ואטרקציות נבחרים בקוסמוי</p>
               </div>
             </a>
           </div>
