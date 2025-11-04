@@ -3,7 +3,7 @@ import logo from "@/assets/logo.jpg";
 export const Footer = () => {
   return <footer className="bg-muted py-12">
       <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-4xl text-center">
           <div className="mb-6 rounded-lg bg-card p-6 shadow-sm border border-border">
             <div className="mb-3 flex items-center gap-2 flex-row-reverse justify-center">
               <Info className="h-5 w-5 text-muted-foreground" />
