@@ -18,7 +18,7 @@ export const Hero = () => {
             </Button>
             
             <Button asChild size="lg" className="bg-telegram hover:bg-telegram/90 text-white w-full sm:w-auto">
-              <a href="https://t.me/+sDJV1Y-Gy803NGM0" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+              <a href="https://t.me/+wJIFEYTlOuUzZjBk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                 <Send className="h-5 w-5" />
                 הצטרפו אלינו בטלגרם
               </a>
