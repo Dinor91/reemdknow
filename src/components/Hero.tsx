@@ -6,7 +6,10 @@ export const Hero = () => {
       <img src={heroImage} alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה לרכב, לבית ולילדים" className="mb-8 w-full md:max-w-6xl md:mx-auto" />
       <div className="container mx-auto px-4 text-center">
         <div className="mx-auto max-w-3xl">
-          <h1 className="mb-6 font-bold tracking-tight md:text-6xl mx-0 text-center text-2xl text-stone-950">המלצות אמיתיות מלאזדה- מוצרים שכל אחד צריך</h1>
+          <h1 className="mb-6 font-bold tracking-tight mx-0 text-center text-stone-950">
+            <span className="block md:hidden text-2xl">המלצות אמיתיות - מוצרים שכל אחד צריך</span>
+            <span className="hidden md:block text-6xl">המלצות אמיתיות מלאזדה- מוצרים שכל אחד צריך</span>
+          </h1>
           
           {/* Benefits section */}
           <div className="mb-8 flex flex-wrap gap-4 justify-center items-center text-sm text-muted-foreground">

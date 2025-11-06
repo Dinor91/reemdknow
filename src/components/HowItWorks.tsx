@@ -35,7 +35,12 @@ export const HowItWorks = () => {
           </div>
 
           <div className="mt-12 rounded-lg bg-primary/10 p-6 border border-primary/30">
-            <p className="text-center text-lg text-foreground">
+            {/* Mobile: Shorter text */}
+            <p className="md:hidden text-center text-base text-foreground">
+              בוחנים דירוג, ביקורות ואמינות החנות
+            </p>
+            {/* Desktop: Full text */}
+            <p className="hidden md:block text-center text-lg text-foreground">
               הסינון שלנו בוחן מספר פרמטרים כמו דירוג המוצר, איכות הביקורות, אמינות החנות ומשלוח מהיר
             </p>
           </div>

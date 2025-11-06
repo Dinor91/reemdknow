@@ -4,7 +4,35 @@ export const About = () => {
         <div className="mx-auto max-w-4xl text-center">
           <h2 className="mb-8 text-3xl font-bold md:text-4xl">?אז מה מיוחד פה</h2>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          {/* Mobile: Show only 2 main cards */}
+          <div className="grid gap-6 md:hidden">
+            <div className="flex gap-4 rounded-lg bg-card p-6 shadow-sm border border-border">
+              <div className="flex-shrink-0 text-3xl">📦</div>
+              <div>
+                <h3 className="mb-2 text-xl font-semibold text-card-foreground">
+                  מוצרים אמיתיים
+                </h3>
+                <p className="text-muted-foreground">
+                  נבדקו בשימוש אישי או דורגו מעולה
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 rounded-lg bg-card p-6 shadow-sm border border-border">
+              <div className="flex-shrink-0 text-3xl">💬</div>
+              <div>
+                <h3 className="mb-2 text-xl font-semibold text-card-foreground">
+                  קהילה תומכת
+                </h3>
+                <p className="text-muted-foreground">
+                  תעזור לכם למצוא את הפתרון הנכון
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop: Show all 4 cards */}
+          <div className="hidden md:grid gap-6 md:grid-cols-2">
             <div className="flex gap-4 rounded-lg bg-card p-6 shadow-sm border border-border">
               <div className="flex-shrink-0 text-3xl">📦</div>
               <div>

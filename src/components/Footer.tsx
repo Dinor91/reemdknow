@@ -11,7 +11,14 @@ export const Footer = () => {
                 גילוי נאות
               </h3>
             </div>
-            <p className="text-muted-foreground leading-relaxed text-center">חלק מהקישורים באתר הם קישורי שותפים אם תקנו דרכם, נקבל עמלה קטנה - עבורכם זה ללא תוספת תשלום ולנו זה עוזר להמשיך לחפש, לבדוק ולהמליץ עבורכם על מוצרים שווים באמת</p>
+            {/* Mobile: Shorter text */}
+            <p className="md:hidden text-muted-foreground text-sm text-center">
+              קישורי שותפים - אם תקנו דרכנו נקבל עמלה קטנה ללא עלות נוספת עבורכם
+            </p>
+            {/* Desktop: Full text */}
+            <p className="hidden md:block text-muted-foreground leading-relaxed text-center">
+              חלק מהקישורים באתר הם קישורי שותפים אם תקנו דרכם, נקבל עמלה קטנה - עבורכם זה ללא תוספת תשלום ולנו זה עוזר להמשיך לחפש, לבדוק ולהמליץ עבורכם על מוצרים שווים באמת
+            </p>
           </div>
 
           <div className="text-center">
