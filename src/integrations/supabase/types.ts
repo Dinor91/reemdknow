@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      lazada_conversions: {
+        Row: {
+          commission_amount: number | null
+          conversion_time: string | null
+          conversion_type: string
+          created_at: string
+          id: string
+          order_amount: number | null
+          order_id: string | null
+          product_id: string | null
+          product_name: string | null
+          raw_data: Json
+          tracking_id: string | null
+        }
+        Insert: {
+          commission_amount?: number | null
+          conversion_time?: string | null
+          conversion_type: string
+          created_at?: string
+          id?: string
+          order_amount?: number | null
+          order_id?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          raw_data: Json
+          tracking_id?: string | null
+        }
+        Update: {
+          commission_amount?: number | null
+          conversion_time?: string | null
+          conversion_type?: string
+          created_at?: string
+          id?: string
+          order_amount?: number | null
+          order_id?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          raw_data?: Json
+          tracking_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
