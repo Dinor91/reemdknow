@@ -103,10 +103,10 @@ export default function Conversions() {
       <main className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
+          <Card className="animate-fade-in">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">סה"כ עמלות</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">סה"כ עמלות</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
               <div className="text-2xl font-bold">
@@ -116,10 +116,10 @@ export default function Conversions() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="animate-fade-in [animation-delay:100ms]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">סה"כ הזמנות</CardTitle>
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">סה"כ הזמנות</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
               <div className="text-2xl font-bold">{totalOrders}</div>
@@ -127,10 +127,10 @@ export default function Conversions() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="animate-fade-in [animation-delay:200ms]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">סה"כ מכירות</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">סה"כ מכירות</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
               <div className="text-2xl font-bold">
@@ -142,8 +142,8 @@ export default function Conversions() {
         </div>
 
         {/* Conversions Table */}
-        <Card>
-          <CardHeader>
+        <Card className="animate-fade-in [animation-delay:300ms]">
+          <CardHeader className="text-right">
             <CardTitle>רשימת המרות</CardTitle>
             <CardDescription>
               כל ההמרות שהתקבלו מ-Lazada
@@ -163,13 +163,13 @@ export default function Conversions() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>תאריך</TableHead>
-                      <TableHead>מספר הזמנה</TableHead>
-                      <TableHead>מוצר</TableHead>
-                      <TableHead>עמלה</TableHead>
-                      <TableHead>סכום הזמנה</TableHead>
-                      <TableHead>Tracking ID</TableHead>
-                      <TableHead>סטטוס</TableHead>
+                      <TableHead className="text-right">תאריך</TableHead>
+                      <TableHead className="text-right">מספר הזמנה</TableHead>
+                      <TableHead className="text-right">מוצר</TableHead>
+                      <TableHead className="text-right">עמלה</TableHead>
+                      <TableHead className="text-right">סכום הזמנה</TableHead>
+                      <TableHead className="text-right">Tracking ID</TableHead>
+                      <TableHead className="text-right">סטטוס</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
