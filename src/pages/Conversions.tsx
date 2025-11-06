@@ -92,11 +92,11 @@ export default function Conversions() {
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">ניהול המרות Lazada</h1>
           <Button variant="outline" onClick={handleSignOut}>
             <LogOut className="mr-2 h-4 w-4" />
             התנתק
           </Button>
+          <h1 className="text-2xl font-bold">ניהול המרות Lazada</h1>
         </div>
       </header>
 
@@ -108,7 +108,7 @@ export default function Conversions() {
               <CardTitle className="text-sm font-medium">סה"כ עמלות</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="text-center">
               <div className="text-2xl font-bold">
                 ฿{totalCommission.toFixed(2)}
               </div>
@@ -121,7 +121,7 @@ export default function Conversions() {
               <CardTitle className="text-sm font-medium">סה"כ הזמנות</CardTitle>
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="text-center">
               <div className="text-2xl font-bold">{totalOrders}</div>
               <p className="text-xs text-muted-foreground">המרות כוללות</p>
             </CardContent>
@@ -132,7 +132,7 @@ export default function Conversions() {
               <CardTitle className="text-sm font-medium">סה"כ מכירות</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="text-center">
               <div className="text-2xl font-bold">
                 ฿{totalRevenue.toFixed(2)}
               </div>
