@@ -163,36 +163,36 @@ export default function Conversions() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-right">תאריך</TableHead>
-                      <TableHead className="text-right">מספר הזמנה</TableHead>
-                      <TableHead className="text-right">מוצר</TableHead>
-                      <TableHead className="text-right">עמלה</TableHead>
-                      <TableHead className="text-right">סכום הזמנה</TableHead>
-                      <TableHead className="text-right">Tracking ID</TableHead>
                       <TableHead className="text-right">סטטוס</TableHead>
+                      <TableHead className="text-right">Tracking ID</TableHead>
+                      <TableHead className="text-right">סכום הזמנה</TableHead>
+                      <TableHead className="text-right">עמלה</TableHead>
+                      <TableHead className="text-right">מוצר</TableHead>
+                      <TableHead className="text-right">מספר הזמנה</TableHead>
+                      <TableHead className="text-right">תאריך</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {conversions.map((conversion) => (
                       <TableRow key={conversion.id}>
                         <TableCell>
-                          {new Date(conversion.created_at).toLocaleDateString('he-IL')}
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {conversion.order_id || '-'}
-                        </TableCell>
-                        <TableCell>{conversion.product_name || '-'}</TableCell>
-                        <TableCell className="font-semibold text-green-600">
-                          ฿{conversion.commission_amount?.toFixed(2) || '0.00'}
-                        </TableCell>
-                        <TableCell>
-                          ฿{conversion.order_amount?.toFixed(2) || '0.00'}
+                          <Badge variant="outline">{conversion.conversion_type}</Badge>
                         </TableCell>
                         <TableCell className="font-mono text-xs">
                           {conversion.tracking_id || '-'}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{conversion.conversion_type}</Badge>
+                          ฿{conversion.order_amount?.toFixed(2) || '0.00'}
+                        </TableCell>
+                        <TableCell className="font-semibold text-green-600">
+                          ฿{conversion.commission_amount?.toFixed(2) || '0.00'}
+                        </TableCell>
+                        <TableCell>{conversion.product_name || '-'}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {conversion.order_id || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(conversion.created_at).toLocaleDateString('he-IL')}
                         </TableCell>
                       </TableRow>
                     ))}
