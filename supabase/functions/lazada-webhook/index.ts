@@ -70,18 +70,10 @@ Deno.serve(async (req) => {
   try {
     console.log('Received webhook from Lazada');
     
-    // Parse URL parameters (Lazada sends data as query params or POST body)
+    // Parse URL parameters (Lazada sends all data as query params)
     const url = new URL(req.url);
-    const params = Object.fromEntries(url.searchParams);
+    const webhookData: any = Object.fromEntries(url.searchParams);
     
-    // Try to get data from POST body, fallback to query params
-    let webhookData: any = {};
-    try {
-      webhookData = await req.json();
-    } catch {
-      // If no JSON body, use query parameters
-      webhookData = params;
-    }
     console.log('Webhook data:', JSON.stringify(webhookData, null, 2));
 
     // Create Supabase client
