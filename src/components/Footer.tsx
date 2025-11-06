@@ -1,4 +1,5 @@
 import { Info } from "lucide-react";
+import { Link } from "react-router-dom";
 import logo from "@/assets/logo.jpg";
 export const Footer = () => {
   return <footer className="bg-muted py-12">
@@ -48,7 +49,9 @@ export const Footer = () => {
               </div>
             </div>
             
-            <p className="mt-6 text-xs text-muted-foreground">© 2025 Reem(D)Know. כל הזכויות שמורות.</p>
+            <Link to="/auth" className="mt-6 text-xs text-muted-foreground hover:text-foreground transition-colors inline-block cursor-pointer">
+              © 2025 Reem(D)Know. כל הזכויות שמורות.
+            </Link>
           </div>
         </div>
       </div>
