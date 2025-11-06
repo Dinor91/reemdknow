@@ -319,32 +319,18 @@ const categories: Category[] = [{
 }];
 export const Categories = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const sectionRef = useRef<HTMLElement>(null);
   const hasShownRef = useRef(false);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !hasShownRef.current) {
-            setTimeout(() => {
-              setDialogOpen(true);
-              hasShownRef.current = true;
-            }, 800);
-          }
-        });
-      },
-      { threshold: 0.3 }
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
+  const handleProductClick = () => {
+    if (!hasShownRef.current) {
+      setTimeout(() => {
+        setDialogOpen(true);
+        hasShownRef.current = true;
+      }, 1500);
     }
+  };
 
-    return () => observer.disconnect();
-  }, []);
-
-  return <section ref={sectionRef} className="bg-muted py-16 md:py-20">
+  return <section className="bg-muted py-16 md:py-20">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-6xl">
           <h2 className="mb-4 text-center text-3xl font-bold md:text-4xl">מוצרים נבחרים</h2>
@@ -374,7 +360,7 @@ export const Categories = () => {
                   <AccordionContent className="px-6 pb-4">
                     <div className="grid gap-3 sm:grid-cols-2 mt-2">
                       {category.products.map((product, productIndex) => <Button key={productIndex} variant="outline" className="justify-between h-auto py-3 px-4" asChild>
-                          <a href={product.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-row-reverse">
+                          <a href={product.link} target="_blank" rel="noopener noreferrer" onClick={handleProductClick} className="flex items-center gap-2 flex-row-reverse">
                             <span className="text-right flex-1">{product.name}</span>
                             <ExternalLink className="h-4 w-4 flex-shrink-0" />
                           </a>
@@ -411,7 +397,7 @@ export const Categories = () => {
                   <AccordionContent className="px-6 pb-4">
                     <div className="grid gap-3 sm:grid-cols-2 mt-2">
                       {categories[8].products.map((product, productIndex) => <Button key={productIndex} variant="outline" className="justify-between h-auto py-3 px-4" asChild>
-                          <a href={product.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-row-reverse">
+                          <a href={product.link} target="_blank" rel="noopener noreferrer" onClick={handleProductClick} className="flex items-center gap-2 flex-row-reverse">
                             <span className="text-right flex-1">{product.name}</span>
                             <ExternalLink className="h-4 w-4 flex-shrink-0" />
                           </a>
