@@ -1,6 +1,8 @@
 import { Home, Baby, Sparkles, Hammer, Trees, Tent, Utensils, Sofa, ShieldCheck, WashingMachine, ExternalLink } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
+import { CallToActionBanner } from "./CallToActionBanner";
+import { useEffect, useRef, useState } from "react";
 interface Product {
   name: string;
   link: string;
@@ -316,7 +318,33 @@ const categories: Category[] = [{
   }]
 }];
 export const Categories = () => {
-  return <section className="bg-muted py-16 md:py-20">
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+  const hasShownRef = useRef(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasShownRef.current) {
+            setTimeout(() => {
+              setDialogOpen(true);
+              hasShownRef.current = true;
+            }, 800);
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return <section ref={sectionRef} className="bg-muted py-16 md:py-20">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-6xl">
           <h2 className="mb-4 text-center text-3xl font-bold md:text-4xl">מוצרים נבחרים</h2>
@@ -395,5 +423,6 @@ export const Categories = () => {
             </div>}
         </div>
       </div>
+      <CallToActionBanner open={dialogOpen} onOpenChange={setDialogOpen} />
     </section>;
 };

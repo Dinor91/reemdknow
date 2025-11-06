@@ -3,7 +3,6 @@ import { About } from "@/components/About";
 import { Categories } from "@/components/Categories";
 import { HowItWorks } from "@/components/HowItWorks";
 import { Partners } from "@/components/Partners";
-import { CallToActionBanner } from "@/components/CallToActionBanner";
 import { Footer } from "@/components/Footer";
 
 const Index = () => {
@@ -14,7 +13,6 @@ const Index = () => {
       <Categories />
       <HowItWorks />
       <Partners />
-      <CallToActionBanner />
       <Footer />
     </div>
   );
