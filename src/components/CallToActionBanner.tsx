@@ -13,8 +13,8 @@ export const CallToActionBanner = ({ open, onOpenChange }: CallToActionBannerPro
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="mx-auto mb-4 inline-flex items-center gap-2 bg-primary/20 rounded-full px-4 py-2">
+            <span className="text-sm font-semibold text-primary">! הצעה מיוחדת</span>
             <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-            <span className="text-sm font-semibold text-primary">הצעה מיוחדת!</span>
           </div>
           <DialogTitle className="text-2xl text-center">
             הצטרפו לקהילה שלנו
@@ -43,7 +43,7 @@ export const CallToActionBanner = ({ open, onOpenChange }: CallToActionBannerPro
           </div>
           
           <p className="text-center text-sm text-muted-foreground">
-            ✨ יותר מ-1000 חברים כבר נהנים מההמלצות שלנו
+            ✨ מאות חברים כבר נהנים מההמלצות שלנו
           </p>
         </div>
       </DialogContent>
