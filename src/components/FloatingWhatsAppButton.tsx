@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { trackWhatsAppClick } from "@/lib/analytics";
 
 const WhatsAppIcon = () => (
   <svg
@@ -17,6 +18,7 @@ export const FloatingWhatsAppButton = () => {
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 left-6 z-50 animate-bounce hover:animate-none"
+      onClick={trackWhatsAppClick}
     >
       <Button
         size="lg"
