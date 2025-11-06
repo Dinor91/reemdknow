@@ -5,6 +5,53 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const GA4_MEASUREMENT_ID = Deno.env.get('GA4_MEASUREMENT_ID');
+const GA4_API_SECRET = Deno.env.get('GA4_API_SECRET');
+
+async function sendToGoogleAnalytics(conversionData: any) {
+  if (!GA4_MEASUREMENT_ID || !GA4_API_SECRET) {
+    console.warn('GA4 credentials not configured, skipping analytics');
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `https://www.google-analytics.com/mp/collect?measurement_id=${GA4_MEASUREMENT_ID}&api_secret=${GA4_API_SECRET}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          client_id: conversionData.tracking_id || 'unknown',
+          events: [
+            {
+              name: 'purchase',
+              params: {
+                transaction_id: conversionData.order_id,
+                value: conversionData.order_amount,
+                currency: 'THB',
+                items: [
+                  {
+                    item_id: conversionData.product_id,
+                    item_name: conversionData.product_name,
+                    price: conversionData.commission_amount,
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Failed to send to GA4:', await response.text());
+    } else {
+      console.log('Successfully sent conversion to GA4');
+    }
+  } catch (error) {
+    console.error('Error sending to GA4:', error);
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -53,6 +100,9 @@ Deno.serve(async (req) => {
     }
 
     console.log('Conversion stored successfully:', data.id);
+
+    // Send to Google Analytics
+    await sendToGoogleAnalytics(conversionData);
 
     // Return success response
     return new Response(
