@@ -4,6 +4,7 @@ import { Categories } from "@/components/Categories";
 import { HowItWorks } from "@/components/HowItWorks";
 import { Partners } from "@/components/Partners";
 import { Footer } from "@/components/Footer";
+import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
 
 const Index = () => {
   return (
@@ -14,6 +15,7 @@ const Index = () => {
       <HowItWorks />
       <Partners />
       <Footer />
+      <FloatingWhatsAppButton />
     </div>
   );
 };
