@@ -175,23 +175,23 @@ export default function Conversions() {
                   <TableBody>
                     {conversions.map((conversion) => (
                       <TableRow key={conversion.id}>
-                        <TableCell>
+                        <TableCell className="text-right">
                           <Badge variant="outline">{conversion.conversion_type}</Badge>
                         </TableCell>
-                        <TableCell className="font-mono text-xs">
+                        <TableCell className="font-mono text-xs text-right">
                           {conversion.tracking_id || '-'}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           ฿{conversion.order_amount?.toFixed(2) || '0.00'}
                         </TableCell>
-                        <TableCell className="font-semibold text-green-600">
+                        <TableCell className="font-semibold text-green-600 text-right">
                           ฿{conversion.commission_amount?.toFixed(2) || '0.00'}
                         </TableCell>
-                        <TableCell>{conversion.product_name || '-'}</TableCell>
-                        <TableCell className="font-mono text-sm">
+                        <TableCell className="text-right">{conversion.product_name || '-'}</TableCell>
+                        <TableCell className="font-mono text-sm text-right">
                           {conversion.order_id || '-'}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           {new Date(conversion.created_at).toLocaleDateString('he-IL')}
                         </TableCell>
                       </TableRow>
