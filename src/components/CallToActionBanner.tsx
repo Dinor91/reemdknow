@@ -17,7 +17,7 @@ export const CallToActionBanner = ({ open, onOpenChange }: CallToActionBannerPro
             <Sparkles className="h-4 w-4 text-primary animate-pulse" />
           </div>
           <DialogTitle className="text-2xl text-center">
-            הצטרפו לקהילה שלנו
+            הצטרפו לקהילה שלי
           </DialogTitle>
         </DialogHeader>
         
@@ -43,7 +43,7 @@ export const CallToActionBanner = ({ open, onOpenChange }: CallToActionBannerPro
           </div>
           
           <p className="text-center text-sm text-muted-foreground">
-            ✨ מאות חברים כבר נהנים מההמלצות שלנו
+            ✨ מאות חברים כבר נהנים מההמלצות שלי
           </p>
         </div>
       </DialogContent>

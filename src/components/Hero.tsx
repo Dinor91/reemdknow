@@ -15,14 +15,14 @@ export const Hero = () => {
             <Button asChild size="lg" className="bg-whatsapp hover:bg-whatsapp/90 hover:scale-105 transition-all text-white w-full sm:w-auto shadow-lg text-base py-6">
               <a href="https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                 <MessageCircle className="h-6 w-6" />
-                <span className="font-semibold">הצטרפו אלינו בווטסאפ</span>
+                <span className="font-semibold">הצטרפו אליי בווטסאפ</span>
               </a>
             </Button>
             
             <Button asChild size="lg" className="bg-telegram hover:bg-telegram/90 hover:scale-105 transition-all text-white w-full sm:w-auto shadow-lg text-base py-6">
               <a href="https://t.me/+wJIFEYTlOuUzZjBk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                 <Send className="h-6 w-6" />
-                <span className="font-semibold">הצטרפו אלינו בטלגרם</span>
+                <span className="font-semibold">הצטרפו אליי בטלגרם</span>
               </a>
             </Button>
           </div>
