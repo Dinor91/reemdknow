@@ -58,11 +58,30 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Handle GET requests for URL validation
+  if (req.method === 'GET') {
+    console.log('GET request received - URL validation');
+    return new Response(
+      JSON.stringify({ status: 'ok', message: 'Lazada webhook endpoint is ready' }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     console.log('Received webhook from Lazada');
     
-    // Parse the incoming webhook data
-    const webhookData = await req.json();
+    // Parse URL parameters (Lazada sends data as query params or POST body)
+    const url = new URL(req.url);
+    const params = Object.fromEntries(url.searchParams);
+    
+    // Try to get data from POST body, fallback to query params
+    let webhookData: any = {};
+    try {
+      webhookData = await req.json();
+    } catch {
+      // If no JSON body, use query parameters
+      webhookData = params;
+    }
     console.log('Webhook data:', JSON.stringify(webhookData, null, 2));
 
     // Create Supabase client
