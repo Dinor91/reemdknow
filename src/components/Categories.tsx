@@ -256,7 +256,7 @@ const categories: Category[] = [{
     link: "https://c.lazada.co.th/t/c.X31t4z?sub_aff_id=Reem%28D%29Know"
   }, {
     name: "גדר לבריכה",
-    link: "https://c.lazada.co.th/t/c.X31tPa?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know"
+    link: "https://s.lazada.co.th/s.ZZimFo?cc"
   }, {
     name: "ממטרה+צינור",
     link: "https://c.lazada.co.th/t/c.X31t90?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know"
