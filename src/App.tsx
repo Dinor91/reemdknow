@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import Landing from "./pages/Landing";
 import Israel from "./pages/Israel";
 import Thailand from "./pages/Thailand";
 import NotFound from "./pages/NotFound";
@@ -31,7 +32,7 @@ const AppContent = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/israel" replace />} />
+      <Route path="/" element={<Landing />} />
       <Route path="/israel" element={<Israel />} />
       <Route path="/thailand" element={<Thailand />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
