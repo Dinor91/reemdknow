@@ -41,3 +41,11 @@ export const trackProductClick = (productName: string, productUrl: string) => {
     product_url: productUrl
   });
 };
+
+export const trackCountrySwitch = (country: string, fromPage: string) => {
+  trackEvent('country_switch', {
+    event_category: 'navigation',
+    event_label: country,
+    from_page: fromPage
+  });
+};
