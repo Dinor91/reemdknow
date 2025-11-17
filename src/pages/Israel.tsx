@@ -28,7 +28,7 @@ const Israel = () => {
                 מוצרים מומלצים
               </h2>
               <p className="text-xl font-semibold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent animate-fade-in">
-                ✨ ממש בקרוב יופיעו כאן ריכוז המלצות שוות ✨
+                ממש בקרוב יופיעו כאן ריכוז המלצות שוות ✨
               </p>
               <a 
                 href="https://s.click.aliexpress.com/e/_c4WQp8zf"
@@ -36,7 +36,7 @@ const Israel = () => {
                 rel="noopener noreferrer"
                 className="inline-block mt-6 text-lg font-bold text-primary hover:text-primary/80 transition-all duration-300 hover:scale-105 underline decoration-2 underline-offset-4"
               >
-                🎉 מבצעי יום הרווקים עדיין פעילים - לחצו כאן כדי להיכנס
+                מבצעי יום הרווקים עדיין פעילים - לחצו כאן כדי להיכנס 🎉
               </a>
             </div>
           </div>
