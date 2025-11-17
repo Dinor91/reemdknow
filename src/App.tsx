@@ -20,7 +20,7 @@ const AppContent = () => {
     setIsLoading(true);
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 3000);
+    }, 800);
 
     return () => clearTimeout(timer);
   }, [location.pathname]);
