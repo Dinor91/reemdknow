@@ -27,12 +27,12 @@ export const Hero = ({
         <div className="mx-auto max-w-3xl">
           <h1 className="mb-6 font-bold tracking-tight mx-0 text-center text-stone-950">
             <span className="block md:hidden text-2xl">המלצות אמיתיות - מוצרים שכל אחד צריך</span>
-            <span className="hidden md:flex items-center justify-center gap-4 text-6xl">
-              המלצות אמיתיות מ
+            <span className="hidden md:flex items-center justify-center gap-2 text-6xl">
+              המלצות אמיתיות
               <img 
                 src={country === "thailand" ? lazadaLogo : aliexpressLogo} 
                 alt={country === "thailand" ? "Lazada" : "AliExpress"} 
-                className="h-16 inline-block"
+                className="h-[1em] inline-block align-middle"
               />
               - מוצרים שכל אחד צריך
             </span>
