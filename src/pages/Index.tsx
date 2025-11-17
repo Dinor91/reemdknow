@@ -12,14 +12,14 @@ const Index = () => {
     <div className="min-h-screen">
       <Header />
       <div className="pt-16">
-        <Hero />
+        <Hero country="thailand" />
         <About />
         <Categories />
         <HowItWorks />
         <Partners />
         <Footer />
       </div>
-      <FloatingWhatsAppButton />
+      <FloatingWhatsAppButton country="thailand" />
     </div>
   );
 };

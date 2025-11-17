@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { trackWhatsAppClick } from "@/lib/analytics";
+import { trackFBLead } from "./FacebookPixel";
 
 const WhatsAppIcon = () => (
   <svg
@@ -11,14 +12,27 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
-export const FloatingWhatsAppButton = () => {
+interface FloatingWhatsAppButtonProps {
+  country: "israel" | "thailand";
+}
+
+export const FloatingWhatsAppButton = ({ country }: FloatingWhatsAppButtonProps) => {
+  const whatsappLink = country === "israel" 
+    ? "https://chat.whatsapp.com/IsraelGroupLink" 
+    : "https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j";
+
+  const handleClick = () => {
+    trackWhatsAppClick();
+    trackFBLead(`WhatsApp Float - ${country}`);
+  };
+
   return (
     <a
-      href="https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j"
+      href={whatsappLink}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 left-6 z-50 animate-bounce hover:animate-none"
-      onClick={trackWhatsAppClick}
+      onClick={handleClick}
     >
       <Button
         size="lg"
