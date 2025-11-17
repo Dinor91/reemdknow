@@ -31,7 +31,7 @@ const AppContent = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/thailand" replace />} />
+      <Route path="/" element={<Navigate to="/israel" replace />} />
       <Route path="/israel" element={<Israel />} />
       <Route path="/thailand" element={<Thailand />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
