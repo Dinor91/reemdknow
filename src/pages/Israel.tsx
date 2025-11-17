@@ -27,7 +27,7 @@ const Israel = () => {
               <h2 className="text-3xl font-bold text-foreground mb-6">
                 מוצרים מומלצים
               </h2>
-              <p className="text-xl font-semibold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent animate-fade-in">
+              <p className="text-base sm:text-lg md:text-xl font-semibold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent animate-fade-in">
                 ממש בקרוב יופיעו כאן ריכוז המלצות שוות ✨
               </p>
               <a 
