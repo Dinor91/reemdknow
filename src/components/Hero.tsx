@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Send, Users, Gift, Sparkles } from "lucide-react";
+import { MessageCircle, Send } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
+import lazadaLogo from "@/assets/lazada-logo.png";
+import aliexpressLogo from "@/assets/aliexpress-logo.svg";
 import { trackWhatsAppClick, trackTelegramClick } from "@/lib/analytics";
 import { trackFBLead } from "./FacebookPixel";
 interface HeroProps {
@@ -25,8 +27,15 @@ export const Hero = ({
         <div className="mx-auto max-w-3xl">
           <h1 className="mb-6 font-bold tracking-tight mx-0 text-center text-stone-950">
             <span className="block md:hidden text-2xl">המלצות אמיתיות - מוצרים שכל אחד צריך</span>
-            <span className="hidden md:block text-6xl">המלצות אמיתיות מאליאקספרס-
-מוצרים שכל אחד צריך</span>
+            <span className="hidden md:flex items-center justify-center gap-4 text-6xl">
+              המלצות אמיתיות מ
+              <img 
+                src={country === "thailand" ? lazadaLogo : aliexpressLogo} 
+                alt={country === "thailand" ? "Lazada" : "AliExpress"} 
+                className="h-16 inline-block"
+              />
+              - מוצרים שכל אחד צריך
+            </span>
           </h1>
           
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center items-center">
