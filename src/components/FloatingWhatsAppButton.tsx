@@ -18,7 +18,7 @@ interface FloatingWhatsAppButtonProps {
 
 export const FloatingWhatsAppButton = ({ country }: FloatingWhatsAppButtonProps) => {
   const whatsappLink = country === "israel" 
-    ? "https://chat.whatsapp.com/IsraelGroupLink" 
+    ? "https://chat.whatsapp.com/Dfcih86pI6D35dehovi5KN" 
     : "https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j";
 
   const handleClick = () => {

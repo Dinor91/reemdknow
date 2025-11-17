@@ -10,11 +10,11 @@ interface HeroProps {
 
 export const Hero = ({ country }: HeroProps) => {
   const whatsappLink = country === "israel" 
-    ? "https://chat.whatsapp.com/IsraelGroupLink" 
+    ? "https://chat.whatsapp.com/Dfcih86pI6D35dehovi5KN" 
     : "https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j";
   
   const telegramLink = country === "israel"
-    ? "https://t.me/+IsraelGroupLink"
+    ? "https://t.me/+Wi46HCt_SbU3YWI0"
     : "https://t.me/+wJIFEYTlOuUzZjBk";
 
   const handleWhatsAppClick = () => {
