@@ -34,9 +34,9 @@ const Israel = () => {
                 href="https://s.click.aliexpress.com/e/_c4WQp8zf"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block mt-6 text-lg font-bold text-primary hover:text-primary/80 transition-all duration-300 hover:scale-105 underline decoration-2 underline-offset-4"
+                className="inline-block mt-6 text-base sm:text-lg md:text-xl font-bold text-primary hover:text-primary/80 transition-all duration-300 hover:scale-105 underline decoration-2 underline-offset-4"
               >
-                מבצעי יום הרווקים עדיין פעילים - לחצו כאן כדי להיכנס 🎉
+                מבצעי יום הרווקים - לחצו כאן 🎉
               </a>
             </div>
           </div>
