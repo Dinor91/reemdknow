@@ -15,20 +15,6 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const location = useLocation();
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [location.pathname]);
-
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
 
   return (
     <Routes>
