@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Send } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
-import lazadaLogo from "@/assets/lazada-logo.png";
-import aliexpressLogo from "@/assets/aliexpress-logo.svg";
+import thailandHeroTitle from "@/assets/thailand-hero-title.png";
+import israelHeroTitle from "@/assets/israel-hero-title.png";
 import { trackWhatsAppClick, trackTelegramClick } from "@/lib/analytics";
 import { trackFBLead } from "./FacebookPixel";
 interface HeroProps {
@@ -25,17 +25,12 @@ export const Hero = ({
       <img src={heroImage} alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה לרכב, לבית ולילדים" className="mb-8 w-full md:max-w-6xl md:mx-auto" />
       <div className="container mx-auto px-4 text-center">
         <div className="mx-auto max-w-3xl">
-          <h1 className="mb-6 font-bold tracking-tight mx-0 text-center text-stone-950">
-            <span className="block md:hidden text-2xl">המלצות אמיתיות - מוצרים שכל אחד צריך</span>
-            <span className="hidden md:flex items-center justify-center gap-2 text-6xl">
-              המלצות אמיתיות
-              <img 
-                src={country === "thailand" ? lazadaLogo : aliexpressLogo} 
-                alt={country === "thailand" ? "Lazada" : "AliExpress"} 
-                className="h-[1em] inline-block align-middle"
-              />
-              - מוצרים שכל אחד צריך
-            </span>
+          <h1 className="mb-6 mx-0 text-center">
+            <img 
+              src={country === "thailand" ? thailandHeroTitle : israelHeroTitle}
+              alt={country === "thailand" ? "המלצות אמיתיות Lazada - מוצרים שכל אחד צריך" : "המלצות אמיתיות AliExpress - מוצרים שכל אחד צריך"}
+              className="w-full max-w-3xl mx-auto"
+            />
           </h1>
           
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center items-center">
