@@ -1,5 +1,6 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { About } from "@/components/About";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, ShoppingBag, Users, TrendingUp, ArrowRight } from "lucide-react";
@@ -176,6 +177,9 @@ const Landing = () => {
             </div>
           </div>
         </section>
+
+        {/* About Section */}
+        <About />
 
         {/* Value Proposition */}
         <section className="py-16 md:py-24 bg-muted">
