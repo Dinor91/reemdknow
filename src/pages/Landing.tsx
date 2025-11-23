@@ -166,15 +166,6 @@ const Landing = () => {
               </Link>
             </div>
 
-            {/* Coming Soon */}
-            <div className="text-center mt-16">
-              <p className="text-muted-foreground text-lg mb-4">
-                ועוד יעדים בקרוב...
-              </p>
-              <div className="flex justify-center gap-4 text-3xl opacity-50">
-                🇻🇳 🇮🇩 🇲🇾
-              </div>
-            </div>
           </div>
         </section>
 
