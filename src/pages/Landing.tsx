@@ -31,13 +31,29 @@ const Landing = () => {
           <img src={heroImage} alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה" className="mb-8 w-full md:max-w-6xl md:mx-auto" />
           <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-4xl">
-              <h1 className="mb-6 text-3xl md:text-5xl font-bold text-foreground text-center leading-tight">
+              {/* Mobile heading */}
+              <h1 className="mb-6 md:hidden text-3xl font-bold text-foreground text-center leading-tight">
+                המלצות אמיתיות על מוצרים שווים
+                <br />
+                <span className="text-primary">רק מה שעובר סינון קפדני</span>
+              </h1>
+              
+              {/* Desktop heading */}
+              <h1 className="mb-6 hidden md:block text-5xl font-bold text-foreground text-center leading-tight">
                 המלצות אמיתיות
                 <br />
                 <span className="text-primary">כאלה שכל אחד צריך</span>
               </h1>
 
-              <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-center leading-relaxed">
+              {/* Mobile description */}
+              <p className="md:hidden text-base text-muted-foreground mb-8 max-w-2xl mx-auto text-center leading-relaxed">
+                נבחרו בקפידה ועברו סינון קפדני
+                <br />
+                אני כאן בשבילכם בכל מקום בעולם
+              </p>
+
+              {/* Desktop description */}
+              <p className="hidden md:block text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-center leading-relaxed">
                 מוצרים שנבחרו בקפידה- נבדקו אישית, עברו סינון קפדני ובעלי דירוג גבוה
                 <br />
                 בין אם אתם בארץ או בצד השני של העולם- אני כאן בשבילכם
