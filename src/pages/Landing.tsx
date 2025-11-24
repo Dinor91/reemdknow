@@ -109,7 +109,7 @@ const Landing = () => {
                     </div>
                     
                     <p className="text-muted-foreground mb-6 leading-relaxed">
-                      הצטרפו אליי וקבלו המלצות ודילים החל ממוצרים לבית דרך גאדג'טים ועד למשחקי ילדים
+                      רוצים לנסות לנצח את יוקר המחייה? לחצו פה       
                     </p>
 
                     <div className="flex items-center justify-center gap-3 mb-6">
@@ -140,7 +140,7 @@ const Landing = () => {
                     </div>
                     
                     <p className="text-muted-foreground mb-6 leading-relaxed">
-                      מוצרים נבחרים במיוחד עבור תושבים ומטיילים בתאילנד
+                      מטיילים פה, רילוקיישן? זה המקום הנכון       
                     </p>
 
                     <div className="flex items-center justify-center gap-3 mb-6">
