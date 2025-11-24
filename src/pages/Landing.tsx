@@ -11,42 +11,36 @@ import aliexpressLogo from "@/assets/aliexpress-logo.svg";
 import { trackEvent } from "@/lib/analytics";
 import { FacebookPixel, trackFBViewContent } from "@/components/FacebookPixel";
 import { useEffect } from "react";
-
 const Landing = () => {
   useEffect(() => {
     trackFBViewContent("Landing Page");
     document.title = "Reem(D)Know - המלצות חכמות בכל מקום בעולם";
   }, []);
-
   const handleCountryClick = (country: string) => {
     trackEvent("landing_country_click", {
       event_category: "navigation",
-      event_label: country,
+      event_label: country
     });
   };
-
-  return (
-    <div className="min-h-screen">
+  return <div className="min-h-screen">
       <FacebookPixel />
       <Header />
       <div className="pt-16">
         {/* Hero Section */}
         <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-12 md:py-20">
-          <img
-            src={heroImage}
-            alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה"
-            className="mb-8 w-full md:max-w-6xl md:mx-auto"
-          />
+          <img src={heroImage} alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה" className="mb-8 w-full md:max-w-6xl md:mx-auto" />
           <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-4xl">
               <h1 className="mb-6 text-3xl md:text-5xl font-bold text-foreground">
-                המלצות חכמות
+                -המלצות אמיתיות
+בכל מקום בעולם
                 <br />
-                <span className="text-primary">בכל מקום בעולם</span>
+                <span className="text-primary">כאלה שכל אחד צריך      </span>
               </h1>
 
               <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                מוצרים שנבחרו בקפידה, נבדקו אישית, ומומלצים על ידי קהילה של ישראלים
+                מוצרים שנבחרו בקפידה- נבדקו אישית, עברו סינון קפדני ובעלי דירוג גבוה
+בין אם אתם בארץ או בצד השני שלו - אני כאן בשבילכם
                 <br />
                 בין אם אתם בארץ או בצד השני של כדור הארץ - אנחנו כאן בשבילכם
               </p>
@@ -167,7 +161,7 @@ const Landing = () => {
         <section className="py-16 md:py-24 bg-muted">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center space-y-8">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground">למה Reem(D)Know?</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground">?(D)Konw למה  </h2>
 
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="bg-card p-6 rounded-lg border border-border">
@@ -203,8 +197,6 @@ const Landing = () => {
 
         <Footer />
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Landing;
