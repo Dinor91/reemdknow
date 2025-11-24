@@ -31,11 +31,11 @@ const Landing = () => {
           <img src={heroImage} alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה" className="mb-8 w-full md:max-w-6xl md:mx-auto" />
           <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-4xl">
-              <h1 className="mb-6 text-3xl md:text-5xl font-bold text-foreground">
+              <h1 className="mb-6 text-3xl md:text-5xl font-bold text-foreground text-center">
                 -המלצות אמיתיות
 בכל מקום בעולם
                 <br />
-                <span className="text-primary">כאלה שכל אחד צריך      </span>
+                <span className="text-primary text-center">כאלה שכל אחד צריך      </span>
               </h1>
 
               <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-center">
