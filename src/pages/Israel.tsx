@@ -1,5 +1,4 @@
 import { Hero } from "@/components/Hero";
-import { HowItWorks } from "@/components/HowItWorks";
 import { Partners } from "@/components/Partners";
 import { Footer } from "@/components/Footer";
 import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
@@ -48,7 +47,6 @@ const Israel = () => {
             </div>
           </div>
         </section>
-        <HowItWorks />
         <Partners />
         <Footer />
       </div>

@@ -1,5 +1,4 @@
 import { Hero } from "@/components/Hero";
-import { HowItWorks } from "@/components/HowItWorks";
 import { Partners } from "@/components/Partners";
 import { Footer } from "@/components/Footer";
 import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
@@ -30,7 +29,6 @@ const Thailand = () => {
           </div>
         </section>
         <Categories />
-        <HowItWorks />
         <Partners />
         <Footer />
       </div>
