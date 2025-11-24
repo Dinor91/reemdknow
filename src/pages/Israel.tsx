@@ -5,15 +5,12 @@ import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
 import { Header } from "@/components/Header";
 import { FacebookPixel, trackFBViewContent } from "@/components/FacebookPixel";
 import { useEffect } from "react";
-
 const Israel = () => {
   useEffect(() => {
     trackFBViewContent("Israel Page");
     document.title = "Reem(D)Know - המוצרים השווים AliExpress";
   }, []);
-
-  return (
-    <div className="min-h-screen">
+  return <div className="min-h-screen">
       <FacebookPixel />
       <Header />
       <div className="pt-16">
@@ -36,12 +33,7 @@ const Israel = () => {
               <p className="text-lg text-muted-foreground mb-12">
                 ממש בקרוב יופיעו כאן ריכוז המלצות שוות ✨
               </p>
-              <a 
-                href="https://s.click.aliexpress.com/e/_c3PanH6H?bz=725*90"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-6 text-lg sm:text-xl md:text-2xl font-semibold text-orange-500 hover:text-orange-600 transition-all duration-300 hover:scale-105 underline decoration-2 underline-offset-4"
-              >
+              <a href="https://s.click.aliexpress.com/e/_c3PanH6H?bz=725*90" target="_blank" rel="noopener noreferrer" className="inline-block mt-6 text-lg sm:text-xl md:text-2xl font-semibold transition-all duration-300 hover:scale-105 underline decoration-2 underline-offset-4 text-orange-600">
                 BLACK FRIDAY
                 <br />
                 המבצעים התחילו בואו להציץ 🎉
@@ -53,8 +45,6 @@ const Israel = () => {
         <Footer />
       </div>
       <FloatingWhatsAppButton country="israel" />
-    </div>
-  );
+    </div>;
 };
-
 export default Israel;
