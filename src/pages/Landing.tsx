@@ -42,8 +42,6 @@ const Landing = () => {
               <h1 className="mb-6 text-3xl md:text-5xl font-bold text-foreground text-center leading-tight">
                 המלצות אמיתיות
                 <br />
-                בכל מקום בעולם
-                <br />
                 <span className="text-primary">כאלה שכל אחד צריך</span>
               </h1>
 
@@ -55,112 +53,6 @@ const Landing = () => {
             </div>
           </div>
         </section>
-
-        {/* Countries Section */}
-        <section className="py-16 md:py-24 bg-background">
-          <div className="container mx-auto px-4">
-            <h2 className="text-2xl md:text-4xl font-bold text-center mb-4 text-foreground">
-              ?איפה אתם בעולם
-            </h2>
-            <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-              בחרו את היעד שלכם וקבלו המלצות מותאמות אישית
-            </p>
-
-            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-              {/* Israel Card */}
-              <Link 
-                to="/israel" 
-                onClick={() => handleCountryClick("israel")}
-                className="group"
-              >
-                <Card className="overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 h-full bg-gradient-to-br from-background via-background to-primary/5">
-                  <CardContent className="p-8">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                          <MapPin className="w-6 h-6 text-primary" />
-                        </div>
-                        <h3 className="text-2xl md:text-3xl font-bold text-foreground">ישראל</h3>
-                      </div>
-                      <span className="text-4xl">🇮🇱</span>
-                    </div>
-                    
-                    <p className="text-muted-foreground mb-6 leading-relaxed">
-                      הצטרפו אליי וקבלו המלצות ודילים החל ממוצרים לבית דרך גאדג'טים ועד למשחקי ילדים
-                    </p>
-
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-3 bg-background rounded-lg border border-border">
-                        <img 
-                          src={aliexpressLogo} 
-                          alt="AliExpress" 
-                          className="h-6 w-auto"
-                        />
-                      </div>
-                      <span className="text-sm text-muted-foreground">המוצרים הכי שווים מ-AliExpress</span>
-                    </div>
-
-                    <Button 
-                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-primary hover:bg-primary/90 text-lg py-6"
-                      size="lg"
-                    >
-                      <span>לחצו כאן לקטלוג המוצרים</span>
-                      <ArrowRight className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              {/* Thailand Card */}
-              <Link 
-                to="/thailand" 
-                onClick={() => handleCountryClick("thailand")}
-                className="group"
-              >
-                <Card className="overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 h-full bg-gradient-to-br from-background via-background to-secondary/5">
-                  <CardContent className="p-8">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center group-hover:bg-secondary/20 transition-colors">
-                          <MapPin className="w-6 h-6 text-secondary" />
-                        </div>
-                        <h3 className="text-2xl md:text-3xl font-bold text-foreground">תאילנד</h3>
-                      </div>
-                      <span className="text-4xl">🇹🇭</span>
-                    </div>
-                    
-                    <p className="text-muted-foreground mb-6 leading-relaxed">
-                      מוצרים נבחרים במיוחד עבור תושבים ומטיילים בתאילנד
-                    </p>
-
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-3 bg-background rounded-lg border border-border">
-                        <img 
-                          src={lazadaLogo} 
-                          alt="Lazada" 
-                          className="h-6 w-auto"
-                        />
-                      </div>
-                      <span className="text-sm text-muted-foreground">הדילים הכי חמים מ-Lazada</span>
-                    </div>
-
-                    <Button 
-                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-secondary hover:bg-secondary/90 text-lg py-6"
-                      size="lg"
-                      variant="secondary"
-                    >
-                      <span>לחצו כאן לקטלוג המוצרים</span>
-                      <ArrowRight className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* About Section */}
-        <About />
 
         {/* Stats Section */}
         <section className="py-16 md:py-24 bg-muted">
@@ -200,6 +92,108 @@ const Landing = () => {
             </div>
           </div>
         </section>
+
+        {/* Countries Section */}
+        <section className="py-16 md:py-24 bg-background">
+          <div className="container mx-auto px-4">
+            <h2 className="text-2xl md:text-4xl font-bold text-center mb-4 text-foreground">
+              ?איפה אתם בעולם
+            </h2>
+            <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+              בחרו את היעד שלכם וקבלו המלצות מותאמות אישית
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              {/* Israel Card */}
+              <Link 
+                to="/israel" 
+                onClick={() => handleCountryClick("israel")}
+                className="group"
+              >
+                <Card className="overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 h-full bg-gradient-to-br from-background via-background to-primary/5">
+                  <CardContent className="p-8 text-center">
+                    <div className="flex items-center justify-center gap-3 mb-6">
+                      <span className="text-4xl">🇮🇱</span>
+                      <h3 className="text-2xl md:text-3xl font-bold text-foreground">ישראל</h3>
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                        <MapPin className="w-6 h-6 text-primary" />
+                      </div>
+                    </div>
+                    
+                    <p className="text-muted-foreground mb-6 leading-relaxed">
+                      הצטרפו אליי וקבלו המלצות ודילים החל ממוצרים לבית דרך גאדג'טים ועד למשחקי ילדים
+                    </p>
+
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-3 bg-background rounded-lg border border-border">
+                        <img 
+                          src={aliexpressLogo} 
+                          alt="AliExpress" 
+                          className="h-6 w-auto"
+                        />
+                      </div>
+                      <span className="text-sm text-muted-foreground">המוצרים הכי שווים מ-AliExpress</span>
+                    </div>
+
+                    <Button 
+                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-primary hover:bg-primary/90 text-lg py-6"
+                      size="lg"
+                    >
+                      <span>לחצו כאן לקטלוג המוצרים</span>
+                      <ArrowRight className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              {/* Thailand Card */}
+              <Link 
+                to="/thailand" 
+                onClick={() => handleCountryClick("thailand")}
+                className="group"
+              >
+                <Card className="overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 h-full bg-gradient-to-br from-background via-background to-secondary/5">
+                  <CardContent className="p-8 text-center">
+                    <div className="flex items-center justify-center gap-3 mb-6">
+                      <span className="text-4xl">🇹🇭</span>
+                      <h3 className="text-2xl md:text-3xl font-bold text-foreground">תאילנד</h3>
+                      <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center group-hover:bg-secondary/20 transition-colors">
+                        <MapPin className="w-6 h-6 text-secondary" />
+                      </div>
+                    </div>
+                    
+                    <p className="text-muted-foreground mb-6 leading-relaxed">
+                      מוצרים נבחרים במיוחד עבור תושבים ומטיילים בתאילנד
+                    </p>
+
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-3 bg-background rounded-lg border border-border">
+                        <img 
+                          src={lazadaLogo} 
+                          alt="Lazada" 
+                          className="h-6 w-auto"
+                        />
+                      </div>
+                      <span className="text-sm text-muted-foreground">הדילים הכי חמים מ-Lazada</span>
+                    </div>
+
+                    <Button 
+                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-secondary hover:bg-secondary/90 text-lg py-6"
+                      size="lg"
+                      variant="secondary"
+                    >
+                      <span>לחצו כאן לקטלוג המוצרים</span>
+                      <ArrowRight className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* About Section */}
+        <About />
 
         <Footer />
       </div>
