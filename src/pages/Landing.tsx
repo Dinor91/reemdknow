@@ -61,7 +61,7 @@ const Landing = () => {
         </section>
 
         {/* Countries Section */}
-        <section className="py-16 md:py-24 bg-muted">
+        <section className="py-8 md:py-12 bg-muted">
           <div className="container mx-auto px-4">
             <h2 className="text-2xl md:text-4xl font-bold text-center mb-4 text-foreground">
               ?איפה אתם בעולם
