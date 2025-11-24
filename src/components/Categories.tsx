@@ -334,7 +334,7 @@ export const Categories = () => {
     }
   };
 
-  return <section className="bg-muted py-16 md:py-20">
+  return <section className="bg-background py-16 md:py-20">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-6xl">
           <h2 className="mb-4 text-center text-3xl font-bold text-orange-500 md:text-4xl">מוצרים מומלצים</h2>
