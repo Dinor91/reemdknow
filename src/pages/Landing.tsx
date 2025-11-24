@@ -35,7 +35,7 @@ const Landing = () => {
               <h1 className="mb-6 md:hidden text-3xl font-bold text-foreground text-center leading-tight">
                 המלצות אמיתיות על מוצרים שווים
                 <br />
-                <span className="text-primary">רק מה שעובר סינון קפדני</span>
+                <span className="text-primary text-[1.7rem]">רק מה שעובר סינון קפדני</span>
               </h1>
               
               {/* Desktop heading */}
@@ -65,39 +65,34 @@ const Landing = () => {
         {/* Stats Section */}
         <section className="pt-12 md:pt-16 pb-16 md:pb-24 bg-muted">
           <div className="container mx-auto px-4">
-            {/* Mobile heading */}
-            <h2 className="md:hidden text-2xl font-bold text-center mb-12 text-foreground">
-              מספרים מספרים
-            </h2>
-            
             {/* Desktop heading */}
             <h2 className="hidden md:block text-4xl font-bold text-center mb-12 text-foreground">
               למה אלפי ישראלים בוחרים בנו?
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
               <div className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="hidden md:flex w-16 h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-4">
                   <ShoppingBag className="w-8 h-8 text-primary" />
                 </div>
                 <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">500+</div>
                 <div className="text-sm text-muted-foreground">מוצרים נבחרים</div>
               </div>
               <div className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="hidden md:flex w-16 h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-4">
                   <Users className="w-8 h-8 text-primary" />
                 </div>
                 <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">10K+</div>
                 <div className="text-sm text-muted-foreground">לקוחות מרוצים</div>
               </div>
               <div className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="hidden md:flex w-16 h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-4">
                   <TrendingUp className="w-8 h-8 text-primary" />
                 </div>
                 <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">95%</div>
                 <div className="text-sm text-muted-foreground">שביעות רצון</div>
               </div>
               <div className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="hidden md:flex w-16 h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-4">
                   <MapPin className="w-8 h-8 text-primary" />
                 </div>
                 <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">2</div>
