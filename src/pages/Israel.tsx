@@ -30,7 +30,7 @@ const Israel = () => {
         <section className="py-16 bg-background">
           <div className="container mx-auto px-4">
             <div className="mx-auto max-w-4xl text-center">
-              <h2 className="text-3xl font-bold text-foreground mb-6">
+              <h2 className="text-3xl font-bold text-orange-500 mb-6">
                 מוצרים מומלצים
               </h2>
               <p className="text-base sm:text-lg md:text-xl font-semibold text-foreground animate-fade-in">
