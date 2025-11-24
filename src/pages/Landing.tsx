@@ -124,7 +124,7 @@ const Landing = () => {
                       הצטרפו אליי וקבלו המלצות ודילים החל ממוצרים לבית דרך גאדג'טים ועד למשחקי ילדים
                     </p>
 
-                    <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center justify-center gap-3 mb-6">
                       <div className="p-3 bg-background rounded-lg border border-border">
                         <img 
                           src={aliexpressLogo} 
@@ -166,7 +166,7 @@ const Landing = () => {
                       מוצרים נבחרים במיוחד עבור תושבים ומטיילים בתאילנד
                     </p>
 
-                    <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center justify-center gap-3 mb-6">
                       <div className="p-3 bg-background rounded-lg border border-border">
                         <img 
                           src={lazadaLogo} 
