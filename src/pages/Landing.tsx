@@ -138,6 +138,9 @@ const Landing = () => {
           </div>
         </section>
 
+        {/* About Section */}
+        <About />
+
         {/* Stats Section */}
         <section className="pt-12 md:pt-16 pb-16 md:pb-24 bg-background">
           <div className="container mx-auto px-4">
@@ -177,9 +180,6 @@ const Landing = () => {
             </div>
           </div>
         </section>
-
-        {/* About Section */}
-        <About />
 
         <Footer />
       </div>
