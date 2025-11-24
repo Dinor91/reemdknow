@@ -47,9 +47,9 @@ const Landing = () => {
 
               {/* Mobile description */}
               <p className="md:hidden text-base text-muted-foreground mb-8 max-w-2xl mx-auto text-center leading-relaxed">
-                נבחרו בקפידה ועברו סינון קפדני
+                מוצרים שווים שעברו סינון קפדני
                 <br />
-                אני כאן בשבילכם בכל מקום בעולם
+                במזרח או מערב- אני כאן בשבילכם
               </p>
 
               {/* Desktop description */}
@@ -65,7 +65,13 @@ const Landing = () => {
         {/* Stats Section */}
         <section className="pt-12 md:pt-16 pb-16 md:pb-24 bg-muted">
           <div className="container mx-auto px-4">
-            <h2 className="text-2xl md:text-4xl font-bold text-center mb-12 text-foreground">
+            {/* Mobile heading */}
+            <h2 className="md:hidden text-2xl font-bold text-center mb-12 text-foreground">
+              מספרים מספרים
+            </h2>
+            
+            {/* Desktop heading */}
+            <h2 className="hidden md:block text-4xl font-bold text-center mb-12 text-foreground">
               למה אלפי ישראלים בוחרים בנו?
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
