@@ -37,12 +37,12 @@ const Israel = () => {
                 ממש בקרוב יופיעו כאן ריכוז המלצות שוות ✨
               </p>
               <a 
-                href="https://s.click.aliexpress.com/e/_c4WQp8zf"
+                href="https://s.click.aliexpress.com/e/_c3PanH6H?bz=725*90"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block mt-6 text-lg sm:text-xl md:text-2xl font-semibold text-orange-500 hover:text-orange-600 transition-all duration-300 hover:scale-105 underline decoration-2 underline-offset-4"
               >
-                מבצעי יום הרווקים - לחצו כאן 🎉
+                מבצעי BLACK FRIDAY כבר התחילו - מוזמנים להציץ 🎉
               </a>
             </div>
           </div>
