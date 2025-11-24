@@ -27,7 +27,7 @@ const Landing = () => {
       <Header />
       <div className="pt-16">
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-12 md:py-20">
+        <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-12 md:py-16 pb-8 md:pb-12">
           <img src={heroImage} alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה" className="mb-8 w-full md:max-w-6xl md:mx-auto" />
           <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-4xl">
@@ -47,7 +47,7 @@ const Landing = () => {
         </section>
 
         {/* Stats Section */}
-        <section className="py-16 md:py-24 bg-muted">
+        <section className="pt-12 md:pt-16 pb-16 md:pb-24 bg-muted">
           <div className="container mx-auto px-4">
             <h2 className="text-2xl md:text-4xl font-bold text-center mb-12 text-foreground">
               למה אלפי ישראלים בוחרים בנו?
