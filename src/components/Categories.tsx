@@ -340,11 +340,10 @@ export const Categories = () => {
           <p className="mb-12 text-center text-lg text-muted-foreground">לחצו על הקטגוריה הרצויה כדי לראות את המוצרים והקישור לאתר לאזדה</p>
 
           {/* First 8 categories in 2 columns */}
-          <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <Accordion type="single" collapsible className="grid md:grid-cols-2 gap-6 mb-6">
             {categories.slice(0, 8).map((category, index) => {
             const Icon = category.icon;
-            return <Accordion key={index} type="single" collapsible>
-                <AccordionItem value={`item-${index}`} className="rounded-lg bg-card shadow-sm border border-border overflow-hidden">
+            return <AccordionItem key={index} value={`item-${index}`} className="rounded-lg bg-card shadow-sm border border-border overflow-hidden">
                   <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-3 flex-row-reverse w-full">
                       <div className="rounded-full bg-primary/10 p-2">
@@ -370,10 +369,9 @@ export const Categories = () => {
                         </Button>)}
                     </div>
                   </AccordionContent>
-                </AccordionItem>
-              </Accordion>;
+                </AccordionItem>;
           })}
-          </div>
+          </Accordion>
 
           {/* 9th category centered */}
           {categories[8] && <div className="max-w-2xl mx-auto">
