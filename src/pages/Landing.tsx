@@ -11,32 +11,24 @@ import aliexpressLogo from "@/assets/aliexpress-logo.svg";
 import { trackEvent } from "@/lib/analytics";
 import { FacebookPixel, trackFBViewContent } from "@/components/FacebookPixel";
 import { useEffect } from "react";
-
 const Landing = () => {
   useEffect(() => {
     trackFBViewContent("Landing Page");
     document.title = "Reem(D)Know - המלצות חכמות בכל מקום בעולם";
   }, []);
-
   const handleCountryClick = (country: string) => {
     trackEvent("landing_country_click", {
       event_category: "navigation",
       event_label: country
     });
   };
-
-  return (
-    <div className="min-h-screen">
+  return <div className="min-h-screen">
       <FacebookPixel />
       <Header />
       <div className="pt-16">
         {/* Hero Section */}
         <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-12 md:py-20">
-          <img 
-            src={heroImage} 
-            alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה" 
-            className="mb-8 w-full md:max-w-6xl md:mx-auto" 
-          />
+          <img src={heroImage} alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה" className="mb-8 w-full md:max-w-6xl md:mx-auto" />
           <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-4xl">
               <h1 className="mb-6 text-3xl md:text-5xl font-bold text-foreground text-center leading-tight">
@@ -105,11 +97,7 @@ const Landing = () => {
 
             <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
               {/* Israel Card */}
-              <Link 
-                to="/israel" 
-                onClick={() => handleCountryClick("israel")}
-                className="group"
-              >
+              <Link to="/israel" onClick={() => handleCountryClick("israel")} className="group">
                 <Card className="overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 h-full bg-gradient-to-br from-background via-background to-primary/5">
                   <CardContent className="p-8 text-center">
                     <div className="flex items-center justify-center gap-3 mb-6">
@@ -126,19 +114,12 @@ const Landing = () => {
 
                     <div className="flex items-center justify-center gap-3 mb-6">
                       <div className="p-3 bg-background rounded-lg border border-border">
-                        <img 
-                          src={aliexpressLogo} 
-                          alt="AliExpress" 
-                          className="h-6 w-auto"
-                        />
+                        <img src={aliexpressLogo} alt="AliExpress" className="h-6 w-auto" />
                       </div>
-                      <span className="text-sm text-muted-foreground">המוצרים הכי שווים מ-AliExpress</span>
+                      <span className="text-sm text-muted-foreground">Aliexpress-המוצרים השווים </span>
                     </div>
 
-                    <Button 
-                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-primary hover:bg-primary/90 text-lg py-6"
-                      size="lg"
-                    >
+                    <Button className="w-full group-hover:shadow-lg transition-all duration-300 bg-primary hover:bg-primary/90 text-lg py-6" size="lg">
                       <span>לחצו כאן לקטלוג המוצרים</span>
                       <ArrowRight className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
@@ -147,11 +128,7 @@ const Landing = () => {
               </Link>
 
               {/* Thailand Card */}
-              <Link 
-                to="/thailand" 
-                onClick={() => handleCountryClick("thailand")}
-                className="group"
-              >
+              <Link to="/thailand" onClick={() => handleCountryClick("thailand")} className="group">
                 <Card className="overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 h-full bg-gradient-to-br from-background via-background to-secondary/5">
                   <CardContent className="p-8 text-center">
                     <div className="flex items-center justify-center gap-3 mb-6">
@@ -168,20 +145,12 @@ const Landing = () => {
 
                     <div className="flex items-center justify-center gap-3 mb-6">
                       <div className="p-3 bg-background rounded-lg border border-border">
-                        <img 
-                          src={lazadaLogo} 
-                          alt="Lazada" 
-                          className="h-6 w-auto"
-                        />
+                        <img src={lazadaLogo} alt="Lazada" className="h-6 w-auto" />
                       </div>
-                      <span className="text-sm text-muted-foreground">הדילים הכי חמים מ-Lazada</span>
+                      <span className="text-sm text-muted-foreground">Lazada-הדילים הכי חמים      </span>
                     </div>
 
-                    <Button 
-                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-secondary hover:bg-secondary/90 text-lg py-6"
-                      size="lg"
-                      variant="secondary"
-                    >
+                    <Button className="w-full group-hover:shadow-lg transition-all duration-300 bg-secondary hover:bg-secondary/90 text-lg py-6" size="lg" variant="secondary">
                       <span>לחצו כאן לקטלוג המוצרים</span>
                       <ArrowRight className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
@@ -197,8 +166,6 @@ const Landing = () => {
 
         <Footer />
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Landing;
