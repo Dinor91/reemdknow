@@ -42,7 +42,9 @@ const Israel = () => {
                 rel="noopener noreferrer"
                 className="inline-block mt-6 text-lg sm:text-xl md:text-2xl font-semibold text-orange-500 hover:text-orange-600 transition-all duration-300 hover:scale-105 underline decoration-2 underline-offset-4"
               >
-                מבצעי BLACK FRIDAY כבר התחילו - מוזמנים להציץ 🎉
+                BLACK FRIDAY
+                <br />
+                המבצעים התחילו בואו להציץ 🎉
               </a>
             </div>
           </div>
