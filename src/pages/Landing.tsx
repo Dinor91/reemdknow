@@ -129,12 +129,12 @@ const Landing = () => {
                         <h3 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
                           ישראל 🇮🇱
                         </h3>
-                        <p className="text-muted-foreground text-lg">המלצות אמיתיות מ-AliExpress</p>
+                        <p className="text-muted-foreground text-lg">יוקר המחייה מעצבן גם אתכם? זה המקום הנכון        </p>
                       </div>
 
                       <div className="bg-muted p-4 rounded-lg">
                         <p className="text-sm text-foreground">
-                          ✨ מוצרים שנבדקו על ידי משפחה וחברים
+                          הצטרפו אליי וקבלו המלצות ודילים באליאקפרס      
                           <br />
                           🎉 מבצעים מיוחדים
                           <br />
@@ -161,7 +161,16 @@ const Landing = () => {
         <section className="py-16 md:py-24 bg-muted">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center space-y-8">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground">?(D)Konw למה  </h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+
+
+
+
+
+
+?(D)Konw למה  
+                          
+                    </h2>
 
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="bg-card p-6 rounded-lg border border-border">
