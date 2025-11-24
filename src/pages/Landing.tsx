@@ -45,11 +45,6 @@ const Landing = () => {
                 <span className="text-primary">כאלה שכל אחד צריך</span>
               </h1>
 
-              {/* Mobile description */}
-              <p className="md:hidden text-lg text-muted-foreground mb-8 max-w-2xl mx-auto text-center leading-relaxed">
-                במזרח או מערב- אני כאן בשבילכם
-              </p>
-
               {/* Desktop description */}
               <p className="hidden md:block text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-center leading-relaxed">
                 מוצרים שנבחרו בקפידה- נבדקו אישית, עברו סינון קפדני ובעלי דירוג גבוה
