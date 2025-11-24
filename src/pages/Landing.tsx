@@ -94,12 +94,12 @@ const Landing = () => {
                         <h3 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
                           תאילנד 🇹🇭
                         </h3>
-                        <p className="text-muted-foreground text-lg">המלצות אמיתיות מ-Lazada</p>
+                        <p className="text-muted-foreground text-lg">טיול משפחתי, רילוקשיין? זה המקום הנכון      </p>
                       </div>
 
                       <div className="bg-muted p-4 rounded-lg">
                         <p className="text-sm text-foreground">
-                          ✨ מוצרים שנבחרו על ידי ישראלים בתאילנד
+                          הצטרפו אליי וקבלו המלצות ודילים החל ממוצרים לבין דרך גאדג'טים ועד למשחקי ילדים              
                           <br />
                           🚀 משלוחים מהירים
                           <br />
