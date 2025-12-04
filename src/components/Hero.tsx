@@ -58,7 +58,7 @@ export const Hero = ({ country }: HeroProps) => {
                 onClick={handleWhatsAppClick}
               >
                 <MessageCircle className="h-6 w-6" />
-                <span className="font-semibold">קח אותי לווטסאפ</span>
+                <span className="font-semibold">בווטסאפ</span>
               </a>
             </Button>
 
@@ -75,7 +75,7 @@ export const Hero = ({ country }: HeroProps) => {
                 onClick={handleTelegramClick}
               >
                 <Send className="h-6 w-6" />
-                <span className="font-semibold">קח אותי לטלגרם</span>
+                <span className="font-semibold">בטלגרם</span>
               </a>
             </Button>
           </div>
