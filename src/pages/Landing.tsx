@@ -28,12 +28,14 @@ const Landing = () => {
       <Header />
       <div className="pt-16">
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-12 md:py-16 pb-8 md:pb-12">
-          <img
-            src={heroImage}
-            alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה"
-            className="mb-8 w-full md:max-w-6xl md:mx-auto"
-          />
+        <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-8 md:py-16 pb-6 md:pb-12">
+          <div className="px-4 md:px-0">
+            <img
+              src={heroImage}
+              alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה"
+              className="mb-6 md:mb-8 w-full max-w-full md:max-w-6xl mx-auto rounded-lg md:rounded-none object-cover"
+            />
+          </div>
           <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-4xl">
               {/* Mobile heading */}
