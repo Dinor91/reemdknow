@@ -110,9 +110,6 @@ const Landing = () => {
                     <div className="flex items-center justify-center gap-3 mb-6">
                       <span className="text-4xl">🇹🇭</span>
                       <h3 className="text-2xl md:text-3xl font-bold text-foreground">תאילנד</h3>
-                      <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center group-hover:bg-secondary/20 transition-colors">
-                        <MapPin className="w-6 h-6 text-secondary" />
-                      </div>
                     </div>
 
                     <p className="text-muted-foreground mb-6 leading-relaxed">מטיילים פה, רילוקיישן? זה המקום הנכון</p>
