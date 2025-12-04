@@ -38,8 +38,9 @@ export const Hero = ({ country }: HeroProps) => {
         <div className="mx-auto max-w-5xl">
           <img src={heroBanner} alt={altText} className="w-full max-w-4xl mx-auto mb-8" />
 
-          <p className="text-center text-lg md:text-xl font-semibold mb-4" style={{ color: "#41b5b3" }}>
-            ?איפה אתה רוצה לקבל את ההמלצות הכי חמות
+          <p className="text-center text-xl md:text-2xl font-semibold mb-4" style={{ color: "#41b5b3" }}>
+            <span className="block md:inline">?איפה אתה רוצה לקבל את ההמלצות</span>
+            <span className="block md:inline"> הכי חמות</span>
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
