@@ -2,7 +2,7 @@ export const About = () => {
   return <section className="py-16 md:py-20">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
-          <h2 className="mb-8 text-3xl font-bold md:text-4xl">?אז מה מיוחד פה</h2>
+          <h2 className="mb-8 text-3xl font-bold md:text-4xl text-[#41b5b3]">?אז מה מיוחד פה</h2>
 
           {/* Mobile: Show only 2 main cards */}
           <div className="grid gap-6 md:hidden">
