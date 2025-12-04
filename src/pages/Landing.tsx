@@ -38,9 +38,9 @@ const Landing = () => {
             <div className="mx-auto max-w-4xl">
               {/* Mobile heading */}
               <h1 className="mb-6 md:hidden text-3xl font-bold text-foreground text-center leading-tight">
-                המלצות אמיתיות על מוצרים שווים
+                המלצות אמינות על מוצרים שווים
                 <br />
-                <span className="text-primary text-[1.7rem]">רק מה שעובר סינון קפדני</span>
+                <span className="text-primary text-[1.7rem]">מאחד שיודע</span>
               </h1>
 
               {/* Desktop heading */}
