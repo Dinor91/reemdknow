@@ -54,7 +54,7 @@ const Landing = () => {
 
               {/* Desktop description */}
               <p className="hidden md:block text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-center leading-relaxed">
-                מוצרים שנבחרו בקפידה- נבדקו אישית, עברו סינון קפדני ובעלי דירוג גבוה
+                מוצרים שנבחרו בקפידה- נבדקו אישית, עברו סינון ובעלי דירוג גבוה
                 <br />
                 בין אם אתם בארץ או בצד השני של העולם- אני כאן בשבילכם
               </p>
@@ -87,7 +87,7 @@ const Landing = () => {
                     </div>
 
                     <p className="text-muted-foreground mb-6 leading-relaxed text-lg md:text-xl">
-                      רוצים להקל על יוקר המחיה?
+                      ?רוצים להקל על יוקר המחיה
                     </p>
 
                     <Button
@@ -109,7 +109,9 @@ const Landing = () => {
                       <span className="text-4xl">🇹🇭</span>
                     </div>
 
-                    <p className="text-muted-foreground mb-6 leading-relaxed text-lg md:text-xl">מטיילים פה? רילוקיישן?</p>
+                    <p className="text-muted-foreground mb-6 leading-relaxed text-lg md:text-xl">
+                      מטיילים פה? רילוקיישן?
+                    </p>
 
                     <Button
                       className="w-full group-hover:shadow-lg transition-all duration-300 bg-[#f28433] hover:bg-[#f28433]/90 text-lg py-6 text-white"
