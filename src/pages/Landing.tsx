@@ -110,7 +110,7 @@ const Landing = () => {
                     </div>
 
                     <p className="text-muted-foreground mb-6 leading-relaxed text-lg md:text-xl">
-                      מטיילים פה? רילוקיישן?
+                      ?מטיילים פה? רילוקיישן
                     </p>
 
                     <Button
