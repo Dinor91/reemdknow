@@ -90,7 +90,7 @@ const Landing = () => {
                     </div>
 
                     <Button className="w-full group-hover:shadow-lg transition-all duration-300 bg-primary hover:bg-primary/90 text-lg py-6" size="lg">
-                      <span>לחצו כאן לקטלוג המוצרים</span>
+                      <span>לחץ כאן להתחלה</span>
                       <ArrowRight className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </CardContent>
@@ -121,7 +121,7 @@ const Landing = () => {
                     </div>
 
                     <Button className="w-full group-hover:shadow-lg transition-all duration-300 bg-secondary hover:bg-secondary/90 text-lg py-6" size="lg" variant="secondary">
-                      <span>לחצו כאן לקטלוג המוצרים</span>
+                      <span>לחץ כאן להתחלה</span>
                       <ArrowRight className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </CardContent>
