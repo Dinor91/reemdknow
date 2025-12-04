@@ -39,10 +39,10 @@ const Landing = () => {
           <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-4xl">
               {/* Mobile heading */}
-              <h1 className="mb-6 md:hidden text-3xl font-bold text-foreground text-center leading-tight">
-                המלצות אמינות על מוצרים שווים
+              <h1 className="mb-6 md:hidden text-foreground text-center leading-tight">
+                <span className="text-[1.5rem] font-bold">המלצות אמינות מוצרים שווים</span>
                 <br />
-                <span className="text-primary text-[1.7rem]">מאחד שיודע</span>
+                <span className="text-3xl font-bold text-[#f28433]">מאחד שיודע</span>
               </h1>
 
               {/* Desktop heading */}
