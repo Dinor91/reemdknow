@@ -39,17 +39,17 @@ const Landing = () => {
           <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-4xl">
               {/* Mobile heading */}
-              <h1 className="mb-6 md:hidden text-foreground text-center leading-tight">
+              <h1 className="mb-2 md:hidden text-foreground text-center leading-tight">
                 <span className="text-[1.5rem] font-bold">המלצות אמינות מוצרים שווים</span>
                 <br />
-                <span className="text-3xl font-bold text-[#f28433]">מאחד שיודע</span>
+                <span className="text-3xl font-bold text-[#41b5b3]">מאחד שיודע</span>
               </h1>
 
               {/* Desktop heading */}
-              <h1 className="mb-6 hidden md:block text-5xl font-bold text-foreground text-center leading-tight">
-                המלצות אמיתיות
+              <h1 className="mb-6 hidden md:block text-foreground text-center leading-tight">
+                <span className="text-4xl lg:text-5xl font-bold">המלצות אמינות מוצרים שווים</span>
                 <br />
-                <span className="text-primary">כאלה שכל אחד צריך</span>
+                <span className="text-5xl lg:text-6xl font-bold text-[#41b5b3]">מאחד שיודע</span>
               </h1>
 
               {/* Desktop description */}
@@ -91,7 +91,7 @@ const Landing = () => {
                     </p>
 
                     <Button
-                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-primary hover:bg-primary/90 text-lg py-6"
+                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-[#f28433] hover:bg-[#f28433]/90 text-lg py-6"
                       size="lg"
                     >
                       <span>לחץ כאן להתחלה</span>
@@ -112,9 +112,8 @@ const Landing = () => {
                     <p className="text-muted-foreground mb-6 leading-relaxed">מטיילים פה, רילוקיישן? זה המקום הנכון</p>
 
                     <Button
-                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-secondary hover:bg-secondary/90 text-lg py-6"
+                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-[#f28433] hover:bg-[#f28433]/90 text-lg py-6 text-white"
                       size="lg"
-                      variant="secondary"
                     >
                       <span>לחץ כאן להתחלה</span>
                     </Button>
