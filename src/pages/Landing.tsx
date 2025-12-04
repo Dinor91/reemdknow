@@ -88,13 +88,6 @@ const Landing = () => {
                       רוצים לנסות לנצח את יוקר המחייה? לחצו פה
                     </p>
 
-                    <div className="flex items-center justify-center gap-3 mb-6">
-                      <div className="p-3 bg-background rounded-lg border border-border">
-                        <img src={aliexpressLogo} alt="AliExpress" className="h-6 w-auto" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">Aliexpress-המוצרים השווים </span>
-                    </div>
-
                     <Button
                       className="w-full group-hover:shadow-lg transition-all duration-300 bg-primary hover:bg-primary/90 text-lg py-6"
                       size="lg"
@@ -116,13 +109,6 @@ const Landing = () => {
                     </div>
 
                     <p className="text-muted-foreground mb-6 leading-relaxed">מטיילים פה, רילוקיישן? זה המקום הנכון</p>
-
-                    <div className="flex items-center justify-center gap-3 mb-6">
-                      <div className="p-3 bg-background rounded-lg border border-border">
-                        <img src={lazadaLogo} alt="Lazada" className="h-6 w-auto" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">Lazada-הדילים הכי חמים </span>
-                    </div>
 
                     <Button
                       className="w-full group-hover:shadow-lg transition-all duration-300 bg-secondary hover:bg-secondary/90 text-lg py-6"
