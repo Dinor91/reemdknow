@@ -42,6 +42,10 @@ export const Hero = ({ country }: HeroProps) => {
             className="w-full max-w-4xl mx-auto mb-8"
           />
           
+          <p className="text-center text-lg md:text-xl font-semibold mb-4" style={{ color: '#41b5b3' }}>
+            איפה אתה רוצה לקבל את ההמלצות הכי חמות?
+          </p>
+          
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button asChild size="lg" className="bg-whatsapp hover:bg-whatsapp/90 hover:scale-105 transition-all text-white w-full sm:w-auto shadow-lg text-base py-6">
               <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2" onClick={handleWhatsAppClick}>
