@@ -64,10 +64,11 @@ const Landing = () => {
         <section className="py-8 md:py-12 bg-muted">
           <div className="container mx-auto px-4">
             <h2 className="text-2xl md:text-4xl font-bold text-center mb-4 text-foreground">?איפה אתם בעולם</h2>
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-              <MapPin className="w-6 h-6 text-primary" />
-            </div>
+
             <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                <MapPin className="w-6 h-6 text-primary" />
+              </div>
               בחרו את היעד שלכם וקבלו המלצות מותאמות אישית
             </p>
 
