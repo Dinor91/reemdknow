@@ -87,14 +87,14 @@ const Landing = () => {
                     </div>
 
                     <p className="text-muted-foreground mb-6 leading-relaxed text-lg md:text-xl">
-                      רוצים לנסות לנצח את יוקר המחייה? לחצו פה
+                      רוצים להקל על יוקר המחיה?
                     </p>
 
                     <Button
                       className="w-full group-hover:shadow-lg transition-all duration-300 bg-[#f28433] hover:bg-[#f28433]/90 text-lg py-6"
                       size="lg"
                     >
-                      <span>לחץ כאן להתחלה</span>
+                      <span>לחץ כאן</span>
                     </Button>
                   </CardContent>
                 </Card>
@@ -109,13 +109,13 @@ const Landing = () => {
                       <span className="text-4xl">🇹🇭</span>
                     </div>
 
-                    <p className="text-muted-foreground mb-6 leading-relaxed text-lg md:text-xl">מטיילים פה, רילוקיישן? זה המקום הנכון</p>
+                    <p className="text-muted-foreground mb-6 leading-relaxed text-lg md:text-xl">מטיילים פה? רילוקיישן?</p>
 
                     <Button
                       className="w-full group-hover:shadow-lg transition-all duration-300 bg-[#f28433] hover:bg-[#f28433]/90 text-lg py-6 text-white"
                       size="lg"
                     >
-                      <span>לחץ כאן להתחלה</span>
+                      <span>לחץ כאן</span>
                     </Button>
                   </CardContent>
                 </Card>
