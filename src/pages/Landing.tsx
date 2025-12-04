@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, ShoppingBag, Users, TrendingUp, ArrowRight, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-import heroImage from "@/assets/hero-image.jpg";
+import heroImage from "@/assets/hero-banner-new.jpeg";
 import lazadaLogo from "@/assets/lazada-logo.png";
 import aliexpressLogo from "@/assets/aliexpress-logo.svg";
 import { trackEvent } from "@/lib/analytics";
