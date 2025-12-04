@@ -72,7 +72,7 @@ const Landing = () => {
               </div>
             </h2>
 
-            <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+            <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto text-lg md:text-xl">
               בחרו את היעד שלכם וקבלו המלצות מותאמות אישית
             </p>
 
@@ -86,7 +86,7 @@ const Landing = () => {
                       <span className="text-4xl">🇮🇱</span>
                     </div>
 
-                    <p className="text-muted-foreground mb-6 leading-relaxed">
+                    <p className="text-muted-foreground mb-6 leading-relaxed text-lg md:text-xl">
                       רוצים לנסות לנצח את יוקר המחייה? לחצו פה
                     </p>
 
@@ -109,7 +109,7 @@ const Landing = () => {
                       <span className="text-4xl">🇹🇭</span>
                     </div>
 
-                    <p className="text-muted-foreground mb-6 leading-relaxed">מטיילים פה, רילוקיישן? זה המקום הנכון</p>
+                    <p className="text-muted-foreground mb-6 leading-relaxed text-lg md:text-xl">מטיילים פה, רילוקיישן? זה המקום הנכון</p>
 
                     <Button
                       className="w-full group-hover:shadow-lg transition-all duration-300 bg-[#f28433] hover:bg-[#f28433]/90 text-lg py-6 text-white"
@@ -131,8 +131,8 @@ const Landing = () => {
         <section className="pt-12 md:pt-16 pb-16 md:pb-24 bg-background">
           <div className="container mx-auto px-4">
             {/* Desktop heading */}
-            <h2 className="hidden md:block text-4xl font-bold text-center mb-12 text-foreground">
-              למה אלפי ישראלים בוחרים בנו?
+            <h2 className="hidden md:block text-4xl font-bold text-center mb-12 text-[#41b5b3]">
+              ?למה אלפי ישראלים בוחרים בנו
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
               <div className="text-center">
