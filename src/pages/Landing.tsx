@@ -111,8 +111,8 @@ const Landing = () => {
                 <Card className="overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 h-full bg-gradient-to-br from-background via-background to-secondary/5">
                   <CardContent className="p-8 text-center">
                     <div className="flex items-center justify-center gap-3 mb-6">
-                      <span className="text-4xl">🇹🇭</span>
                       <h3 className="text-2xl md:text-3xl font-bold text-foreground">תאילנד</h3>
+                      <span className="text-4xl">🇹🇭</span>
                     </div>
 
                     <p className="text-muted-foreground mb-6 leading-relaxed">מטיילים פה, רילוקיישן? זה המקום הנכון</p>
