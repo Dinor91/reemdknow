@@ -19,16 +19,21 @@ const Landing = () => {
   const handleCountryClick = (country: string) => {
     trackEvent("landing_country_click", {
       event_category: "navigation",
-      event_label: country
+      event_label: country,
     });
   };
-  return <div className="min-h-screen">
+  return (
+    <div className="min-h-screen">
       <FacebookPixel />
       <Header />
       <div className="pt-16">
         {/* Hero Section */}
         <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-12 md:py-16 pb-8 md:pb-12">
-          <img src={heroImage} alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה" className="mb-8 w-full md:max-w-6xl md:mx-auto" />
+          <img
+            src={heroImage}
+            alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה"
+            className="mb-8 w-full md:max-w-6xl md:mx-auto"
+          />
           <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-4xl">
               {/* Mobile heading */}
@@ -37,7 +42,7 @@ const Landing = () => {
                 <br />
                 <span className="text-primary text-[1.7rem]">רק מה שעובר סינון קפדני</span>
               </h1>
-              
+
               {/* Desktop heading */}
               <h1 className="mb-6 hidden md:block text-5xl font-bold text-foreground text-center leading-tight">
                 המלצות אמיתיות
@@ -58,9 +63,7 @@ const Landing = () => {
         {/* Countries Section */}
         <section className="py-8 md:py-12 bg-muted">
           <div className="container mx-auto px-4">
-            <h2 className="text-2xl md:text-4xl font-bold text-center mb-4 text-foreground">
-              ?איפה אתם בעולם
-            </h2>
+            <h2 className="text-2xl md:text-4xl font-bold text-center mb-4 text-foreground">?איפה אתם בעולם</h2>
             <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
               בחרו את היעד שלכם וקבלו המלצות מותאמות אישית
             </p>
@@ -77,9 +80,9 @@ const Landing = () => {
                         <MapPin className="w-6 h-6 text-primary" />
                       </div>
                     </div>
-                    
+
                     <p className="text-muted-foreground mb-6 leading-relaxed">
-                      רוצים לנסות לנצח את יוקר המחייה? לחצו פה       
+                      רוצים לנסות לנצח את יוקר המחייה? לחצו פה
                     </p>
 
                     <div className="flex items-center justify-center gap-3 mb-6">
@@ -89,9 +92,12 @@ const Landing = () => {
                       <span className="text-sm text-muted-foreground">Aliexpress-המוצרים השווים </span>
                     </div>
 
-                    <Button className="w-full group-hover:shadow-lg transition-all duration-300 bg-primary hover:bg-primary/90 text-lg py-6" size="lg">
-                      <span>לחץ כאן להתחלה</span>
+                    <Button
+                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-primary hover:bg-primary/90 text-lg py-6"
+                      size="lg"
+                    >
                       <ArrowRight className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                      <span>לחץ כאן להתחלה</span>
                     </Button>
                   </CardContent>
                 </Card>
@@ -108,19 +114,21 @@ const Landing = () => {
                         <MapPin className="w-6 h-6 text-secondary" />
                       </div>
                     </div>
-                    
-                    <p className="text-muted-foreground mb-6 leading-relaxed">
-                      מטיילים פה, רילוקיישן? זה המקום הנכון       
-                    </p>
+
+                    <p className="text-muted-foreground mb-6 leading-relaxed">מטיילים פה, רילוקיישן? זה המקום הנכון</p>
 
                     <div className="flex items-center justify-center gap-3 mb-6">
                       <div className="p-3 bg-background rounded-lg border border-border">
                         <img src={lazadaLogo} alt="Lazada" className="h-6 w-auto" />
                       </div>
-                      <span className="text-sm text-muted-foreground">Lazada-הדילים הכי חמים      </span>
+                      <span className="text-sm text-muted-foreground">Lazada-הדילים הכי חמים </span>
                     </div>
 
-                    <Button className="w-full group-hover:shadow-lg transition-all duration-300 bg-secondary hover:bg-secondary/90 text-lg py-6" size="lg" variant="secondary">
+                    <Button
+                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-secondary hover:bg-secondary/90 text-lg py-6"
+                      size="lg"
+                      variant="secondary"
+                    >
                       <span>לחץ כאן להתחלה</span>
                       <ArrowRight className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
@@ -176,6 +184,7 @@ const Landing = () => {
 
         <Footer />
       </div>
-    </div>;
+    </div>
+  );
 };
 export default Landing;
