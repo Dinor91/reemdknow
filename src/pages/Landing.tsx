@@ -3,7 +3,7 @@ import { Footer } from "@/components/Footer";
 import { About } from "@/components/About";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, ShoppingBag, Users, TrendingUp, ArrowRight } from "lucide-react";
+import { MapPin, ShoppingBag, Users, TrendingUp, ArrowRight, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-image.jpg";
 import lazadaLogo from "@/assets/lazada-logo.png";
@@ -130,7 +130,7 @@ const Landing = () => {
                       variant="secondary"
                     >
                       <span>לחץ כאן להתחלה</span>
-                      <Arrowleft className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                      <ArrowLeft className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </CardContent>
                 </Card>
