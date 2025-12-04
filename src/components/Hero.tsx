@@ -1,34 +1,74 @@
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Send } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
-import thailandHeroTitle from "@/assets/thailand-hero-title.png";
+import thailandHeroBanner from "@/assets/thailand-hero-banner.jpeg";
 import israelHeroTitle from "@/assets/israel-hero-title.png";
 import { trackWhatsAppClick, trackTelegramClick } from "@/lib/analytics";
 import { trackFBLead } from "./FacebookPixel";
+
 interface HeroProps {
   country: "israel" | "thailand";
 }
-export const Hero = ({
-  country
-}: HeroProps) => {
-  const whatsappLink = country === "israel" ? "https://chat.whatsapp.com/Dfcih86pI6D35dehovi5KN" : "https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j";
-  const telegramLink = country === "israel" ? "https://t.me/+Wi46HCt_SbU3YWI0" : "https://t.me/+wJIFEYTlOuUzZjBk";
+
+export const Hero = ({ country }: HeroProps) => {
+  const whatsappLink = country === "israel" 
+    ? "https://chat.whatsapp.com/Dfcih86pI6D35dehovi5KN" 
+    : "https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j";
+  const telegramLink = country === "israel" 
+    ? "https://t.me/+Wi46HCt_SbU3YWI0" 
+    : "https://t.me/+wJIFEYTlOuUzZjBk";
+
   const handleWhatsAppClick = () => {
     trackWhatsAppClick();
     trackFBLead(`WhatsApp - ${country}`);
   };
+
   const handleTelegramClick = () => {
     trackTelegramClick();
     trackFBLead(`Telegram - ${country}`);
   };
-  return <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-16 md:py-24">
+
+  if (country === "thailand") {
+    return (
+      <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-8 md:py-16">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-5xl">
+            <img 
+              src={thailandHeroBanner} 
+              alt="מוצרים שכל אחד צריך - דילים שווים בכל יום! Lazada" 
+              className="w-full max-w-4xl mx-auto mb-8"
+            />
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Button asChild size="lg" className="bg-whatsapp hover:bg-whatsapp/90 hover:scale-105 transition-all text-white w-full sm:w-auto shadow-lg text-base py-6">
+                <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2" onClick={handleWhatsAppClick}>
+                  <MessageCircle className="h-6 w-6" />
+                  <span className="font-semibold">הצטרפו אליי בווטסאפ</span>
+                </a>
+              </Button>
+              
+              <Button asChild size="lg" className="bg-telegram hover:bg-telegram/90 hover:scale-105 transition-all text-white w-full sm:w-auto shadow-lg text-base py-6">
+                <a href={telegramLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2" onClick={handleTelegramClick}>
+                  <Send className="h-6 w-6" />
+                  <span className="font-semibold">הצטרפו אליי בטלגרם</span>
+                </a>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted py-16 md:py-24">
       <img src={heroImage} alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה לרכב, לבית ולילדים" className="mb-8 w-full md:max-w-6xl md:mx-auto" />
       <div className="container mx-auto px-4 text-center">
         <div className="mx-auto max-w-3xl">
           <h1 className="mb-6 mx-0 text-center">
             <img 
-              src={country === "thailand" ? thailandHeroTitle : israelHeroTitle}
-              alt={country === "thailand" ? "המלצות אמיתיות Lazada - מוצרים שכל אחד צריך" : "המלצות אמיתיות AliExpress - מוצרים שכל אחד צריך"}
+              src={israelHeroTitle}
+              alt="המלצות אמיתיות AliExpress - מוצרים שכל אחד צריך"
               className="w-full max-w-3xl mx-auto"
             />
           </h1>
@@ -48,8 +88,8 @@ export const Hero = ({
               </a>
             </Button>
           </div>
-          
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
