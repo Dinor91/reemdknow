@@ -3,6 +3,7 @@ import { FacebookPixel, trackFBLead } from "@/components/FacebookPixel";
 import { trackEvent } from "@/lib/analytics";
 import { useEffect } from "react";
 import { MessageCircle, Send } from "lucide-react";
+import logo from "@/assets/logo.jpg";
 
 const ChannelSelect = () => {
   useEffect(() => {
@@ -27,6 +28,12 @@ const ChannelSelect = () => {
       <FacebookPixel />
       
       <div className="max-w-md w-full text-center space-y-8">
+        <img 
+          src={logo} 
+          alt="Reem(D)Know" 
+          className="w-24 h-24 mx-auto rounded-full shadow-lg"
+        />
+        
         <div className="space-y-4">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground">
             ברוכים הבאים!
