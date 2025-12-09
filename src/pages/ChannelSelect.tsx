@@ -26,21 +26,13 @@ const ChannelSelect = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted flex items-center justify-center p-4">
       <FacebookPixel />
-      
+
       <div className="max-w-md w-full text-center space-y-8">
-        <img 
-          src={logo} 
-          alt="Reem(D)Know" 
-          className="w-24 h-24 mx-auto rounded-full shadow-lg"
-        />
-        
+        <img src={logo} alt="Reem(D)Know" className="w-24 h-24 mx-auto rounded-full shadow-lg" />
+
         <div className="space-y-4">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-            ברוכים הבאים!
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            איפה תרצו לקבל את ההמלצות הכי שוות?
-          </p>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground">!ברוכים הבאים</h1>
+          <p className="text-lg text-muted-foreground">?איך תרצו לקבל את ההמלצות הכי שוות</p>
         </div>
 
         <div className="space-y-4">
@@ -56,7 +48,7 @@ const ChannelSelect = () => {
               className="w-full h-16 text-lg font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 hover:shadow-lg"
             >
               <MessageCircle className="h-6 w-6" />
-              הצטרפו לווטסאפ
+              מעדיף בווטסאפ
             </Button>
           </a>
 
@@ -72,14 +64,12 @@ const ChannelSelect = () => {
               className="w-full h-16 text-lg font-bold bg-[#0088cc] hover:bg-[#0077b5] text-white gap-3 transition-all duration-300 hover:scale-105 hover:shadow-lg"
             >
               <Send className="h-6 w-6" />
-              הצטרפו לטלגרם
+              מעדיף בטלגרם
             </Button>
           </a>
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          דילים יומיים + המלצות מנוסות שחוסכות לכם כסף
-        </p>
+        <p className="text-sm text-muted-foreground">!הכנסו עכשיו והתחילו לחסוך כסף !דילים שווים והמלצות אמינות</p>
       </div>
     </div>
   );
