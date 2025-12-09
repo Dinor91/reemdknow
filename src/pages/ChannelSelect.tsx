@@ -28,11 +28,11 @@ const ChannelSelect = () => {
       <FacebookPixel />
 
       <div className="max-w-md w-full text-center space-y-8">
-        <img src={logo} alt="Reem(D)Know" className="w-24 h-24 mx-auto rounded-full shadow-lg" />
+        <img src={logo} alt="Reem(D)Know" className="w-36 h-36 mx-auto rounded-full shadow-lg" />
 
         <div className="space-y-4">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground">!ברוכים הבאים</h1>
-          <p className="text-lg text-muted-foreground">?איך תרצו לקבל את ההמלצות הכי שוות</p>
+          <p className="text-lg" style={{ color: '#41b5b3' }}>?איך תרצו לקבל את ההמלצות הכי שוות</p>
         </div>
 
         <div className="space-y-4">
@@ -69,8 +69,8 @@ const ChannelSelect = () => {
           </a>
         </div>
 
-        <p className="text-base text-muted-foreground">!הכנסו עכשיו והתחילו לחסוך כסף </p>
-        <p className="text-base text-muted-foreground">!דילים שווים והמלצות אמינות</p>
+        <p className="text-lg text-muted-foreground">!הכנסו עכשיו והתחילו לחסוך כסף </p>
+        <p className="text-lg text-muted-foreground">!דילים שווים והמלצות אמינות</p>
       </div>
     </div>
   );
