@@ -69,8 +69,7 @@ const ChannelSelect = () => {
           </a>
         </div>
 
-        <p className="text-sm text-muted-foreground">דילים שווים והמלצות אמינות</p>
-        <p className="text-sm text-muted-foreground">!דילים שווים והמלצות אמינות</p>
+        <p className="text-sm text-muted-foreground">!הכנסו עכשיו והתחילו לחסוך כסף !דילים שווים והמלצות אמינות</p>
       </div>
     </div>
   );
