@@ -9,8 +9,8 @@ const ChannelSelect = () => {
     document.title = "Reem(D)Know - בחרו ערוץ";
   }, []);
 
-  const whatsappLink = "https://chat.whatsapp.com/Dfcih86pI6D35dehovi5KN";
-  const telegramLink = "https://t.me/+Wi46HCt_SbU3YWI0";
+  const whatsappLink = "https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j";
+  const telegramLink = "https://t.me/+wJIFEYTlOuUzZjBk";
 
   const handleWhatsAppClick = () => {
     trackEvent("whatsapp_click", { source: "channel_select" });
