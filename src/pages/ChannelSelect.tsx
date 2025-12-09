@@ -31,9 +31,9 @@ const ChannelSelect = () => {
         <img src={logo} alt="Reem(D)Know" className="w-36 h-36 mx-auto rounded-full shadow-lg" />
 
         <div className="space-y-4">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground">!ברוכים הבאים</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground">?רוצים לחסוך כסף ולקנות חכם </h1>
           <p className="text-lg" style={{ color: "#41b5b3" }}>
-            ? (D)know איך תרצו לקבל את ההמלצות של
+            ? (D)know בחרו איך תרצו לקבל את ההמלצות של
           </p>
         </div>
 
@@ -71,7 +71,7 @@ const ChannelSelect = () => {
           </a>
         </div>
 
-        <p className="text-lg text-muted-foreground">!הכנסו עכשיו והתחילו לחסוך כסף </p>
+        <p className="text-lg text-muted-foreground">!אל תבזבזו סתם- הצטרפו לקהילה שבאמת חוסכת </p>
         <p className="text-lg text-muted-foreground">!דילים שווים והמלצות אמינות</p>
       </div>
     </div>
