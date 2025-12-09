@@ -33,7 +33,7 @@ const ChannelSelect = () => {
         <div className="space-y-4">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground">!ברוכים הבאים</h1>
           <p className="text-lg" style={{ color: "#41b5b3" }}>
-            ?איך תרצו לקבל את ההמלצות של (D)know
+            ? (D)know איך תרצו לקבל את ההמלצות של
           </p>
         </div>
 
