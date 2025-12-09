@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import Landing from "./pages/Landing";
 import Israel from "./pages/Israel";
 import Thailand from "./pages/Thailand";
+import ChannelSelect from "./pages/ChannelSelect";
 import NotFound from "./pages/NotFound";
 import { CountryProvider } from "./contexts/CountryContext";
 import { LoadingScreen } from "./components/LoadingScreen";
@@ -20,6 +21,7 @@ const AppContent = () => {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/israel" element={<Israel />} />
+      <Route path="/join" element={<ChannelSelect />} />
       <Route path="/thailand" element={<Thailand />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
