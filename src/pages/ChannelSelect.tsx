@@ -33,7 +33,7 @@ const ChannelSelect = () => {
         <div className="space-y-4">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground">?רוצים לחסוך כסף ולקנות חכם </h1>
           <p className="text-lg" style={{ color: "#41b5b3" }}>
-            ? (D)know בחרו איך תרצו לקבל את ההמלצות של
+            (D)know בחרו איך תרצו לקבל את ההמלצות של
           </p>
         </div>
 
