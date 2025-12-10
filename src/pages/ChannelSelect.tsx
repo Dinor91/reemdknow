@@ -51,7 +51,7 @@ const ChannelSelect = () => {
           >
             <Button
               size="lg"
-              className="w-full h-16 text-xl font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 hover:shadow-xl animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] shadow-lg"
+              className="w-full h-16 text-xl font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 animate-pulse-glow shadow-lg"
             >
               <MessageCircle className="h-7 w-7" />
               מעדיף בווטסאפ
@@ -67,7 +67,7 @@ const ChannelSelect = () => {
           >
             <Button
               size="lg"
-              className="w-full h-16 text-xl font-bold bg-[#0088cc] hover:bg-[#0077b5] text-white gap-3 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg"
+              className="w-full h-16 text-xl font-bold bg-[#0088cc] hover:bg-[#0077b5] text-white gap-3 transition-all duration-300 hover:scale-105 animate-pulse-glow-telegram shadow-lg"
             >
               <Send className="h-7 w-7" />
               מעדיף בטלגרם
