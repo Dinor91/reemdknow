@@ -30,10 +30,14 @@ const ChannelSelect = () => {
       <div className="max-w-md w-full text-center space-y-8">
         <img src={logo} alt="Reem(D)Know" className="w-36 h-36 mx-auto rounded-full shadow-lg" />
 
-        <div className="space-y-4">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground">בואו לחסוך כסף ולקנות חכם </h1>
-          <p className="text-lg" style={{ color: "#41b5b3" }}>
-            (D)know בחרו איך תרצו לקבל את ההמלצות של
+        <div className="space-y-3">
+          <h1 className="text-4xl md:text-5xl font-black text-foreground leading-tight">
+            בואו לחסוך כסף
+            <br />
+            <span style={{ color: "#f28433" }}>ולקנות חכם</span>
+          </h1>
+          <p className="text-xl md:text-2xl font-semibold" style={{ color: "#41b5b3" }}>
+            ?איך תרצו לקבל את ההמלצות
           </p>
         </div>
 
@@ -47,9 +51,9 @@ const ChannelSelect = () => {
           >
             <Button
               size="lg"
-              className="w-full h-16 text-lg font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+              className="w-full h-16 text-xl font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 hover:shadow-xl animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] shadow-lg"
             >
-              <MessageCircle className="h-6 w-6" />
+              <MessageCircle className="h-7 w-7" />
               מעדיף בווטסאפ
             </Button>
           </a>
@@ -63,16 +67,17 @@ const ChannelSelect = () => {
           >
             <Button
               size="lg"
-              className="w-full h-16 text-lg font-bold bg-[#0088cc] hover:bg-[#0077b5] text-white gap-3 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+              className="w-full h-16 text-xl font-bold bg-[#0088cc] hover:bg-[#0077b5] text-white gap-3 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg"
             >
-              <Send className="h-6 w-6" />
+              <Send className="h-7 w-7" />
               מעדיף בטלגרם
             </Button>
           </a>
         </div>
 
-        <p className="text-lg text-muted-foreground">!אל תבזבזו סתם- הצטרפו לקהילה שבאמת חוסכת </p>
-        <p className="text-lg text-muted-foreground">!דילים שווים והמלצות אמינות</p>
+        <p className="text-base text-muted-foreground font-medium">
+          !דילים שווים והמלצות אמינות
+        </p>
       </div>
     </div>
   );
