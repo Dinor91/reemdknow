@@ -31,12 +31,12 @@ const ChannelSelect = () => {
         <img src={logo} alt="Reem(D)Know" className="w-36 h-36 mx-auto rounded-full shadow-lg" />
 
         <div className="space-y-3">
-          <h1 className="text-4xl md:text-5xl font-black text-foreground leading-tight">
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">
             בואו לחסוך כסף
             <br />
-            <span style={{ color: "#f28433" }}>ולקנות חכם</span>
+            <span className="text-4xl md:text-5xl font-bold text-[#41b5b3]">ולקנות חכם</span>
           </h1>
-          <p className="text-xl md:text-2xl font-semibold" style={{ color: "#41b5b3" }}>
+          <p className="text-xl md:text-2xl font-bold text-[#f28433]">
             ?איך תרצו לקבל את ההמלצות
           </p>
         </div>
