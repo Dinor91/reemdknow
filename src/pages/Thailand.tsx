@@ -10,7 +10,7 @@ import { useEffect } from "react";
 const Thailand = () => {
   useEffect(() => {
     trackFBViewContent("Thailand Page");
-    document.title = "Reem(D)Know - המוצרים השווים LAZADA";
+    document.title = "(D)Know - המוצרים השווים Thailand";
   }, []);
 
   return (
