@@ -7,7 +7,7 @@ import logo from "@/assets/logo.jpg";
 
 const ChannelSelect = () => {
   useEffect(() => {
-    document.title = "Reem(D)Know - בחרו ערוץ";
+    document.title = "(D)Know - Facebook Dec Camp";
   }, []);
 
   const whatsappLink = "https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j";
@@ -36,9 +36,7 @@ const ChannelSelect = () => {
             <br />
             <span className="text-4xl md:text-5xl font-bold text-[#41b5b3]">ולקנות חכם</span>
           </h1>
-          <p className="text-xl md:text-2xl font-bold text-[#f28433]">
-            ?איך תרצו לקבל את ההמלצות
-          </p>
+          <p className="text-xl md:text-2xl font-bold text-[#f28433]">?איך תרצו לקבל את ההמלצות</p>
         </div>
 
         <div className="space-y-4">
@@ -75,9 +73,7 @@ const ChannelSelect = () => {
           </a>
         </div>
 
-        <p className="text-base text-muted-foreground font-medium">
-          !דילים שווים והמלצות אמינות
-        </p>
+        <p className="text-base text-muted-foreground font-medium">!דילים שווים והמלצות אמינות</p>
       </div>
     </div>
   );
