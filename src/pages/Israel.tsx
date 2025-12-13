@@ -4,11 +4,14 @@ import { Footer } from "@/components/Footer";
 import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
 import { Header } from "@/components/Header";
 import { FacebookPixel, trackFBViewContent } from "@/components/FacebookPixel";
+import { ProductGrid } from "@/components/ProductGrid";
+import { israelProducts } from "@/data/products-israel";
 import { useEffect } from "react";
+
 const Israel = () => {
   useEffect(() => {
     trackFBViewContent("Israel Page");
-    document.title = "(D)Know - המוצרים השווים Israrel";
+    document.title = "(D)Know - המוצרים השווים Israel";
   }, []);
   return (
     <div className="min-h-screen">
@@ -23,24 +26,11 @@ const Israel = () => {
             </div>
           </div>
         </section>
-        <section className="py-16 bg-background">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-4xl text-center">
-              <h2 className="text-3xl font-bold text-orange-500 md:text-4xl mb-4">מוצרים מומלצים</h2>
-              <p className="text-lg text-muted-foreground mb-12">ממש בקרוב יופיעו כאן ריכוז המלצות שוות ✨</p>
-              <a
-                href="https://s.click.aliexpress.com/e/_c3PanH6H?bz=725*90"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-6 text-lg sm:text-xl md:text-2xl font-semibold transition-all duration-300 hover:scale-105 underline decoration-2 underline-offset-4 text-orange-600"
-              >
-                <span className="text-foreground">BLACK FRIDAY</span>
-                <br />
-                המבצעים התחילו בואו להציץ 🎉
-              </a>
-            </div>
-          </div>
-        </section>
+        <ProductGrid
+          products={israelProducts}
+          title="מוצרים מומלצים מאליאקספרס"
+          affiliateSource="website"
+        />
         <Partners />
         <Footer />
       </div>

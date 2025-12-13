@@ -4,6 +4,8 @@ import { Footer } from "@/components/Footer";
 import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
 import { Header } from "@/components/Header";
 import { Categories } from "@/components/Categories";
+import { ProductGrid } from "@/components/ProductGrid";
+import { thailandProducts } from "@/data/products-thailand";
 import { FacebookPixel, trackFBViewContent } from "@/components/FacebookPixel";
 import { useEffect } from "react";
 
@@ -28,6 +30,11 @@ const Thailand = () => {
             </div>
           </div>
         </section>
+        <ProductGrid
+          products={thailandProducts}
+          title="מוצרים מומלצים מלאזדה"
+          affiliateSource="website"
+        />
         <Categories />
         <Partners />
         <Footer />
