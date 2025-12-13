@@ -58,7 +58,7 @@ const ChannelSelect = () => {
           >
             <Button
               size="lg"
-              className="w-full h-14 text-lg font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 shadow-lg rounded-xl"
+              className="w-full h-14 text-lg font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 animate-pulse-glow shadow-lg rounded-xl"
             >
               <MessageCircle className="h-6 w-6" />
               הצטרפות לקבוצה בוואטסאפ
@@ -74,7 +74,7 @@ const ChannelSelect = () => {
           >
             <Button
               size="lg"
-              className="w-full h-14 text-lg font-bold bg-[#0088cc] hover:bg-[#0077b5] text-white gap-3 transition-all duration-300 hover:scale-105 shadow-lg rounded-xl"
+              className="w-full h-14 text-lg font-bold bg-[#0088cc] hover:bg-[#0077b5] text-white gap-3 transition-all duration-300 hover:scale-105 animate-pulse-glow-telegram shadow-lg rounded-xl"
             >
               <Send className="h-6 w-6" />
               הצטרפות לקבוצה בטלגרם
