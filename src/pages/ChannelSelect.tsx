@@ -32,7 +32,9 @@ const ChannelSelect = () => {
 
         <div className="space-y-2">
           <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
-            קונים חכם בתאילנד עם Dino 💡
+            קונים חכם בתאילנד עם
+            <br />
+            <span className="text-[#41b5b3]">(D)Know</span> 💡
           </h1>
           <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
             המלצות אמיתיות על מוצרים שנבדקו אישית
