@@ -36,7 +36,7 @@ const ChannelSelect = () => {
       <FacebookPixel />
 
       <div className="max-w-md w-full text-center space-y-6">
-        <img src={logo} alt="ראם (D)Know" className="w-28 h-28 mx-auto rounded-full shadow-lg" />
+        <img src={logo} alt="ראם (D)Know" className="w-56 h-56 mx-auto rounded-full shadow-lg" />
 
         <div className="space-y-3">
           <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">היי, אני ראם 👋</h1>
