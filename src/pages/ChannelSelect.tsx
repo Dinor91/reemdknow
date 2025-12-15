@@ -43,7 +43,8 @@ const ChannelSelect = () => {
           <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
             Lazada ישראלי שגר בתאילנד, חי את
             <br />
-            <span className="font-semibold text-foreground">ומשתף רק מה שבאמת שווה</span>
+            <span className="font-semibold text-foreground">ומשתף אתכם רק במוצרים הכי שווים</span>
+            <span className="font-semibold text-foreground"> לא מכירים? היכנסו ותקבלו את כל ההסברים </span>
           </p>
         </div>
 
