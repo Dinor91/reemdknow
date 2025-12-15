@@ -39,11 +39,11 @@ const ChannelSelect = () => {
         <img src={logo} alt="ראם (D)Know" className="w-56 h-56 mx-auto rounded-full shadow-lg" />
 
         <div className="space-y-3">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">היי, אני ראם 👋</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-[#f28433] leading-tight">היי, אני ראם 👋</h1>
           <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
             Lazada ישראלי שגר בתאילנד, חי את
             <br />
-            <span className="font-semibold text-foreground">ומשתף אתכם רק במוצרים הכי שווים</span>
+            <span className="font-semibold text-[#41b5b3]">ומשתף אתכם רק במוצרים הכי שווים</span>
             <br />
             <span className="font-semibold text-foreground"> לא מכירים? היכנסו ותקבלו את כל המידע </span>
           </p>
