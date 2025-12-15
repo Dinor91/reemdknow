@@ -14,19 +14,19 @@ const ChannelSelect = () => {
   const telegramLink = "https://t.me/+wJIFEYTlOuUzZjBk";
 
   const handleWhatsAppClick = () => {
-    trackEvent("click_whatsapp", { 
-      event_category: 'engagement',
-      event_label: 'WhatsApp Community Join',
-      source: "join_campaign" 
+    trackEvent("click_whatsapp", {
+      event_category: "engagement",
+      event_label: "WhatsApp Community Join",
+      source: "join_campaign",
     });
     trackFBLead("channel_select_whatsapp");
   };
 
   const handleTelegramClick = () => {
-    trackEvent("click_telegram", { 
-      event_category: 'engagement',
-      event_label: 'Telegram Community Join',
-      source: "join_campaign" 
+    trackEvent("click_telegram", {
+      event_category: "engagement",
+      event_label: "Telegram Community Join",
+      source: "join_campaign",
     });
     trackFBLead("channel_select_telegram");
   };
@@ -39,13 +39,11 @@ const ChannelSelect = () => {
         <img src={logo} alt="ראם (D)Know" className="w-28 h-28 mx-auto rounded-full shadow-lg" />
 
         <div className="space-y-3">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
-            היי, אני ראם 👋
-          </h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">היי, אני ראם 👋</h1>
           <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-            ישראלי שגר בתאילנד, חי את Lazada
+            Lazada ישראלי שגר בתאילנד, חי את
             <br />
-            <span className="font-semibold text-foreground">ומשתף רק מה שבאמת שווה.</span>
+            <span className="font-semibold text-foreground">ומשתף רק מה שבאמת שווה</span>
           </p>
         </div>
 
@@ -66,7 +64,7 @@ const ChannelSelect = () => {
               רוצה את ההמלצה של היום?
             </Button>
           </a>
-          
+
           <p className="text-sm text-muted-foreground">
             ✅ <span className="font-semibold text-[#41b5b3]">200+ ישראלים</span> כבר בקבוצה
           </p>
@@ -93,9 +91,7 @@ const ChannelSelect = () => {
           </a>
         </div>
 
-        <p className="text-sm md:text-base text-muted-foreground pt-2">
-          אין לי זמן לספאם – יש לי 2 ילדים 😅
-        </p>
+        <p className="text-sm md:text-base text-muted-foreground pt-2">אין לי זמן לספאם – יש לי 2 ילדים 😅</p>
       </div>
     </div>
   );
