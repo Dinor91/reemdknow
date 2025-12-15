@@ -29,14 +29,14 @@ export const CallToActionBanner = ({ open, onOpenChange }: CallToActionBannerPro
           
           <div className="flex flex-col gap-3">
             <Button asChild size="lg" className="bg-whatsapp hover:bg-whatsapp/90 hover:scale-105 transition-all text-white w-full shadow-lg">
-              <a href="https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2" onClick={trackWhatsAppClick}>
+              <a href="https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2" onClick={() => trackWhatsAppClick("cta_banner")}>
                 <MessageCircle className="h-5 w-5" />
                 <span className="font-semibold">הצטרפו בווטסאפ</span>
               </a>
             </Button>
             
             <Button asChild size="lg" className="bg-telegram hover:bg-telegram/90 hover:scale-105 transition-all text-white w-full shadow-lg">
-              <a href="https://t.me/+wJIFEYTlOuUzZjBk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2" onClick={trackTelegramClick}>
+              <a href="https://t.me/+wJIFEYTlOuUzZjBk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2" onClick={() => trackTelegramClick("cta_banner")}>
                 <Send className="h-5 w-5" />
                 <span className="font-semibold">הצטרפו בטלגרם</span>
               </a>
