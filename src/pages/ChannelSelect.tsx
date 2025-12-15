@@ -68,7 +68,7 @@ const ChannelSelect = () => {
           </a>
 
           <p className="text-sm text-muted-foreground">
-            ✅ <span className="font-semibold text-[#41b5b3]">200+ ישראלים</span> כבר בקבוצה
+            ✅ <span className="font-semibold text-[#41b5b3]">כבר יותר מ-200 ישראלים בחרו להרוויח</span>
           </p>
         </div>
 
