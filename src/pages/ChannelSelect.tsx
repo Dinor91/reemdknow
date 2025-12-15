@@ -3,7 +3,7 @@ import { FacebookPixel, trackFBLead } from "@/components/FacebookPixel";
 import { trackEvent } from "@/lib/analytics";
 import { useEffect } from "react";
 import { MessageCircle, Send } from "lucide-react";
-import logo from "@/assets/logo.jpg";
+import logo from "@/assets/dknow-logo.png";
 
 const ChannelSelect = () => {
   useEffect(() => {
@@ -36,14 +36,14 @@ const ChannelSelect = () => {
       <FacebookPixel />
 
       <div className="max-w-md w-full text-center space-y-6">
-        <img src={logo} alt="ראם (D)Know" className="w-24 h-24 mx-auto rounded-full shadow-lg" />
+        <img src={logo} alt="ראם (D)Know" className="w-28 h-28 mx-auto rounded-full shadow-lg" />
 
         <div className="space-y-3">
           <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
             היי, אני ראם 👋
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-            ישראלי בתאילנד, בודק מוצרים בלזאדה
+            ישראלי שגר בתאילנד, חי את Lazada
             <br />
             <span className="font-semibold text-foreground">ומשתף רק מה שבאמת שווה.</span>
           </p>
@@ -93,7 +93,7 @@ const ChannelSelect = () => {
           </a>
         </div>
 
-        <p className="text-xs text-muted-foreground pt-2">
+        <p className="text-sm md:text-base text-muted-foreground pt-2">
           אין לי זמן לספאם – יש לי 2 ילדים 😅
         </p>
       </div>
