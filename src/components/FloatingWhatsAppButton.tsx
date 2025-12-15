@@ -22,7 +22,7 @@ export const FloatingWhatsAppButton = ({ country }: FloatingWhatsAppButtonProps)
     : "https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j";
 
   const handleClick = () => {
-    trackWhatsAppClick();
+    trackWhatsAppClick(`${country}_floating`);
     trackFBLead(`WhatsApp Float - ${country}`);
   };
 

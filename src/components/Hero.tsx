@@ -17,12 +17,12 @@ export const Hero = ({ country }: HeroProps) => {
   const telegramLink = country === "israel" ? "https://t.me/+Wi46HCt_SbU3YWI0" : "https://t.me/+wJIFEYTlOuUzZjBk";
 
   const handleWhatsAppClick = () => {
-    trackWhatsAppClick();
+    trackWhatsAppClick(`${country}_hero`);
     trackFBLead(`WhatsApp - ${country}`);
   };
 
   const handleTelegramClick = () => {
-    trackTelegramClick();
+    trackTelegramClick(`${country}_hero`);
     trackFBLead(`Telegram - ${country}`);
   };
 

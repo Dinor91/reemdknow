@@ -14,12 +14,20 @@ const ChannelSelect = () => {
   const telegramLink = "https://t.me/+wJIFEYTlOuUzZjBk";
 
   const handleWhatsAppClick = () => {
-    trackEvent("whatsapp_click", { source: "channel_select" });
+    trackEvent("click_whatsapp", { 
+      event_category: 'engagement',
+      event_label: 'WhatsApp Community Join',
+      source: "join_campaign" 
+    });
     trackFBLead("channel_select_whatsapp");
   };
 
   const handleTelegramClick = () => {
-    trackEvent("telegram_click", { source: "channel_select" });
+    trackEvent("click_telegram", { 
+      event_category: 'engagement',
+      event_label: 'Telegram Community Join',
+      source: "join_campaign" 
+    });
     trackFBLead("channel_select_telegram");
   };
 

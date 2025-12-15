@@ -20,17 +20,19 @@ export const trackEvent = (
 };
 
 // Specific event trackers
-export const trackWhatsAppClick = () => {
+export const trackWhatsAppClick = (source: string) => {
   trackEvent('click_whatsapp', {
     event_category: 'engagement',
-    event_label: 'WhatsApp Community Join'
+    event_label: 'WhatsApp Community Join',
+    source
   });
 };
 
-export const trackTelegramClick = () => {
+export const trackTelegramClick = (source: string) => {
   trackEvent('click_telegram', {
     event_category: 'engagement',
-    event_label: 'Telegram Community Join'
+    event_label: 'Telegram Community Join',
+    source
   });
 };
 
