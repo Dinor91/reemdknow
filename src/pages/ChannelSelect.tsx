@@ -44,7 +44,8 @@ const ChannelSelect = () => {
             Lazada ישראלי שגר בתאילנד, חי את
             <br />
             <span className="font-semibold text-foreground">ומשתף אתכם רק במוצרים הכי שווים</span>
-            <span className="font-semibold text-foreground"> לא מכירים? היכנסו ותקבלו את כל ההסברים </span>
+            <br />
+            <span className="font-semibold text-foreground"> לא מכירים? היכנסו ותקבלו את כל המידע </span>
           </p>
         </div>
 
@@ -62,7 +63,7 @@ const ChannelSelect = () => {
               className="w-full h-16 text-xl font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 animate-pulse-glow shadow-xl rounded-xl"
             >
               <MessageCircle className="h-7 w-7" />
-              רוצה את ההמלצה של היום?
+              ?רוצה את ההמלצה של היום
             </Button>
           </a>
 
