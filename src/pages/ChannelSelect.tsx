@@ -36,27 +36,21 @@ const ChannelSelect = () => {
       <FacebookPixel />
 
       <div className="max-w-md w-full text-center space-y-6">
-        <img src={logo} alt="Reem(D)Know" className="w-28 h-28 mx-auto rounded-full shadow-lg" />
+        <img src={logo} alt="ראם (D)Know" className="w-24 h-24 mx-auto rounded-full shadow-lg" />
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
-            קונים חכם בתאילנד עם
-            <br />
-            <span className="text-[#41b5b3]">(D)Know</span> 💡
+            היי, אני ראם 👋
           </h1>
-          <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-            המלצות אמיתיות על מוצרים שנבדקו אישית
+          <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+            ישראלי בתאילנד, בודק מוצרים בלזאדה
             <br />
-            <span className="text-[#41b5b3] font-semibold">לבית, לילדים, לרכב ולחיים חכמים באמת</span>
+            <span className="font-semibold text-foreground">ומשתף רק מה שבאמת שווה.</span>
           </p>
         </div>
 
-        <div className="space-y-1">
-          <p className="text-xl md:text-2xl font-bold text-[#f28433]">?איך תרצו לקבל את ההמלצות</p>
-          <p className="text-sm text-muted-foreground">בחרו ערוץ ↓ ההצטרפות לוקחת 3 שניות</p>
-        </div>
-
-        <div className="space-y-3">
+        {/* Main CTA - above the fold */}
+        <div className="space-y-3 pt-2">
           <a
             href={whatsappLink}
             target="_blank"
@@ -66,13 +60,21 @@ const ChannelSelect = () => {
           >
             <Button
               size="lg"
-              className="w-full h-14 text-lg font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 animate-pulse-glow shadow-lg rounded-xl"
+              className="w-full h-16 text-xl font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 animate-pulse-glow shadow-xl rounded-xl"
             >
-              <MessageCircle className="h-6 w-6" />
-              הצטרפות לקבוצה בוואטסאפ
+              <MessageCircle className="h-7 w-7" />
+              רוצה את ההמלצה של היום?
             </Button>
           </a>
+          
+          <p className="text-sm text-muted-foreground">
+            ✅ <span className="font-semibold text-[#41b5b3]">200+ ישראלים</span> כבר בקבוצה
+          </p>
+        </div>
 
+        {/* Secondary option */}
+        <div className="pt-2 space-y-2">
+          <p className="text-sm text-muted-foreground">מעדיפים טלגרם?</p>
           <a
             href={telegramLink}
             target="_blank"
@@ -82,16 +84,17 @@ const ChannelSelect = () => {
           >
             <Button
               size="lg"
-              className="w-full h-14 text-lg font-bold bg-[#0088cc] hover:bg-[#0077b5] text-white gap-3 transition-all duration-300 hover:scale-105 animate-pulse-glow-telegram shadow-lg rounded-xl"
+              variant="outline"
+              className="w-full h-12 text-base font-semibold border-[#0088cc] text-[#0088cc] hover:bg-[#0088cc] hover:text-white gap-2 transition-all duration-300 rounded-xl"
             >
-              <Send className="h-6 w-6" />
-              הצטרפות לקבוצה בטלגרם
+              <Send className="h-5 w-5" />
+              הצטרפות בטלגרם
             </Button>
           </a>
         </div>
 
-        <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-          💬 לא עוד קבוצת ספאם – רק מה שנבדק, נחקר ונשלח מהלב
+        <p className="text-xs text-muted-foreground pt-2">
+          אין לי זמן לספאם – יש לי 2 ילדים 😅
         </p>
       </div>
     </div>
