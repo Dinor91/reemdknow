@@ -39,13 +39,13 @@ const ChannelSelect = () => {
         <img src={logo} alt="ראם (D)Know" className="w-56 h-56 mx-auto rounded-full shadow-lg" />
 
         <div className="space-y-3">
-          <h1 className="text-2xl md:text-3xl font-bold text-[#f28433] leading-tight">היי, אני ראם 👋</h1>
-          <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-            Lazada ישראלי שגר בתאילנד, חי את
+          <h1 className="text-2xl md:text-3xl font-bold text-[#f28433] leading-tight">היי, אני ראם</h1>
+          <p className="text-lg md:text-xl leading-relaxed">
+            <span className="font-bold text-foreground">Lazada ישראלי שגר בתאילנד, חי את</span>
             <br />
-            <span className="font-semibold text-[#41b5b3]">ומשתף אתכם רק במוצרים הכי שווים</span>
+            <span className="font-bold text-foreground">ומשתף אתכם רק במוצרים הכי שווים</span>
             <br />
-            <span className="font-semibold text-foreground"> לא מכירים? היכנסו ותקבלו את כל המידע </span>
+            <span className="font-semibold text-muted-foreground"> לא מכירים? היכנסו ותקבלו את כל המידע </span>
           </p>
         </div>
 
@@ -68,7 +68,7 @@ const ChannelSelect = () => {
           </a>
 
           <p className="text-sm text-muted-foreground">
-            ✅ <span className="font-semibold text-[#41b5b3]">כבר יותר מ-200 ישראלים בחרו להרוויח</span>
+            <span className="font-semibold text-[#41b5b3]">יותר מ-200 ישראלים כבר חוסכים איתי כסף</span>
           </p>
         </div>
 
