@@ -35,35 +35,31 @@ const ChannelSelect = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <FacebookPixel />
 
-      <div className="max-w-md w-full text-center space-y-4">
-        {/* Logo - smaller for mobile */}
-        <img src={logo} alt="ראם (D)Know" className="w-24 h-24 mx-auto rounded-full shadow-lg" />
+      <div className="max-w-md w-full text-center space-y-5">
+        {/* Logo - bigger */}
+        <img src={logo} alt="ראם (D)Know" className="w-36 h-36 mx-auto rounded-full shadow-lg" />
 
         {/* Hook */}
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-foreground leading-tight">טסים לתאילנד?</h1>
-          <p className="text-lg font-bold text-[#f28433]">אל תשלמו מחירי תיירים 💸</p>
+          <h1 className="text-3xl font-bold text-foreground leading-tight">טסים לתאילנד?</h1>
+          <p className="text-xl font-bold text-[#f28433]">אל תשלמו מחירי תיירים 💸</p>
         </div>
 
-        {/* Personal intro */}
-        <p className="text-base text-muted-foreground">
-          אני ראם, נשוי ואבא ל-2 שגר בתאילנד.
-          <br />
-          כל יום אני מוצא מוצרים בלזאדה שחוסכים כסף
-          <br />
-          ומגיעים ישר למלון תוך 24-48 שעות.
+        {/* Personal intro - shorter and black */}
+        <p className="text-lg text-foreground">
+          אני ראם, גר בתאילנד ומשתף המלצות שחוסכות כסף.
         </p>
 
-        {/* Value bullets */}
-        <div className="text-right bg-white rounded-xl p-4 shadow-sm space-y-2">
-          <p className="font-bold text-[#41b5b3] text-center">💡 מה תקבלו?</p>
-          <p className="text-sm">✅ המלצה יומית על מוצר שבדקתי</p>
-          <p className="text-sm">✅ קופונים ומבצעים</p>
-          <p className="text-sm">✅ משלוח חינם ישר למלון</p>
+        {/* Value bullets - centered */}
+        <div className="bg-white rounded-xl p-4 shadow-sm space-y-2 text-center">
+          <p className="font-bold text-[#41b5b3] text-lg">💡 מה תקבלו?</p>
+          <p className="text-base">✅ המלצה יומית על מוצר שבדקתי</p>
+          <p className="text-base">✅ קופונים ומבצעים</p>
+          <p className="text-base">✅ משלוח חינם ישר למלון</p>
         </div>
 
         {/* Social proof */}
-        <p className="text-sm font-bold text-[#f28433]">🔥 כבר 250+ ישראלים בקבוצה</p>
+        <p className="text-base font-bold text-[#f28433]">🔥 כבר 250+ ישראלים בקבוצה</p>
 
         {/* Main CTA */}
         <a
