@@ -35,7 +35,6 @@ export const trackFBInitiateCheckout = (productName: string, productLink: string
   });
 };
 
-
 export const FacebookPixel = () => {
   useEffect(() => {
     trackFBPageView();

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ExternalLink } from "lucide-react";
 import { trackProductClick } from "@/lib/analytics";
-import { trackFBInitiateCheckout } from "./FacebookPixel";
+import { trackFBInitiateCheckout } from "@/components/FacebookPixel";
 
 interface Product {
   name: string;
