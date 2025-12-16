@@ -28,6 +28,13 @@ export const trackFBLead = (contentName: string) => {
   });
 };
 
+export const trackFBInitiateCheckout = (productName: string, productLink: string) => {
+  trackFBEvent('InitiateCheckout', {
+    content_name: productName,
+    content_ids: [productLink],
+  });
+};
+
 
 export const FacebookPixel = () => {
   useEffect(() => {
