@@ -36,13 +36,6 @@ export const trackTelegramClick = (source: string) => {
   });
 };
 
-export const trackProductClick = (productName: string, productUrl: string) => {
-  trackEvent('click_product', {
-    event_category: 'conversion',
-    event_label: productName,
-    product_url: productUrl
-  });
-};
 
 export const trackCountrySwitch = (country: string, fromPage: string) => {
   trackEvent('country_switch', {

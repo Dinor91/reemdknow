@@ -28,14 +28,6 @@ export const trackFBLead = (contentName: string) => {
   });
 };
 
-export const trackFBInitiateCheckout = (productName: string, productUrl: string) => {
-  trackFBEvent('InitiateCheckout', {
-    content_name: productName,
-    value: 1,
-    currency: 'USD',
-    content_ids: [productUrl],
-  });
-};
 
 export const FacebookPixel = () => {
   useEffect(() => {
