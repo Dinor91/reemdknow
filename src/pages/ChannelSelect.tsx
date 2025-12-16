@@ -41,14 +41,14 @@ const ChannelSelect = () => {
 
         {/* Hook */}
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-foreground leading-tight">טסים לתאילנד?</h1>
+          <h1 className="text-3xl font-bold text-foreground leading-tight">?טסים לתאילנד</h1>
           <p className="text-xl font-bold text-[#f28433]">אל תשלמו מחירי תיירים 💸</p>
         </div>
 
         {/* Personal intro - shorter and black */}
-        <p className="text-lg text-foreground">
-          אני ראם, גר בתאילנד ומשתף המלצות שחוסכות כסף.
-        </p>
+        <p className="text-lg text-foreground">אני ראם, גר בתאילנד וכל יום אני מוצא מוצרים שחוסכים לכם כסף.</p>
+        <br />
+        <p className="text-lg text-foreground">כן, הם יגיעו אליכם למלון!</p>
 
         {/* Value bullets - centered */}
         <div className="bg-white rounded-xl p-4 shadow-sm space-y-2 text-center">
