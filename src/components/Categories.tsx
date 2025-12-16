@@ -3,7 +3,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { CallToActionBanner } from "./CallToActionBanner";
 import { useEffect, useRef, useState } from "react";
-import { trackProductClick } from "@/lib/analytics";
 interface Product {
   name: string;
   link: string;
@@ -323,9 +322,7 @@ export const Categories = () => {
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const hasShownRef = useRef(false);
 
-  const handleProductClick = (productName: string, productUrl: string) => {
-    trackProductClick(productName, productUrl);
-    
+  const handleProductClick = () => {
     if (!hasShownRef.current) {
       setTimeout(() => {
         setDialogOpen(true);
@@ -371,7 +368,7 @@ export const Categories = () => {
                   <AccordionContent className="px-6 pb-4">
                     <div className="grid gap-3 sm:grid-cols-2 mt-2">
                       {category.products.map((product, productIndex) => <Button key={productIndex} variant="outline" className="justify-between h-auto py-3 px-4" asChild>
-                          <a href={product.link} target="_blank" rel="noopener noreferrer" onClick={() => handleProductClick(product.name, product.link)} className="flex items-center gap-2 flex-row-reverse">
+                          <a href={product.link} target="_blank" rel="noopener noreferrer" onClick={() => handleProductClick()} className="flex items-center gap-2 flex-row-reverse">
                             <span className="text-right flex-1">{product.name}</span>
                             <ExternalLink className="h-4 w-4 flex-shrink-0" />
                           </a>
@@ -413,7 +410,7 @@ export const Categories = () => {
                   <AccordionContent className="px-6 pb-4">
                     <div className="grid gap-3 sm:grid-cols-2 mt-2">
                       {categories[8].products.map((product, productIndex) => <Button key={productIndex} variant="outline" className="justify-between h-auto py-3 px-4" asChild>
-                          <a href={product.link} target="_blank" rel="noopener noreferrer" onClick={() => handleProductClick(product.name, product.link)} className="flex items-center gap-2 flex-row-reverse">
+                          <a href={product.link} target="_blank" rel="noopener noreferrer" onClick={() => handleProductClick()} className="flex items-center gap-2 flex-row-reverse">
                             <span className="text-right flex-1">{product.name}</span>
                             <ExternalLink className="h-4 w-4 flex-shrink-0" />
                           </a>
