@@ -4,8 +4,6 @@ import { Footer } from "@/components/Footer";
 import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
 import { Header } from "@/components/Header";
 import { FacebookPixel, trackFBViewContent } from "@/components/FacebookPixel";
-import { ProductGrid } from "@/components/ProductGrid";
-import { israelProducts } from "@/data/products-israel";
 import { useEffect } from "react";
 
 const Israel = () => {
@@ -26,11 +24,6 @@ const Israel = () => {
             </div>
           </div>
         </section>
-        <ProductGrid
-          products={israelProducts}
-          title="מוצרים מומלצים מאליאקספרס"
-          affiliateSource="website"
-        />
         <Partners />
         <Footer />
       </div>
