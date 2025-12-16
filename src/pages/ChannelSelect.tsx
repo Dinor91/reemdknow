@@ -35,46 +35,56 @@ const ChannelSelect = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <FacebookPixel />
 
-      <div className="max-w-md w-full text-center space-y-6">
-        <img src={logo} alt="ראם (D)Know" className="w-56 h-56 mx-auto rounded-full shadow-lg" />
+      <div className="max-w-md w-full text-center space-y-4">
+        {/* Logo - smaller for mobile */}
+        <img src={logo} alt="ראם (D)Know" className="w-24 h-24 mx-auto rounded-full shadow-lg" />
 
-        <div className="space-y-3">
-          <h1 className="text-2xl md:text-3xl font-bold text-[#f28433] leading-tight">היי, אני ראם</h1>
-          <p className="text-lg md:text-xl leading-relaxed">
-            <span className="font-bold text-foreground">Lazada ישראלי שגר בתאילנד, חי את</span>
-            <br />
-            <span className="font-bold text-foreground">ומשתף אתכם רק במוצרים הכי שווים</span>
-            <br />
-            <span className="font-semibold text-muted-foreground"> לא מכירים? היכנסו ותקבלו את כל המידע </span>
-          </p>
+        {/* Hook */}
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-foreground leading-tight">טסים לתאילנד?</h1>
+          <p className="text-lg font-bold text-[#f28433]">אל תשלמו מחירי תיירים 💸</p>
         </div>
 
-        {/* Main CTA - above the fold */}
-        <div className="space-y-3 pt-2">
-          <a
-            href={whatsappLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleWhatsAppClick}
-            className="block"
+        {/* Personal intro */}
+        <p className="text-base text-muted-foreground">
+          אני ראם, נשוי ואבא ל-2 שגר בתאילנד.
+          <br />
+          כל יום אני מוצא מוצרים בלזאדה שחוסכים כסף
+          <br />
+          ומגיעים ישר למלון תוך 24-48 שעות.
+        </p>
+
+        {/* Value bullets */}
+        <div className="text-right bg-white rounded-xl p-4 shadow-sm space-y-2">
+          <p className="font-bold text-[#41b5b3] text-center">💡 מה תקבלו?</p>
+          <p className="text-sm">✅ המלצה יומית על מוצר שבדקתי</p>
+          <p className="text-sm">✅ קופונים ומבצעים</p>
+          <p className="text-sm">✅ משלוח חינם ישר למלון</p>
+        </div>
+
+        {/* Social proof */}
+        <p className="text-sm font-bold text-[#f28433]">🔥 כבר 250+ ישראלים בקבוצה</p>
+
+        {/* Main CTA */}
+        <a
+          href={whatsappLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={handleWhatsAppClick}
+          className="block"
+        >
+          <Button
+            size="lg"
+            className="w-full h-14 text-lg font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 animate-pulse-glow shadow-xl rounded-xl"
           >
-            <Button
-              size="lg"
-              className="w-full h-16 text-xl font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 animate-pulse-glow shadow-xl rounded-xl"
-            >
-              <MessageCircle className="h-7 w-7" />
-              ?רוצה את ההמלצה של היום
-            </Button>
-          </a>
-
-          <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-[#41b5b3]">יותר מ-200 ישראלים כבר חוסכים איתי כסף</span>
-          </p>
-        </div>
+            <MessageCircle className="h-6 w-6" />
+            הצטרפות לקבוצה
+          </Button>
+        </a>
 
         {/* Secondary option */}
-        <div className="pt-2 space-y-2">
-          <p className="text-sm text-muted-foreground">מעדיפים טלגרם?</p>
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">מעדיפים טלגרם?</p>
           <a
             href={telegramLink}
             target="_blank"
@@ -85,15 +95,15 @@ const ChannelSelect = () => {
             <Button
               size="lg"
               variant="outline"
-              className="w-full h-12 text-base font-semibold border-[#0088cc] text-[#0088cc] hover:bg-[#0088cc] hover:text-white gap-2 transition-all duration-300 rounded-xl"
+              className="w-full h-10 text-sm font-semibold border-[#0088cc] text-[#0088cc] hover:bg-[#0088cc] hover:text-white gap-2 transition-all duration-300 rounded-xl"
             >
-              <Send className="h-5 w-5" />
+              <Send className="h-4 w-4" />
               הצטרפות בטלגרם
             </Button>
           </a>
         </div>
 
-        <p className="text-sm md:text-base text-muted-foreground pt-2">אין לי זמן לספאם – יש לי 2 ילדים 😅</p>
+        <p className="text-xs text-muted-foreground">אין לי זמן לספאם – יש לי 2 ילדים 😅</p>
       </div>
     </div>
   );

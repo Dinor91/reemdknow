@@ -44,3 +44,11 @@ export const trackCountrySwitch = (country: string, fromPage: string) => {
     from_page: fromPage
   });
 };
+
+export const trackProductClick = (productName: string, productLink: string) => {
+  trackEvent('product_click', {
+    event_category: 'engagement',
+    event_label: productName,
+    product_link: productLink
+  });
+};
