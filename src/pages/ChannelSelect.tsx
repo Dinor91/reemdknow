@@ -46,16 +46,16 @@ const ChannelSelect = () => {
         </div>
 
         {/* Personal intro - shorter and black */}
-        <p className="text-lg text-foreground">אני ראם, גר בתאילנד וכל יום אני מוצא מוצרים שחוסכים לכם כסף.</p>
-        <br />
-        <p className="text-lg text-foreground">כן, הם יגיעו אליכם למלון!</p>
+        <p className="text-lg text-foreground">אני ראם, גר בתאילנד וכל יום אני מוצא מוצרים שחוסכים לכם כסף</p>
+
+        <p className="text-lg text-foreground">?כן, הם יגיעו אליכם למלון</p>
 
         {/* Value bullets - centered */}
         <div className="bg-white rounded-xl p-4 shadow-sm space-y-2 text-center">
           <p className="font-bold text-[#41b5b3] text-lg">💡 מה תקבלו?</p>
           <p className="text-base">✅ המלצה יומית על מוצר שבדקתי</p>
           <p className="text-base">✅ קופונים ומבצעים</p>
-          <p className="text-base">✅ משלוח חינם ישר למלון</p>
+          <p className="text-base">✅ משלוח עד למלון</p>
         </div>
 
         {/* Social proof */}
