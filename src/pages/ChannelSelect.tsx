@@ -3,7 +3,7 @@ import { FacebookPixel, trackFBLead } from "@/components/FacebookPixel";
 import { trackEvent } from "@/lib/analytics";
 import { useEffect } from "react";
 import { MessageCircle, Send } from "lucide-react";
-import logo from "@/assets/dknow-logo.png";
+import logo from "@/assets/logo.jpg";
 
 const ChannelSelect = () => {
   useEffect(() => {
