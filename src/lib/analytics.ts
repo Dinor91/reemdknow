@@ -52,3 +52,4 @@ export const trackProductClick = (productName: string, productLink: string) => {
     product_link: productLink
   });
 };
+
