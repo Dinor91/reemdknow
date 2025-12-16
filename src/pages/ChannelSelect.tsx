@@ -99,7 +99,7 @@ const ChannelSelect = () => {
           </a>
         </div>
 
-        <p className="text-xs text-muted-foreground">אין לי זמן לספאם – יש לי 2 ילדים 😅</p>
+        <p className="text-sm text-foreground">אין לי זמן לספאם – יש לי 2 ילדים 😅</p>
       </div>
     </div>
   );
