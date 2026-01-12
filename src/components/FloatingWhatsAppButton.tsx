@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { trackWhatsAppClick } from "@/lib/analytics";
 import { trackFBLead } from "./FacebookPixel";
+import { trackButtonClick } from "@/lib/trackClick";
 
 const WhatsAppIcon = () => (
   <svg
@@ -24,6 +25,7 @@ export const FloatingWhatsAppButton = ({ country }: FloatingWhatsAppButtonProps)
   const handleClick = () => {
     trackWhatsAppClick(`${country}_floating`);
     trackFBLead(`WhatsApp Float - ${country}`);
+    trackButtonClick("whatsapp", `${country}_floating`, country);
   };
 
   return (

@@ -7,6 +7,7 @@ import Landing from "./pages/Landing";
 import Israel from "./pages/Israel";
 import Thailand from "./pages/Thailand";
 import ChannelSelect from "./pages/ChannelSelect";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { CountryProvider } from "./contexts/CountryContext";
 import { LoadingScreen } from "./components/LoadingScreen";
@@ -23,6 +24,7 @@ const AppContent = () => {
       <Route path="/israel" element={<Israel />} />
       <Route path="/join" element={<ChannelSelect />} />
       <Route path="/thailand" element={<Thailand />} />
+      <Route path="/admin" element={<Admin />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>

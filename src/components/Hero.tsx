@@ -4,6 +4,7 @@ import thailandHeroBanner from "@/assets/thailand-hero-banner.jpeg";
 import israelHeroBanner from "@/assets/israel-hero-banner.jpeg";
 import { trackWhatsAppClick, trackTelegramClick } from "@/lib/analytics";
 import { trackFBLead } from "./FacebookPixel";
+import { trackButtonClick } from "@/lib/trackClick";
 
 interface HeroProps {
   country: "israel" | "thailand";
@@ -19,11 +20,13 @@ export const Hero = ({ country }: HeroProps) => {
   const handleWhatsAppClick = () => {
     trackWhatsAppClick(`${country}_hero`);
     trackFBLead(`WhatsApp - ${country}`);
+    trackButtonClick("whatsapp", `${country}_hero`, country);
   };
 
   const handleTelegramClick = () => {
     trackTelegramClick(`${country}_hero`);
     trackFBLead(`Telegram - ${country}`);
+    trackButtonClick("telegram", `${country}_hero`, country);
   };
 
   const heroBanner = country === "thailand" ? thailandHeroBanner : israelHeroBanner;
