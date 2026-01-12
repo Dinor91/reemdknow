@@ -17,17 +17,76 @@ const authSchema = z.object({
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    // Check if this is a password recovery flow
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get("type");
+    
+    if (type === "recovery") {
+      setIsPasswordRecovery(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Listen for PASSWORD_RECOVERY event
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setIsPasswordRecovery(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    // Only redirect to admin if user is logged in AND not in password recovery mode
+    if (user && !isPasswordRecovery) {
       navigate("/admin");
     }
-  }, [user, navigate]);
+  }, [user, navigate, isPasswordRecovery]);
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    if (password.length < 6) {
+      toast.error("הסיסמה חייבת להכיל לפחות 6 תווים");
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("הסיסמאות לא תואמות");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("הסיסמה עודכנה בהצלחה!");
+        setIsPasswordRecovery(false);
+        // Clear the hash from URL
+        window.history.replaceState(null, "", window.location.pathname);
+        navigate("/admin");
+      }
+    } catch (err) {
+      toast.error("אירעה שגיאה. נסה שוב.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +160,53 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  // Password recovery form - shown when user clicks reset link from email
+  if (isPasswordRecovery) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4" dir="rtl">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">הגדרת סיסמה חדשה</CardTitle>
+            <CardDescription>
+              הזן את הסיסמה החדשה שלך
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handlePasswordUpdate} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">סיסמה חדשה</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">אימות סיסמה</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  dir="ltr"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "מעדכן..." : "עדכן סיסמה"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isForgotPassword) {
     return (
