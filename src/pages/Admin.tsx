@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface ClickStats {
   total: number;
@@ -16,6 +18,13 @@ interface ClickStats {
 const Admin = () => {
   const [stats, setStats] = useState<ClickStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const { signOut, user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
 
   const fetchStats = async () => {
     setLoading(true);
@@ -71,11 +80,22 @@ const Admin = () => {
     <div className="min-h-screen bg-background p-8" dir="rtl">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground">סטטיסטיקות קליקים</h1>
-          <Button onClick={fetchStats} disabled={loading} variant="outline">
-            <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
-            רענן
-          </Button>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold text-foreground">סטטיסטיקות קליקים</h1>
+            {user && (
+              <span className="text-sm text-muted-foreground">({user.email})</span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={fetchStats} disabled={loading} variant="outline">
+              <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
+              רענן
+            </Button>
+            <Button onClick={handleSignOut} variant="outline">
+              <LogOut className="h-4 w-4 ml-2" />
+              התנתק
+            </Button>
+          </div>
         </div>
 
         {loading && !stats ? (
