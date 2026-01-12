@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { FacebookPixel, trackFBLead } from "@/components/FacebookPixel";
 import { trackEvent } from "@/lib/analytics";
+import { trackButtonClick } from "@/lib/trackClick";
 import { useEffect } from "react";
 import { MessageCircle, Send } from "lucide-react";
 import logo from "@/assets/logo.jpg";
@@ -20,6 +21,7 @@ const ChannelSelect = () => {
       source: "join_campaign",
     });
     trackFBLead("channel_select_whatsapp");
+    trackButtonClick("whatsapp", "join_campaign", "thailand");
   };
 
   const handleTelegramClick = () => {
@@ -29,6 +31,7 @@ const ChannelSelect = () => {
       source: "join_campaign",
     });
     trackFBLead("channel_select_telegram");
+    trackButtonClick("telegram", "join_campaign", "thailand");
   };
 
   return (
