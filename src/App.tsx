@@ -8,12 +8,43 @@ import Israel from "./pages/Israel";
 import Thailand from "./pages/Thailand";
 import ChannelSelect from "./pages/ChannelSelect";
 import Admin from "./pages/Admin";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { CountryProvider } from "./contexts/CountryContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LoadingScreen } from "./components/LoadingScreen";
 import { useState, useEffect } from "react";
 
 const queryClient = new QueryClient();
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading, isAdmin } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">טוען...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background" dir="rtl">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-2">אין לך הרשאה</h1>
+          <p className="text-muted-foreground">אין לך הרשאת מנהל לצפות בדף זה.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
 
 const AppContent = () => {
   const location = useLocation();
@@ -24,7 +55,15 @@ const AppContent = () => {
       <Route path="/israel" element={<Israel />} />
       <Route path="/join" element={<ChannelSelect />} />
       <Route path="/thailand" element={<Thailand />} />
-      <Route path="/admin" element={<Admin />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <Admin />
+          </ProtectedRoute>
+        }
+      />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -33,15 +72,17 @@ const AppContent = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <CountryProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </TooltipProvider>
-    </CountryProvider>
+    <AuthProvider>
+      <CountryProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </TooltipProvider>
+      </CountryProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
