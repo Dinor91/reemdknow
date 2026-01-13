@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { trackEvent } from "@/lib/analytics";
 import { FacebookPixel, trackFBViewContent } from "@/components/FacebookPixel";
 import { useEffect } from "react";
+import heroImage from "@/assets/hero-banner-new.jpeg";
 
 const Landing = () => {
   useEffect(() => {
@@ -35,7 +36,16 @@ const Landing = () => {
       <Header />
       <div className="pt-16">
         {/* Hero Section - New Design */}
-        <section className="bg-gradient-to-b from-background to-muted py-12 md:py-20">
+        <section className="bg-gradient-to-b from-background to-muted py-8 md:py-16">
+          {/* Hero Banner Image */}
+          <div className="px-4 md:px-0 mb-8 md:mb-12">
+            <img
+              src={heroImage}
+              alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה"
+              className="w-full max-w-full md:max-w-6xl mx-auto rounded-lg md:rounded-none object-cover"
+            />
+          </div>
+          
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
               {/* H1 - Hero Headline */}
