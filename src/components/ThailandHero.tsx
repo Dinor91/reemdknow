@@ -11,7 +11,7 @@ export const ThailandHero = () => {
         מותגים אמיתיים · משלוח למלון · תשלום כשמגיע
       </p>
       <p className="text-2xl md:text-3xl font-bold text-orange-500 mt-8">
-        🔥 פה מה כדאי לקנות
+        🔥 גללו למטה ותראו מה אפשר לקנות בLAZADA
       </p>
     </section>
   );
