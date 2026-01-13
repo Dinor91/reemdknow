@@ -18,7 +18,7 @@ export const Header = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-start gap-4">
         <Link to="/" className="flex items-center">
           <img src={logo} alt="Reem(D)Know Logo" className="h-12 w-12 rounded-full object-cover" />
         </Link>
