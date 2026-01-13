@@ -62,17 +62,17 @@ const Landing = () => {
 
               {/* Problem List */}
               <ul className="list-none text-right max-w-md mx-auto mb-8">
-                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-[#555555] mb-3 flex items-center justify-end gap-2">
+                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-[#555555] mb-3 flex items-center gap-2">
+                  <span>❌</span>
                   <span>דירוג מזויף</span>
-                  <span>❌</span>
                 </li>
-                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-[#555555] mb-3 flex items-center justify-end gap-2">
+                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-[#555555] mb-3 flex items-center gap-2">
+                  <span>❌</span>
                   <span>מחיר מנופח</span>
-                  <span>❌</span>
                 </li>
-                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-[#555555] mb-3 flex items-center justify-end gap-2">
-                  <span>זמן משלוח אינסופי</span>
+                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-[#555555] mb-3 flex items-center gap-2">
                   <span>❌</span>
+                  <span>זמן משלוח אינסופי</span>
                 </li>
               </ul>
 
@@ -83,17 +83,17 @@ const Landing = () => {
 
               {/* Solution List */}
               <ul className="list-none text-right max-w-md mx-auto mb-8">
-                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-success font-medium mb-3 flex items-center justify-end gap-2">
+                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-success font-medium mb-3 flex items-center gap-2">
+                  <span>✅</span>
                   <span>רק מוצרים עם דירוג אמיתי <strong>4.5+</strong></span>
-                  <span>✅</span>
                 </li>
-                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-success font-medium mb-3 flex items-center justify-end gap-2">
+                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-success font-medium mb-3 flex items-center gap-2">
+                  <span>✅</span>
                   <span>רק מוכרים עם <strong>500+</strong> הזמנות מאומתות</span>
-                  <span>✅</span>
                 </li>
-                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-success font-medium mb-3 flex items-center justify-end gap-2">
-                  <span>רק דילים שבדקתי אישית</span>
+                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-success font-medium mb-3 flex items-center gap-2">
                   <span>✅</span>
+                  <span>רק דילים שבדקתי אישית</span>
                 </li>
               </ul>
 
