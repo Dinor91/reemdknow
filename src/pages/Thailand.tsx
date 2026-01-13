@@ -1,7 +1,6 @@
 import { ThailandHero } from "@/components/ThailandHero";
 import { ThailandCategories } from "@/components/ThailandCategories";
 import { FeaturedProductsThailand } from "@/components/FeaturedProductsThailand";
-import { JoinCTASection } from "@/components/JoinCTASection";
 import { Partners } from "@/components/Partners";
 import { Footer } from "@/components/Footer";
 import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
@@ -25,9 +24,6 @@ const Thailand = () => {
 
         {/* 2. Featured Products - הכי שווה השבוע */}
         <FeaturedProductsThailand />
-
-        {/* 3. CTA Section - וואטסאפ/טלגרם */}
-        <JoinCTASection country="thailand" />
 
         {/* 4. Categories Accordion */}
         <ThailandCategories />
