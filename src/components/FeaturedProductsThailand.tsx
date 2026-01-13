@@ -34,10 +34,10 @@ const useFeaturedProducts = () => {
 
       let products: LazadaProduct[] = feedResponse?.data?.result?.data || [];
       
-      // Sort by commission rate (highest first) and take top 4
+      // Sort by sales (most popular) and filter out of stock, then take top 4
       products = products
         .filter(p => !p.outOfStock && p.discountPrice > 0)
-        .sort((a, b) => (b.totalCommissionRate || 0) - (a.totalCommissionRate || 0))
+        .sort((a, b) => (b.sales7d || 0) - (a.sales7d || 0))
         .slice(0, 4);
       
       if (products.length === 0) return [];
@@ -100,11 +100,10 @@ const ProductCard = ({ product, onProductClick }: { product: ProductWithLink; on
         ≈ {convertToILS(product.discountPrice)}
       </span>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-          עמלה: {(product.totalCommissionRate * 100).toFixed(1)}%
-        </span>
         {product.sales7d > 0 && (
-          <span>🔥 {product.sales7d} נמכרו השבוע</span>
+          <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">
+            🔥 {product.sales7d} נמכרו השבוע
+          </span>
         )}
       </div>
     </div>
@@ -152,7 +151,7 @@ export const FeaturedProductsThailand = () => {
             🔥 הכי שווה השבוע
           </h2>
           <p className="text-lg text-muted-foreground">
-            המוצרים עם הכי הרבה עמלה ב-Lazada
+            המוצרים הכי פופולריים ב-Lazada
           </p>
         </div>
 
