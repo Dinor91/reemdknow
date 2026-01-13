@@ -1,5 +1,6 @@
-import { trackButtonClick } from "@/lib/trackClick";
 import { trackFBInitiateCheckout } from "./FacebookPixel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Product {
   icon: string;
@@ -55,7 +56,42 @@ const products: Product[] = [
   }
 ];
 
+const ProductCard = ({ product, onProductClick }: { product: Product; onProductClick: (product: Product) => void }) => (
+  <div className="bg-card border-2 border-border rounded-2xl p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-orange-400 transition-all duration-300 flex flex-col h-full">
+    <div className="text-5xl text-center mb-4">{product.icon}</div>
+    <h3 className="text-xl font-semibold text-foreground text-center mb-4 leading-tight">
+      {product.name}
+    </h3>
+    <p className="text-sm text-muted-foreground mb-4 flex-grow">
+      <span className="font-semibold text-foreground">למה כדאי:</span>{" "}
+      {product.reason}
+    </p>
+    <div className="flex flex-col gap-1.5 mb-5 text-sm">
+      <span className="font-semibold text-foreground">
+        💰 {product.priceTHB} ({product.priceILS})
+      </span>
+      <span className="font-semibold text-green-600">
+        חוסכים: {product.savings}
+      </span>
+      <span className="text-muted-foreground">
+        ⭐ {product.rating}
+      </span>
+    </div>
+    <a
+      href={product.link}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={() => onProductClick(product)}
+      className="block w-full py-3.5 px-6 bg-orange-500 hover:bg-orange-600 text-white text-lg font-semibold text-center rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+    >
+      לדיל בלאזדה 🛒
+    </a>
+  </div>
+);
+
 export const FeaturedProductsThailand = () => {
+  const isMobile = useIsMobile();
+
   const handleProductClick = (product: Product) => {
     trackFBInitiateCheckout(product.name, product.link);
   };
@@ -72,43 +108,41 @@ export const FeaturedProductsThailand = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {products.map((product, index) => (
-            <div
-              key={index}
-              className="bg-card border-2 border-border rounded-2xl p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-orange-400 transition-all duration-300 flex flex-col"
+        {/* Mobile: Carousel */}
+        {isMobile ? (
+          <div className="px-2">
+            <Carousel
+              opts={{
+                align: "center",
+                loop: true,
+                direction: "rtl",
+              }}
+              className="w-full"
             >
-              <div className="text-5xl text-center mb-4">{product.icon}</div>
-              <h3 className="text-xl font-semibold text-foreground text-center mb-4 leading-tight">
-                {product.name}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4 flex-grow">
-                <span className="font-semibold text-foreground">למה כדאי:</span>{" "}
-                {product.reason}
-              </p>
-              <div className="flex flex-col gap-1.5 mb-5 text-sm">
-                <span className="font-semibold text-foreground">
-                  💰 {product.priceTHB} ({product.priceILS})
-                </span>
-                <span className="font-semibold text-green-600">
-                  חוסכים: {product.savings}
-                </span>
-                <span className="text-muted-foreground">
-                  ⭐ {product.rating}
-                </span>
+              <CarouselContent className="-mr-4">
+                {products.map((product, index) => (
+                  <CarouselItem key={index} className="pr-4 basis-[85%]">
+                    <ProductCard product={product} onProductClick={handleProductClick} />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <div className="flex justify-center gap-4 mt-6">
+                <CarouselNext className="relative inset-0 translate-x-0 translate-y-0 h-10 w-10" />
+                <CarouselPrevious className="relative inset-0 translate-x-0 translate-y-0 h-10 w-10" />
               </div>
-              <a
-                href={product.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => handleProductClick(product)}
-                className="block w-full py-3.5 px-6 bg-orange-500 hover:bg-orange-600 text-white text-lg font-semibold text-center rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                לדיל בלאזדה 🛒
-              </a>
-            </div>
-          ))}
-        </div>
+            </Carousel>
+            <p className="text-center text-sm text-muted-foreground mt-4">
+              👈 החליקו לעוד מוצרים
+            </p>
+          </div>
+        ) : (
+          /* Desktop: Grid */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {products.map((product, index) => (
+              <ProductCard key={index} product={product} onProductClick={handleProductClick} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
