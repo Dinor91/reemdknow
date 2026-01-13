@@ -84,11 +84,11 @@ const Landing = () => {
               {/* Solution List */}
               <ul className="list-none text-right max-w-md mx-auto mb-8">
                 <li className="text-[16px] md:text-[18px] lg:text-[20px] text-success font-medium mb-3 flex items-center justify-end gap-2">
-                  <span>רק מוצרים עם <strong>4.5+</strong> דירוג אמיתי</span>
+                  <span>רק מוצרים עם דירוג אמיתי <strong>4.5+</strong></span>
                   <span>✅</span>
                 </li>
                 <li className="text-[16px] md:text-[18px] lg:text-[20px] text-success font-medium mb-3 flex items-center justify-end gap-2">
-                  <span>רק מוכרים עם <strong>500+</strong> הזמנות</span>
+                  <span>רק מוכרים עם <strong>500+</strong> הזמנות מאומתות</span>
                   <span>✅</span>
                 </li>
                 <li className="text-[16px] md:text-[18px] lg:text-[20px] text-success font-medium mb-3 flex items-center justify-end gap-2">
