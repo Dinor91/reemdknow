@@ -65,13 +65,13 @@ const Landing = () => {
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="text-xl">✅</span>
-                  <span>חיסכון ממוצע: <strong>150 ש״ח</strong> למוצר</span>
+                  <span>כל שיתוף- כמו שאני ממליץ למשפחה וחברים</span>
                 </li>
               </ul>
 
               {/* Social Proof */}
-              <p className="text-[16px] md:text-[18px] font-medium text-[#333333] mb-8">
-                כבר <strong className="text-success">250+</strong> ישראלים חוסכים ככה.
+              <p className="text-[18px] md:text-[20px] font-medium text-[#333333] mb-8">
+                רוצים להצטרף? תבחרו מיקום
               </p>
 
               {/* CTA Question */}
@@ -130,7 +130,7 @@ const Landing = () => {
         <section className="py-12 md:py-16 bg-background">
           <div className="container mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-foreground">
-              ?למה <span className="text-success">250+</span> ישראלים בוטחים בי
+              למה <span className="text-success">250+</span> כבר בחרו בי?
             </h2>
 
             <div className="max-w-2xl mx-auto">
