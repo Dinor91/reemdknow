@@ -54,17 +54,17 @@ const Landing = () => {
               </h2>
 
               {/* Benefits List */}
-              <ul dir="rtl" className="text-[16px] md:text-[18px] lg:text-[20px] font-medium text-success space-y-4 mb-8 max-w-md mx-auto">
-                <li className="flex items-center gap-3">
-                  <span className="text-xl">✅</span>
+              <ul dir="rtl" className="text-[16px] md:text-[18px] lg:text-[20px] font-medium text-success space-y-4 mb-8 max-w-md mx-auto text-right">
+                <li className="flex items-center gap-3 justify-start">
+                  <span className="text-xl flex-shrink-0">✅</span>
                   <span>דילים חמים שנבדקו אישית</span>
                 </li>
-                <li className="flex items-center gap-3">
-                  <span className="text-xl">✅</span>
+                <li className="flex items-center gap-3 justify-start">
+                  <span className="text-xl flex-shrink-0">✅</span>
                   <span>מחירים שלא תמצאו בשום מקום</span>
                 </li>
-                <li className="flex items-center gap-3">
-                  <span className="text-xl">✅</span>
+                <li className="flex items-center gap-3 justify-start">
+                  <span className="text-xl flex-shrink-0">✅</span>
                   <span>כל שיתוף- כמו שאני ממליץ למשפחה וחברים</span>
                 </li>
               </ul>
