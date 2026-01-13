@@ -236,7 +236,7 @@ export const ThailandCategories = () => {
                     <AccordionContent className="px-5 pb-4">
                       <div className="grid gap-3 sm:grid-cols-2 mt-2">
                         {category.products.map((product, productIndex) => (
-                          <ProductHoverCard key={productIndex} productUrl={product.link}>
+                          <ProductHoverCard key={productIndex} productUrl={product.link} productNameHebrew={product.name}>
                             <Button
                               variant="outline"
                               className="justify-between h-auto py-3 px-4 w-full"
@@ -289,7 +289,7 @@ export const ThailandCategories = () => {
                   <AccordionContent className="px-5 pb-4">
                     <div className="grid gap-3 sm:grid-cols-2 mt-2">
                       {categories[8].products.map((product, productIndex) => (
-                        <ProductHoverCard key={productIndex} productUrl={product.link}>
+                        <ProductHoverCard key={productIndex} productUrl={product.link} productNameHebrew={product.name}>
                           <Button
                             variant="outline"
                             className="justify-between h-auto py-3 px-4 w-full"
