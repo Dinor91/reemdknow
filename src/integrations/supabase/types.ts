@@ -38,6 +38,57 @@ export type Database = {
         }
         Relationships: []
       }
+      category_products: {
+        Row: {
+          affiliate_link: string
+          category: string
+          created_at: string
+          currency: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          lazada_product_id: string | null
+          name_english: string | null
+          name_hebrew: string
+          price_thb: number | null
+          rating: number | null
+          sales_count: number | null
+          updated_at: string
+        }
+        Insert: {
+          affiliate_link: string
+          category: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          lazada_product_id?: string | null
+          name_english?: string | null
+          name_hebrew: string
+          price_thb?: number | null
+          rating?: number | null
+          sales_count?: number | null
+          updated_at?: string
+        }
+        Update: {
+          affiliate_link?: string
+          category?: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          lazada_product_id?: string | null
+          name_english?: string | null
+          name_hebrew?: string
+          price_thb?: number | null
+          rating?: number | null
+          sales_count?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lazada_products: {
         Row: {
           affiliate_link: string | null
