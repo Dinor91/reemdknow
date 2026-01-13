@@ -25,14 +25,20 @@ const useFeaturedProducts = () => {
   return useQuery({
     queryKey: ['featured-lazada-products'],
     queryFn: async () => {
-      // Get product feed
+      // Get product feed - fetch more products so we can sort by commission
       const { data: feedResponse, error: feedError } = await supabase.functions.invoke('lazada-api', {
-        body: { action: 'product-feed', offerType: 1, page: 1, limit: 4 }
+        body: { action: 'product-feed', offerType: 1, page: 1, limit: 20 }
       });
 
       if (feedError) throw feedError;
 
-      const products: LazadaProduct[] = feedResponse?.data?.result?.data || [];
+      let products: LazadaProduct[] = feedResponse?.data?.result?.data || [];
+      
+      // Sort by commission rate (highest first) and take top 4
+      products = products
+        .filter(p => !p.outOfStock && p.discountPrice > 0)
+        .sort((a, b) => (b.totalCommissionRate || 0) - (a.totalCommissionRate || 0))
+        .slice(0, 4);
       
       if (products.length === 0) return [];
 
