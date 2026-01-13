@@ -196,6 +196,15 @@ export const ThailandCategories = () => {
     <section className="bg-background py-8 md:py-12">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-6xl">
+          {/* Section Title */}
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+              📦 כל המוצרים לפי קטגוריה
+            </h2>
+            <p className="text-base text-muted-foreground">
+              לחצו על קטגוריה לראות את כל המוצרים
+            </p>
+          </div>
           {/* First 8 categories in 2 columns */}
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             {categories.slice(0, 8).map((category, index) => {

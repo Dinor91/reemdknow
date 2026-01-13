@@ -1,4 +1,15 @@
 @tailwind base;
+
+/* Wave animation for Thailand flag */
+@keyframes wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  75% { transform: rotate(-15deg); }
+}
+
+.animate-wave {
+  animation: wave 2s ease-in-out infinite;
+}
 @tailwind components;
 @tailwind utilities;
 

@@ -19,19 +19,7 @@ const Thailand = () => {
       <FacebookPixel />
       <Header />
       <div className="pt-16">
-        {/* Page Header */}
-        <section className="text-center py-8 md:py-10 bg-gradient-to-br from-orange-100 to-white border-b-2 border-orange-400">
-          <div className="container mx-auto px-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-              🇹🇭 דילים מלאזדה - תאילנד
-            </h1>
-            <p className="text-base text-muted-foreground">
-              משלוח מהיר לכל תאילנד | תשלום במזומן | מוצרים נבדקים
-            </p>
-          </div>
-        </section>
-
-        {/* Hero with personal intro */}
+        {/* Hero Section */}
         <ThailandHero />
 
         {/* Categories - First 4 */}
