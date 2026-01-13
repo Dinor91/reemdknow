@@ -268,7 +268,57 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      feed_products_public: {
+        Row: {
+          brand_name: string | null
+          category_l1: number | null
+          category_name_hebrew: string | null
+          created_at: string | null
+          currency: string | null
+          id: string | null
+          image_url: string | null
+          is_featured: boolean | null
+          lazada_product_id: string | null
+          out_of_stock: boolean | null
+          price_thb: number | null
+          product_name: string | null
+          tracking_link: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          brand_name?: string | null
+          category_l1?: number | null
+          category_name_hebrew?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string | null
+          image_url?: string | null
+          is_featured?: boolean | null
+          lazada_product_id?: string | null
+          out_of_stock?: boolean | null
+          price_thb?: number | null
+          product_name?: string | null
+          tracking_link?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          brand_name?: string | null
+          category_l1?: number | null
+          category_name_hebrew?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string | null
+          image_url?: string | null
+          is_featured?: boolean | null
+          lazada_product_id?: string | null
+          out_of_stock?: boolean | null
+          price_thb?: number | null
+          product_name?: string | null
+          tracking_link?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
