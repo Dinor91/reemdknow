@@ -31,48 +31,48 @@ export const JoinCTASection = ({ country }: JoinCTASectionProps) => {
   };
 
   return (
-    <section className="bg-gradient-to-br from-orange-50 to-white py-12 md:py-16 my-12 mx-4 md:mx-auto max-w-4xl rounded-2xl">
-      <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-2xl text-center">
+    <section className="bg-gradient-to-br from-orange-50/80 to-white border-2 border-orange-400 rounded-2xl py-12 md:py-14 mx-4 md:mx-auto max-w-3xl my-16">
+      <div className="px-6">
+        <div className="mx-auto max-w-xl text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
             💡 רוצים עוד דילים חמים?
           </h2>
           <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-            יש לי 30+ מוצרים נוספים בקבוצה שמתעדכנים כל יום!
+            30+ מוצרים חדשים בקבוצה כל שבוע!
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button
               asChild
               size="lg"
-              className="bg-whatsapp hover:bg-whatsapp/90 hover:scale-105 hover:-translate-y-0.5 transition-all text-white w-full sm:w-auto shadow-lg hover:shadow-xl text-lg py-6 px-8 rounded-xl"
+              className="bg-whatsapp hover:bg-whatsapp/90 hover:scale-105 hover:-translate-y-1 transition-all text-white w-full sm:w-auto shadow-lg hover:shadow-xl text-lg py-6 px-8 rounded-xl"
             >
               <a
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2"
+                className="flex items-center gap-3"
                 onClick={handleWhatsAppClick}
               >
-                <MessageCircle className="h-6 w-6" />
-                <span className="font-semibold">📱 הצטרפו לוואטסאפ</span>
+                <span className="text-2xl">📱</span>
+                <span className="font-semibold">הצטרפו לוואטסאפ</span>
               </a>
             </Button>
 
             <Button
               asChild
               size="lg"
-              className="bg-telegram hover:bg-telegram/90 hover:scale-105 hover:-translate-y-0.5 transition-all text-white w-full sm:w-auto shadow-lg hover:shadow-xl text-lg py-6 px-8 rounded-xl"
+              className="bg-telegram hover:bg-telegram/90 hover:scale-105 hover:-translate-y-1 transition-all text-white w-full sm:w-auto shadow-lg hover:shadow-xl text-lg py-6 px-8 rounded-xl"
             >
               <a
                 href={telegramLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2"
+                className="flex items-center gap-3"
                 onClick={handleTelegramClick}
               >
-                <Send className="h-6 w-6" />
-                <span className="font-semibold">✈️ הצטרפו לטלגרם</span>
+                <span className="text-2xl">✈️</span>
+                <span className="font-semibold">הצטרפו לטלגרם</span>
               </a>
             </Button>
           </div>
