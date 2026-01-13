@@ -23,7 +23,7 @@ export const Header = () => {
           <Link to="/thailand" onClick={() => handleCountrySwitch('thailand')}>
             <Button 
               variant={isThailand ? "default" : "outline"}
-              className={`transition-all hover:scale-105 ${isThailand ? "bg-primary hover:bg-primary/90" : ""}`}
+              className={`transition-all hover:scale-105 ${isThailand ? "bg-orange-500 hover:bg-orange-600 text-white" : "border-orange-500 text-orange-500 hover:bg-orange-50"}`}
             >
               תאילנד
             </Button>
@@ -31,7 +31,7 @@ export const Header = () => {
           <Link to="/israel" onClick={() => handleCountrySwitch('israel')}>
             <Button 
               variant={isIsrael ? "default" : "outline"}
-              className={`transition-all hover:scale-105 ${isIsrael ? "bg-primary hover:bg-primary/90" : ""}`}
+              className={`transition-all hover:scale-105 ${isIsrael ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-blue-600 text-blue-600 hover:bg-blue-50"}`}
             >
               ישראל
             </Button>
