@@ -1,9 +1,7 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { About } from "@/components/About";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, ShoppingBag, Users, TrendingUp } from "lucide-react";
+import { ShoppingBag, Users, TrendingUp, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { trackEvent } from "@/lib/analytics";
 import { FacebookPixel, trackFBViewContent } from "@/components/FacebookPixel";
@@ -23,19 +21,13 @@ const Landing = () => {
     });
   };
 
-  const scrollToCountries = () => {
-    const countriesSection = document.getElementById("countries-section");
-    if (countriesSection) {
-      countriesSection.scrollIntoView({ behavior: "smooth" });
-    }
-  };
 
   return (
     <div className="min-h-screen" dir="rtl">
       <FacebookPixel />
       <Header />
       <div className="pt-16">
-        {/* Hero Section - New Design */}
+        {/* Hero Section - Value First Design */}
         <section className="bg-gradient-to-b from-background to-muted py-8 md:py-16">
           {/* Hero Banner Image */}
           <div className="px-4 md:px-0 mb-8 md:mb-12">
@@ -48,143 +40,107 @@ const Landing = () => {
           
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
-              {/* H1 - Hero Headline */}
-              <h1 className="text-[28px] md:text-[40px] lg:text-[48px] font-bold text-[#1a1a1a] leading-[1.2] mb-6">
-                🛒 קונים באלי אקספרס ולאזדה?
-                <br />
-                עצרו לשנייה.
+              {/* H1 - Value-First Headline */}
+              <h1 className="text-[28px] md:text-[40px] lg:text-[48px] font-bold text-foreground leading-[1.2] mb-4">
+                🔥 דילים חדשים כל יום
               </h1>
 
-              {/* H2 - Problem Statement */}
-              <h2 className="text-[20px] md:text-[24px] lg:text-[28px] font-semibold text-[#333333] leading-[1.3] mb-4">
-                רוב המוצרים שם זה:
-              </h2>
-
-              {/* Problem List */}
-              <ul className="list-none text-right max-w-md mx-auto mb-8">
-                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-[#555555] mb-3 flex items-center gap-2">
-                  <span>❌</span>
-                  <span>דירוג מזויף</span>
-                </li>
-                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-[#555555] mb-3 flex items-center gap-2">
-                  <span>❌</span>
-                  <span>מחיר מנופח</span>
-                </li>
-                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-[#555555] mb-3 flex items-center gap-2">
-                  <span>❌</span>
-                  <span>זמן משלוח אינסופי</span>
-                </li>
-              </ul>
-
-              {/* H2 - Solution Statement */}
-              <h2 className="text-[20px] md:text-[24px] lg:text-[28px] font-semibold text-[#333333] leading-[1.3] mb-4 mt-8">
-                הפתרון שלי פשוט:
-              </h2>
-
-              {/* Solution List */}
-              <ul className="list-none text-right max-w-md mx-auto mb-8">
-                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-success font-medium mb-3 flex items-center gap-2">
-                  <span>✅</span>
-                  <span>רק מוצרים עם דירוג אמיתי <strong>4.5+</strong></span>
-                </li>
-                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-success font-medium mb-3 flex items-center gap-2">
-                  <span>✅</span>
-                  <span>רק מוכרים עם <strong>500+</strong> הזמנות מאומתות</span>
-                </li>
-                <li className="text-[16px] md:text-[18px] lg:text-[20px] text-success font-medium mb-3 flex items-center gap-2">
-                  <span>✅</span>
-                  <span>רק דילים שבדקתי אישית</span>
-                </li>
-              </ul>
-
-              {/* Social Proof */}
-              <p className="text-[16px] md:text-[18px] lg:text-[20px] font-medium text-[#333333] mb-4">
-                <strong className="text-success">250+</strong> ישראלים כבר חוסכים איתי.
+              {/* Value Proposition */}
+              <p className="text-[18px] md:text-[22px] lg:text-[26px] text-muted-foreground mb-2">
+                מוצרים שנבדקו | מחירים שלא תמצאו בשום מקום
               </p>
 
-              {/* CTA Text */}
-              <p className="text-[20px] md:text-[24px] lg:text-[28px] font-bold text-cta-blue mb-6">
-                הבא בתור? 👇
+              {/* Social Proof - Immediate */}
+              <p className="text-[16px] md:text-[18px] text-success font-semibold mb-8">
+                ✅ חיסכון ממוצע: <strong>150 ש״ח</strong> למוצר
               </p>
 
-              {/* Primary Button */}
-              <Button
-                onClick={scrollToCountries}
-                size="lg"
-                className="bg-cta-blue hover:bg-cta-blue-hover text-white text-[16px] md:text-[18px] font-semibold px-8 py-4 md:py-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 w-full md:w-auto"
-              >
-                בחרו את היעד שלכם ↓
-              </Button>
+              {/* CTA Question */}
+              <h2 className="text-[24px] md:text-[32px] lg:text-[36px] font-bold text-foreground mb-8">
+                ?איפה אתם
+              </h2>
+
+              {/* Quick Country Selection */}
+              <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-xl mx-auto">
+                <Link 
+                  to="/thailand" 
+                  onClick={() => handleCountryClick("thailand")}
+                  className="group"
+                >
+                  <div className="bg-gradient-to-br from-background to-orange-50/50 border-2 border-gray-200 rounded-xl p-6 md:p-8 shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-[#f28433]">
+                    <div className="h-1 bg-[#f28433] rounded-full mb-4 -mx-6 md:-mx-8 -mt-6 md:-mt-8"></div>
+                    <span className="text-5xl md:text-6xl block mb-3">🇹🇭</span>
+                    <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">תאילנד</h3>
+                    <p className="text-sm md:text-base text-muted-foreground">דילים מלאזדה</p>
+                  </div>
+                </Link>
+
+                <Link 
+                  to="/israel" 
+                  onClick={() => handleCountryClick("israel")}
+                  className="group"
+                >
+                  <div className="bg-gradient-to-br from-background to-blue-50/50 border-2 border-gray-200 rounded-xl p-6 md:p-8 shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-blue-400">
+                    <div className="h-1 bg-blue-500 rounded-full mb-4 -mx-6 md:-mx-8 -mt-6 md:-mt-8"></div>
+                    <span className="text-5xl md:text-6xl block mb-3">🇮🇱</span>
+                    <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">ישראל</h3>
+                    <p className="text-sm md:text-base text-muted-foreground">דילים מאלי אקספרס</p>
+                  </div>
+                </Link>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Countries Section */}
-        <section id="countries-section" className="py-8 md:py-12 bg-muted">
+        {/* Trust Builder Section - Why Trust Me */}
+        <section className="py-12 md:py-16 bg-background">
           <div className="container mx-auto px-4">
-            <h2 className="text-2xl md:text-4xl font-bold text-center mb-4 text-foreground flex items-center justify-center gap-3">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <MapPin className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-              </div>
-              ?איפה אתם בעולם
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-foreground">
+              ?למה <span className="text-success">250+</span> ישראלים בוטחים בי
             </h2>
 
-            <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto text-lg md:text-xl">
-              בחרו את היעד שלכם וקבלו המלצות מותאמות אישית
-            </p>
+            <div className="max-w-2xl mx-auto">
+              {/* Problem */}
+              <div className="mb-8 p-6 bg-muted rounded-xl">
+                <h3 className="text-lg md:text-xl font-semibold text-foreground mb-4 text-center">
+                  רוב המוצרים ברשת זה:
+                </h3>
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-3 text-muted-foreground">
+                    <span className="text-lg">❌</span>
+                    <span>דירוג מזויף</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-muted-foreground">
+                    <span className="text-lg">❌</span>
+                    <span>מחיר מנופח</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-muted-foreground">
+                    <span className="text-lg">❌</span>
+                    <span>זמן משלוח אינסופי</span>
+                  </li>
+                </ul>
+              </div>
 
-            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-              {/* Israel Card */}
-              <Link to="/israel" onClick={() => handleCountryClick("israel")} className="group">
-                <Card className="overflow-hidden h-full bg-gradient-to-br from-background to-blue-50/50 border-2 border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-blue-400">
-                  <div className="h-1 bg-blue-500"></div>
-                  <CardContent className="p-10 text-center">
-                    <div className="mb-6">
-                      <span className="text-7xl md:text-8xl block mb-4">🇮🇱</span>
-                      <h3 className="text-2xl md:text-3xl font-bold text-foreground">ישראל</h3>
-                    </div>
-
-                    <p className="text-muted-foreground mb-8 leading-relaxed text-lg md:text-xl">
-                      גרים בישראל?
-                      <br />
-                      <span className="text-foreground font-medium">דילים מאלי אקספרס + קופונים בלעדיים</span>
-                    </p>
-
-                    <Button
-                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-blue-500 hover:bg-blue-600 text-white text-lg py-6"
-                      size="lg"
-                    >
-                      <span>לחץ כאן</span>
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              {/* Thailand Card */}
-              <Link to="/thailand" onClick={() => handleCountryClick("thailand")} className="group">
-                <Card className="overflow-hidden h-full bg-gradient-to-br from-background to-orange-50/50 border-2 border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-orange-400">
-                  <div className="h-1 bg-[#f28433]"></div>
-                  <CardContent className="p-10 text-center">
-                    <div className="mb-6">
-                      <span className="text-7xl md:text-8xl block mb-4">🇹🇭</span>
-                      <h3 className="text-2xl md:text-3xl font-bold text-foreground">תאילנד</h3>
-                    </div>
-
-                    <p className="text-muted-foreground mb-8 leading-relaxed text-lg md:text-xl">
-                      גרים או טסים לתאילנד?
-                      <br />
-                      <span className="text-foreground font-medium">דילים מלאזדה + משלוח מהיר</span>
-                    </p>
-
-                    <Button
-                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-[#f28433] hover:bg-[#d97706] text-white text-lg py-6"
-                      size="lg"
-                    >
-                      <span>לחץ כאן</span>
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Link>
+              {/* Solution */}
+              <div className="p-6 bg-success/10 rounded-xl border border-success/20">
+                <h3 className="text-lg md:text-xl font-semibold text-foreground mb-4 text-center">
+                  הפתרון שלי פשוט:
+                </h3>
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-3 text-foreground">
+                    <span className="text-lg">✅</span>
+                    <span>רק מוצרים עם דירוג אמיתי <strong>4.5+</strong></span>
+                  </li>
+                  <li className="flex items-center gap-3 text-foreground">
+                    <span className="text-lg">✅</span>
+                    <span>רק מוכרים עם <strong>500+</strong> הזמנות מאומתות</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-foreground">
+                    <span className="text-lg">✅</span>
+                    <span>רק דילים שבדקתי אישית</span>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </section>
