@@ -2,7 +2,6 @@ import { Home, Baby, Sparkles, Hammer, Trees, Tent, Utensils, Sofa, ShieldCheck,
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { CallToActionBanner } from "./CallToActionBanner";
-import { ProductHoverCard } from "./ProductHoverCard";
 import { useRef, useState } from "react";
 
 interface Product {
@@ -236,24 +235,23 @@ export const ThailandCategories = () => {
                     <AccordionContent className="px-5 pb-4">
                       <div className="grid gap-3 sm:grid-cols-2 mt-2">
                         {category.products.map((product, productIndex) => (
-                          <ProductHoverCard key={productIndex} productUrl={product.link} productNameHebrew={product.name}>
-                            <Button
-                              variant="outline"
-                              className="justify-between h-auto py-3 px-4 w-full"
-                              asChild
+                          <Button
+                            key={productIndex}
+                            variant="outline"
+                            className="justify-between h-auto py-3 px-4 w-full"
+                            asChild
+                          >
+                            <a
+                              href={product.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => handleProductClick()}
+                              className="flex items-center gap-2 flex-row-reverse"
                             >
-                              <a
-                                href={product.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={() => handleProductClick()}
-                                className="flex items-center gap-2 flex-row-reverse"
-                              >
-                                <span className="text-right flex-1">{product.name}</span>
-                                <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                              </a>
-                            </Button>
-                          </ProductHoverCard>
+                              <span className="text-right flex-1">{product.name}</span>
+                              <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                            </a>
+                          </Button>
                         ))}
                       </div>
                     </AccordionContent>
@@ -289,24 +287,23 @@ export const ThailandCategories = () => {
                   <AccordionContent className="px-5 pb-4">
                     <div className="grid gap-3 sm:grid-cols-2 mt-2">
                       {categories[8].products.map((product, productIndex) => (
-                        <ProductHoverCard key={productIndex} productUrl={product.link} productNameHebrew={product.name}>
-                          <Button
-                            variant="outline"
-                            className="justify-between h-auto py-3 px-4 w-full"
-                            asChild
+                        <Button
+                          key={productIndex}
+                          variant="outline"
+                          className="justify-between h-auto py-3 px-4 w-full"
+                          asChild
+                        >
+                          <a
+                            href={product.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => handleProductClick()}
+                            className="flex items-center gap-2 flex-row-reverse"
                           >
-                            <a
-                              href={product.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() => handleProductClick()}
-                              className="flex items-center gap-2 flex-row-reverse"
-                            >
-                              <span className="text-right flex-1">{product.name}</span>
-                              <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                            </a>
-                          </Button>
-                        </ProductHoverCard>
+                            <span className="text-right flex-1">{product.name}</span>
+                            <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                          </a>
+                        </Button>
                       ))}
                     </div>
                   </AccordionContent>
