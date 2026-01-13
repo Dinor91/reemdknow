@@ -46,27 +46,39 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const AppContent = () => {
-  const location = useLocation();
+// Scroll to top on route change
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
+
+const AppContent = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/israel" element={<Israel />} />
-      <Route path="/join" element={<ChannelSelect />} />
-      <Route path="/thailand" element={<Thailand />} />
-      <Route path="/auth" element={<Auth />} />
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute>
-            <Admin />
-          </ProtectedRoute>
-        }
-      />
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/israel" element={<Israel />} />
+        <Route path="/join" element={<ChannelSelect />} />
+        <Route path="/thailand" element={<Thailand />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <Admin />
+            </ProtectedRoute>
+          }
+        />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 };
 
