@@ -8,8 +8,8 @@ const corsHeaders = {
 // Lazada API configuration
 const LAZADA_APP_KEY = Deno.env.get('LAZADA_APP_KEY')
 const LAZADA_APP_SECRET = Deno.env.get('LAZADA_APP_SECRET')
-const LAZADA_ACCESS_TOKEN = Deno.env.get('LAZADA_ACCESS_TOKEN')
-const LAZADA_API_URL = 'https://api.lazada.co.th/rest'
+const LAZADA_USER_TOKEN = Deno.env.get('LAZADA_ACCESS_TOKEN') // User Token for affiliate API
+const LAZADA_API_URL = 'https://api.lazada.co.th/rest' // Thailand region
 
 // Make async signature function using HMAC-SHA256
 async function generateSignatureAsync(apiPath: string, params: Record<string, string>, appSecret: string): Promise<string> {
@@ -19,6 +19,8 @@ async function generateSignatureAsync(apiPath: string, params: Record<string, st
     .join('')
   
   const signStr = apiPath + sortedParams
+  
+  console.log('Sign string:', signStr)
   
   const encoder = new TextEncoder()
   const keyData = encoder.encode(appSecret)
@@ -37,15 +39,16 @@ async function generateSignatureAsync(apiPath: string, params: Record<string, st
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
 }
 
-// Call Lazada API
+// Call Lazada Affiliate API
 async function callLazadaAPI(apiPath: string, additionalParams: Record<string, string> = {}) {
   const timestamp = Date.now().toString()
   
+  // Build params with userToken (affiliate API uses userToken, not access_token)
   const params: Record<string, string> = {
     app_key: LAZADA_APP_KEY!,
     timestamp,
     sign_method: 'sha256',
-    access_token: LAZADA_ACCESS_TOKEN!,
+    userToken: LAZADA_USER_TOKEN!,
     ...additionalParams
   }
   
@@ -68,98 +71,97 @@ async function callLazadaAPI(apiPath: string, additionalParams: Record<string, s
   })
   
   const data = await response.json()
-  console.log(`Lazada API response:`, JSON.stringify(data).substring(0, 1000))
+  console.log(`Lazada API response:`, JSON.stringify(data).substring(0, 1500))
   
   return data
 }
 
-// Get product feed - Get product information for affiliates
-async function getProductFeed(offerId: string, page: number = 1, limit: number = 20) {
-  console.log(`Getting product feed for offerId: ${offerId}`)
+// Get product feed - IN USE
+// Path: /marketing/product/feed
+async function getProductFeed(offerType: number = 1, page: number = 1, limit: number = 20, categoryL1?: number, mmCampaignId?: number, dmInviteId?: number) {
+  console.log(`Getting product feed, offerType: ${offerType}, page: ${page}`)
   
-  const result = await callLazadaAPI('/marketing/product/feed/get', {
-    offerId,
+  const params: Record<string, string> = {
+    offerType: offerType.toString(),
     page: page.toString(),
     limit: limit.toString()
-  })
+  }
   
+  if (categoryL1) params.categoryL1 = categoryL1.toString()
+  if (mmCampaignId) params.mmCampaignId = mmCampaignId.toString()
+  if (dmInviteId) params.dmInviteId = dmInviteId.toString()
+  
+  const result = await callLazadaAPI('/marketing/product/feed', params)
   return result
 }
 
-// Get tracking link by product ID
-async function getTrackingLink(productId: string, offerId: string) {
+// Get tracking link for product - IN USE
+// Path: /marketing/product/link
+async function getTrackingLink(productId: string, mmCampaignId?: string, dmInviteId?: string) {
   console.log(`Getting tracking link for productId: ${productId}`)
   
-  const result = await callLazadaAPI('/marketing/link/get', {
-    productId,
-    offerId
-  })
+  const params: Record<string, string> = {
+    productId
+  }
   
+  if (mmCampaignId) params.mmCampaignId = mmCampaignId
+  if (dmInviteId) params.dmInviteId = dmInviteId
+  
+  const result = await callLazadaAPI('/marketing/product/link', params)
   return result
 }
 
-// Batch get links
-async function batchGetLinks(urls: string) {
-  console.log(`Batch getting links for: ${urls}`)
+// Batch get links - IN USE
+// Path: /marketing/getlink
+async function batchGetLinks(
+  inputType: 'productId' | 'url' | 'offerId', 
+  inputValue: string,
+  mmCampaignId?: string,
+  dmInviteId?: string,
+  subId1?: string,
+  subId2?: string,
+  subId3?: string
+) {
+  console.log(`Batch getting links, inputType: ${inputType}, inputValue: ${inputValue}`)
   
-  const result = await callLazadaAPI('/marketing/link/batch/get', {
-    urls
-  })
+  const params: Record<string, string> = {
+    inputType,
+    inputValue
+  }
   
+  if (mmCampaignId) params.mmCampaignId = mmCampaignId
+  if (dmInviteId) params.dmInviteId = dmInviteId
+  if (subId1) params.subId1 = subId1
+  if (subId2) params.subId2 = subId2
+  if (subId3) params.subId3 = subId3
+  
+  const result = await callLazadaAPI('/marketing/getlink', params)
   return result
 }
 
-// Get promo link by offer ID
-async function getPromoLink(offerId: string) {
-  console.log(`Getting promo link for offerId: ${offerId}`)
-  
-  const result = await callLazadaAPI('/marketing/promo/link/get', {
-    offerId
-  })
-  
-  return result
-}
-
-// Get conversion report
-async function getConversionReport(dateStart: string, dateEnd: string, offerId: string, page: number = 1, limit: number = 100) {
+// Get conversion report - IN USE
+// Path: /marketing/conversion/report
+async function getConversionReport(
+  dateStart: string, 
+  dateEnd: string, 
+  page: number = 1, 
+  limit: number = 100,
+  offerId?: string,
+  mmPartnerFlag?: boolean
+) {
   console.log(`Getting conversion report from ${dateStart} to ${dateEnd}`)
   
-  const result = await callLazadaAPI('/marketing/conversion/report', {
+  const params: Record<string, string> = {
     dateStart,
     dateEnd,
-    offerId,
     page: page.toString(),
     limit: limit.toString()
-  })
+  }
   
-  return result
-}
-
-// Get performance report
-async function getPerformanceReport(dateStart: string, dateEnd: string, offerId: string) {
-  console.log(`Getting performance report from ${dateStart} to ${dateEnd}`)
+  if (offerId) params.offerId = offerId
+  if (mmPartnerFlag !== undefined) params.mmPartnerFlag = mmPartnerFlag.toString()
   
-  const result = await callLazadaAPI('/marketing/performance/report', {
-    dateStart,
-    dateEnd,
-    offerId
-  })
-  
-  return result
-}
-
-// Get product performance report
-async function getProductPerformanceReport(dateStart: string, dateEnd: string, offerId: string, page: number = 1, limit: number = 100) {
-  console.log(`Getting product performance report from ${dateStart} to ${dateEnd}`)
-  
-  const result = await callLazadaAPI('/marketing/product/performance/report', {
-    dateStart,
-    dateEnd,
-    offerId,
-    page: page.toString(),
-    limit: limit.toString()
-  })
-  
+  const result = await callLazadaAPI('/marketing/conversion/report', params)
   return result
 }
 
@@ -171,7 +173,7 @@ serve(async (req) => {
 
   try {
     // Validate API credentials
-    if (!LAZADA_APP_KEY || !LAZADA_APP_SECRET || !LAZADA_ACCESS_TOKEN) {
+    if (!LAZADA_APP_KEY || !LAZADA_APP_SECRET || !LAZADA_USER_TOKEN) {
       console.error('Missing Lazada API credentials')
       return new Response(
         JSON.stringify({ error: 'Lazada API credentials not configured' }),
@@ -180,89 +182,93 @@ serve(async (req) => {
     }
 
     const body = await req.json()
-    const { action, offerId, productId, urls, dateStart, dateEnd, page, limit } = body
+    const { 
+      action, 
+      offerType, 
+      productId,
+      inputType,
+      inputValue,
+      dateStart, 
+      dateEnd, 
+      offerId,
+      categoryL1,
+      mmCampaignId,
+      dmInviteId,
+      mmPartnerFlag,
+      subId1,
+      subId2,
+      subId3,
+      page, 
+      limit 
+    } = body
+    
     console.log(`Received action: ${action}`, JSON.stringify(body))
 
     let result
 
     switch (action) {
+      // Get product feed - main API for getting products
       case 'product-feed':
-        if (!offerId) {
-          return new Response(
-            JSON.stringify({ error: 'offerId is required for product feed' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-        result = await getProductFeed(offerId, page || 1, limit || 20)
+        result = await getProductFeed(
+          offerType || 1, 
+          page || 1, 
+          limit || 20, 
+          categoryL1, 
+          mmCampaignId, 
+          dmInviteId
+        )
         break
 
+      // Get tracking link for a specific product
       case 'tracking-link':
-        if (!productId || !offerId) {
+        if (!productId) {
           return new Response(
-            JSON.stringify({ error: 'productId and offerId are required for tracking link' }),
+            JSON.stringify({ error: 'productId is required for tracking link' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
-        result = await getTrackingLink(productId, offerId)
+        result = await getTrackingLink(productId, mmCampaignId, dmInviteId)
         break
 
+      // Batch get links - supports productId, url, or offerId
       case 'batch-links':
-        if (!urls) {
+        if (!inputType || !inputValue) {
           return new Response(
-            JSON.stringify({ error: 'urls is required for batch links' }),
+            JSON.stringify({ 
+              error: 'inputType and inputValue are required for batch links',
+              validInputTypes: ['productId', 'url', 'offerId']
+            }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
-        result = await batchGetLinks(urls)
+        result = await batchGetLinks(inputType, inputValue, mmCampaignId, dmInviteId, subId1, subId2, subId3)
         break
 
-      case 'promo-link':
-        if (!offerId) {
-          return new Response(
-            JSON.stringify({ error: 'offerId is required for promo link' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-        result = await getPromoLink(offerId)
-        break
-
+      // Get conversion report
       case 'conversion-report':
-        if (!dateStart || !dateEnd || !offerId) {
+        if (!dateStart || !dateEnd) {
           return new Response(
-            JSON.stringify({ error: 'dateStart, dateEnd, and offerId are required for conversion report' }),
+            JSON.stringify({ error: 'dateStart and dateEnd are required (YYYY-MM-DD format)' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
-        result = await getConversionReport(dateStart, dateEnd, offerId, page || 1, limit || 100)
+        result = await getConversionReport(dateStart, dateEnd, page || 1, limit || 100, offerId, mmPartnerFlag)
         break
 
-      case 'performance-report':
-        if (!dateStart || !dateEnd || !offerId) {
-          return new Response(
-            JSON.stringify({ error: 'dateStart, dateEnd, and offerId are required for performance report' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-        result = await getPerformanceReport(dateStart, dateEnd, offerId)
-        break
-
-      case 'product-performance-report':
-        if (!dateStart || !dateEnd || !offerId) {
-          return new Response(
-            JSON.stringify({ error: 'dateStart, dateEnd, and offerId are required for product performance report' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-        result = await getProductPerformanceReport(dateStart, dateEnd, offerId, page || 1, limit || 100)
-        break
-
+      // Test API connection
       case 'test':
-        // Test API connection
         result = {
           status: 'connected',
-          message: 'Lazada API credentials are configured',
+          message: 'Lazada Affiliate API credentials are configured',
           appKey: LAZADA_APP_KEY,
-          timestamp: new Date().toISOString()
+          userToken: LAZADA_USER_TOKEN?.substring(0, 8) + '...',
+          timestamp: new Date().toISOString(),
+          availableActions: [
+            'product-feed - Get product list (offerType: 1=Regular, 2=MM, 3=DM)',
+            'tracking-link - Get tracking link for a product (productId required)',
+            'batch-links - Batch get links (inputType: productId/url/offerId, inputValue required)',
+            'conversion-report - Get conversion report (dateStart, dateEnd required)'
+          ]
         }
         break
 
@@ -274,10 +280,7 @@ serve(async (req) => {
               'product-feed',
               'tracking-link', 
               'batch-links',
-              'promo-link',
               'conversion-report',
-              'performance-report',
-              'product-performance-report',
               'test'
             ]
           }),
