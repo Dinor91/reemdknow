@@ -36,9 +36,9 @@ export const JoinCTASection = ({ country }: JoinCTASectionProps) => {
           💬 רוצים עוד המלצות?
         </h2>
         <p className="text-lg text-muted-foreground leading-relaxed mb-5">
-          בקבוצה אני משתף כל מוצר טוב שאני נתקל בו.
+          בקבוצה שלי אני משתף רק מוצרים שווים שעוברים סינון.
           <br />
-          3-4 דברים בשבוע. בלי ספאם.
+          3-4 מוצרים בשבוע, בלי ספאם!
         </p>
         <p className="text-lg font-medium text-foreground mb-7">
           250+ ישראלים כבר שם 👇
