@@ -38,6 +38,72 @@ export type Database = {
         }
         Relationships: []
       }
+      lazada_products: {
+        Row: {
+          affiliate_link: string | null
+          category: string | null
+          created_at: string
+          description: string | null
+          discount_percentage: number | null
+          icon: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          lazada_item_id: string | null
+          name: string
+          price_ils: string | null
+          price_original_thb: number | null
+          price_thb: number | null
+          rating: number | null
+          reason: string | null
+          reviews_count: number | null
+          savings_ils: string | null
+          updated_at: string
+        }
+        Insert: {
+          affiliate_link?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number | null
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          lazada_item_id?: string | null
+          name: string
+          price_ils?: string | null
+          price_original_thb?: number | null
+          price_thb?: number | null
+          rating?: number | null
+          reason?: string | null
+          reviews_count?: number | null
+          savings_ils?: string | null
+          updated_at?: string
+        }
+        Update: {
+          affiliate_link?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number | null
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          lazada_item_id?: string | null
+          name?: string
+          price_ils?: string | null
+          price_original_thb?: number | null
+          price_thb?: number | null
+          rating?: number | null
+          reason?: string | null
+          reviews_count?: number | null
+          savings_ils?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
