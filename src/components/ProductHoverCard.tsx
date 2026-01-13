@@ -88,23 +88,25 @@ export const ProductHoverCard = ({ productUrl, productNameHebrew, children }: Pr
                   {productInfo.name_english}
                 </p>
               )}
-              <div className="flex items-center gap-3">
-                {productInfo.price_thb && (
-                  <span className="text-base font-bold text-orange-600">
-                    {formatPrice(productInfo.price_thb)}
-                  </span>
-                )}
-                {productInfo.rating && (
-                  <span className="text-xs text-muted-foreground">
-                    ⭐ {productInfo.rating}
-                  </span>
-                )}
-                {productInfo.sales_count && productInfo.sales_count > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    🔥 {productInfo.sales_count} נמכרו
-                  </span>
-                )}
-              </div>
+              {(productInfo.price_thb || productInfo.rating || (productInfo.sales_count && productInfo.sales_count > 0)) && (
+                <div className="flex items-center gap-3">
+                  {productInfo.price_thb && productInfo.price_thb > 0 && (
+                    <span className="text-base font-bold text-orange-600">
+                      {formatPrice(productInfo.price_thb)}
+                    </span>
+                  )}
+                  {productInfo.rating && productInfo.rating > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      ⭐ {productInfo.rating}
+                    </span>
+                  )}
+                  {productInfo.sales_count && productInfo.sales_count > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      🔥 {productInfo.sales_count} נמכרו
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : (
