@@ -56,37 +56,52 @@ const Landing = () => {
               </p>
 
               {/* CTA Question */}
-              <h2 className="text-[24px] md:text-[32px] lg:text-[36px] font-bold text-foreground mb-8">
-                ?איפה אתם
+              <h2 className="text-[24px] md:text-[32px] lg:text-[36px] font-bold text-foreground mb-4">
+                ?איפה אתם בעולם
               </h2>
+              <p className="text-[16px] md:text-[18px] text-muted-foreground mb-8">
+                בחרו את היעד שלכם וקבלו המלצות מותאמות אישית
+              </p>
 
-              {/* Quick Country Selection */}
-              <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-xl mx-auto">
-                <Link 
-                  to="/thailand" 
-                  onClick={() => handleCountryClick("thailand")}
-                  className="group"
-                >
-                  <div className="bg-gradient-to-br from-background to-orange-50/50 border-2 border-gray-200 rounded-xl p-6 md:p-8 shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-[#f28433]">
-                    <div className="h-1 bg-[#f28433] rounded-full mb-4 -mx-6 md:-mx-8 -mt-6 md:-mt-8"></div>
-                    <span className="text-5xl md:text-6xl block mb-3">🇹🇭</span>
-                    <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">תאילנד</h3>
-                    <p className="text-sm md:text-base text-muted-foreground">דילים מלאזדה</p>
+              {/* Country Selection Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-3xl mx-auto">
+                {/* Thailand Card */}
+                <div className="bg-background border-2 border-gray-200 rounded-2xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-[#f28433]">
+                  <div className="h-1 bg-[#f28433]"></div>
+                  <div className="p-8 md:p-10 text-center">
+                    <span className="text-7xl md:text-8xl block mb-6">🇹🇭</span>
+                    <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">תאילנד</h3>
+                    <p className="text-base md:text-lg text-muted-foreground mb-6">
+                      גרים או טסים לתאילנד?<br/>דילים מלאזדה + משלוח מהיר
+                    </p>
+                    <Link 
+                      to="/thailand" 
+                      onClick={() => handleCountryClick("thailand")}
+                      className="inline-block w-full bg-[#f28433] hover:bg-[#e07328] text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 text-lg"
+                    >
+                      לדילים בתאילנד
+                    </Link>
                   </div>
-                </Link>
+                </div>
 
-                <Link 
-                  to="/israel" 
-                  onClick={() => handleCountryClick("israel")}
-                  className="group"
-                >
-                  <div className="bg-gradient-to-br from-background to-blue-50/50 border-2 border-gray-200 rounded-xl p-6 md:p-8 shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-blue-400">
-                    <div className="h-1 bg-blue-500 rounded-full mb-4 -mx-6 md:-mx-8 -mt-6 md:-mt-8"></div>
-                    <span className="text-5xl md:text-6xl block mb-3">🇮🇱</span>
-                    <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">ישראל</h3>
-                    <p className="text-sm md:text-base text-muted-foreground">דילים מאלי אקספרס</p>
+                {/* Israel Card */}
+                <div className="bg-background border-2 border-gray-200 rounded-2xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-blue-400">
+                  <div className="h-1 bg-blue-500"></div>
+                  <div className="p-8 md:p-10 text-center">
+                    <span className="text-7xl md:text-8xl block mb-6">🇮🇱</span>
+                    <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">ישראל</h3>
+                    <p className="text-base md:text-lg text-muted-foreground mb-6">
+                      גרים בישראל?<br/>דילים מאלי אקספרס + קופונים בלעדיים
+                    </p>
+                    <Link 
+                      to="/israel" 
+                      onClick={() => handleCountryClick("israel")}
+                      className="inline-block w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 text-lg"
+                    >
+                      לדילים בישראל
+                    </Link>
                   </div>
-                </Link>
+                </div>
               </div>
             </div>
           </div>
