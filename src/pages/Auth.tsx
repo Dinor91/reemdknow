@@ -75,11 +75,13 @@ const Auth = () => {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success("הסיסמה עודכנה בהצלחה!");
+        toast.success("הסיסמה עודכנה בהצלחה! מתחבר מחדש...");
         setIsPasswordRecovery(false);
         // Clear the hash from URL
         window.history.replaceState(null, "", window.location.pathname);
-        navigate("/admin");
+        // Sign out and redirect to login so user can sign in fresh with new password
+        await supabase.auth.signOut();
+        navigate("/auth");
       }
     } catch (err) {
       toast.error("אירעה שגיאה. נסה שוב.");
