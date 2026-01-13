@@ -199,9 +199,9 @@ export const ThailandCategories = () => {
           {/* Section Title */}
           <div className="text-center mb-10">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-              📦 כל המוצרים לפי קטגוריה
+              ההמלצות של (D)Know
             </h2>
-            <p className="text-base text-muted-foreground">
+            <p className="text-lg md:text-xl text-muted-foreground">
               לחצו על קטגוריה לראות את כל המוצרים
             </p>
           </div>
