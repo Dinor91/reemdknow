@@ -85,18 +85,18 @@ const Landing = () => {
               {/* Country Selection Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-3xl mx-auto">
                 {/* Thailand Card */}
-                <div className="bg-background border-2 border-gray-200 rounded-2xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-[#f28433]">
+                <div className="bg-background border-2 border-gray-200 rounded-2xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-[#f28433] h-full flex flex-col">
                   <div className="h-1 bg-[#f28433]"></div>
-                  <div className="p-8 md:p-10 text-center">
+                  <div className="p-8 md:p-10 text-center flex flex-col flex-grow">
                     <span className="text-7xl md:text-8xl block mb-6">🇹🇭</span>
                     <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">תאילנד</h3>
-                    <p className="text-base md:text-lg text-muted-foreground mb-6">
+                    <p className="text-base md:text-lg text-muted-foreground mb-6 flex-grow">
                       גרים או טסים לתאילנד?<br/>דילים מלאזדה + משלוח מהיר
                     </p>
                     <Link 
                       to="/thailand" 
                       onClick={() => handleCountryClick("thailand")}
-                      className="inline-block w-full bg-[#f28433] hover:bg-[#e07328] text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 text-lg"
+                      className="inline-block w-full bg-[#f28433] hover:bg-[#e07328] text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 text-lg mt-auto"
                     >
                       לדילים בתאילנד
                     </Link>
@@ -104,18 +104,18 @@ const Landing = () => {
                 </div>
 
                 {/* Israel Card */}
-                <div className="bg-background border-2 border-gray-200 rounded-2xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-blue-400">
+                <div className="bg-background border-2 border-gray-200 rounded-2xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-blue-400 h-full flex flex-col">
                   <div className="h-1 bg-blue-500"></div>
-                  <div className="p-8 md:p-10 text-center">
+                  <div className="p-8 md:p-10 text-center flex flex-col flex-grow">
                     <span className="text-7xl md:text-8xl block mb-6">🇮🇱</span>
                     <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">ישראל</h3>
-                    <p className="text-base md:text-lg text-muted-foreground mb-6">
+                    <p className="text-base md:text-lg text-muted-foreground mb-6 flex-grow">
                       גרים בישראל?<br/>דילים מאלי אקספרס + קופונים בלעדיים
                     </p>
                     <Link 
                       to="/israel" 
                       onClick={() => handleCountryClick("israel")}
-                      className="inline-block w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 text-lg"
+                      className="inline-block w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 text-lg mt-auto"
                     >
                       לדילים בישראל
                     </Link>
