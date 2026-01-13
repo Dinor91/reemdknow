@@ -136,7 +136,7 @@ const Landing = () => {
         <section className="py-12 md:py-16 bg-background">
           <div className="container mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-foreground">
-              ?למה <span className="text-success">250+</span> ישראלים בוטחים בי
+              למה <span className="text-success">250</span> אנשים כבר הצטרפו אליי?
             </h2>
 
             <div className="max-w-2xl mx-auto">
