@@ -12,8 +12,7 @@ interface FeedProduct {
   image_url: string | null;
   price_thb: number | null;
   currency: string | null;
-  sales_7d: number | null;
-  commission_rate: number | null;
+  sales_7d?: number | null;
   category_l1: number | null;
   category_name_hebrew: string | null;
   brand_name: string | null;
@@ -26,16 +25,16 @@ const useFeaturedProducts = () => {
   return useQuery({
     queryKey: ['featured-feed-products'],
     queryFn: async () => {
-      // First try to get products from our cached feed_products table
+      // Use the secure RPC function that hides sensitive data
       const { data: cachedProducts, error: cacheError } = await supabase
-        .from('feed_products')
-        .select('*')
-        .eq('out_of_stock', false)
-        .order('sales_7d', { ascending: false })
-        .limit(8);
+        .rpc('get_public_feed_products');
 
+      // Filter and limit the results client-side
       if (!cacheError && cachedProducts && cachedProducts.length >= 4) {
-        return cachedProducts as FeedProduct[];
+        const filtered = cachedProducts
+          .filter((p: FeedProduct) => !p.out_of_stock)
+          .slice(0, 8);
+        return filtered as FeedProduct[];
       }
 
       // Fallback to live API call if cache is empty
@@ -79,7 +78,6 @@ const useFeaturedProducts = () => {
           price_thb: product.discountPrice,
           currency: product.currency || '฿',
           sales_7d: product.sales7d || 0,
-          commission_rate: product.totalCommissionRate,
           category_l1: product.categoryL1,
           category_name_hebrew: null,
           brand_name: product.brandName,

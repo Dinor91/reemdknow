@@ -268,59 +268,28 @@ export type Database = {
       }
     }
     Views: {
-      feed_products_public: {
-        Row: {
-          brand_name: string | null
-          category_l1: number | null
-          category_name_hebrew: string | null
-          created_at: string | null
-          currency: string | null
-          id: string | null
-          image_url: string | null
-          is_featured: boolean | null
-          lazada_product_id: string | null
-          out_of_stock: boolean | null
-          price_thb: number | null
-          product_name: string | null
-          tracking_link: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          brand_name?: string | null
-          category_l1?: number | null
-          category_name_hebrew?: string | null
-          created_at?: string | null
-          currency?: string | null
-          id?: string | null
-          image_url?: string | null
-          is_featured?: boolean | null
-          lazada_product_id?: string | null
-          out_of_stock?: boolean | null
-          price_thb?: number | null
-          product_name?: string | null
-          tracking_link?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          brand_name?: string | null
-          category_l1?: number | null
-          category_name_hebrew?: string | null
-          created_at?: string | null
-          currency?: string | null
-          id?: string | null
-          image_url?: string | null
-          is_featured?: boolean | null
-          lazada_product_id?: string | null
-          out_of_stock?: boolean | null
-          price_thb?: number | null
-          product_name?: string | null
-          tracking_link?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      get_public_feed_products: {
+        Args: never
+        Returns: {
+          brand_name: string
+          category_l1: number
+          category_name_hebrew: string
+          created_at: string
+          currency: string
+          id: string
+          image_url: string
+          is_featured: boolean
+          lazada_product_id: string
+          out_of_stock: boolean
+          price_thb: number
+          product_name: string
+          tracking_link: string
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
