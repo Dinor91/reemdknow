@@ -1,4 +1,7 @@
-import { Hero } from "@/components/Hero";
+import { IsraelHero } from "@/components/IsraelHero";
+import { FeaturedProductsIsrael } from "@/components/FeaturedProductsIsrael";
+import { JoinCTASection } from "@/components/JoinCTASection";
+import { IsraelCategories } from "@/components/IsraelCategories";
 import { Partners } from "@/components/Partners";
 import { Footer } from "@/components/Footer";
 import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
@@ -9,21 +12,26 @@ import { useEffect } from "react";
 const Israel = () => {
   useEffect(() => {
     trackFBViewContent("Israel Page");
-    document.title = "(D)Know - המוצרים השווים Israel";
+    document.title = "(D)Know - דילים מאלי אקספרס לישראל";
   }, []);
+
   return (
     <div className="min-h-screen">
       <FacebookPixel />
       <Header />
       <div className="pt-16">
-        <Hero country="israel" />
-        <section className="py-12 md:py-16 bg-muted">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-4xl text-center">
-              <h2 className="text-2xl md:text-3xl font-bold text-foreground">אתם עכשיו בישראל? זה המקום הנכון</h2>
-            </div>
-          </div>
-        </section>
+        {/* 1. Hero Section */}
+        <IsraelHero />
+
+        {/* 2. Featured Products - הכי שווה מאלי */}
+        <FeaturedProductsIsrael />
+
+        {/* 3. CTA Section - וואטסאפ/טלגרם */}
+        <JoinCTASection country="israel" />
+
+        {/* 4. Categories Accordion */}
+        <IsraelCategories />
+
         <Partners />
         <Footer />
       </div>
@@ -31,4 +39,5 @@ const Israel = () => {
     </div>
   );
 };
+
 export default Israel;
