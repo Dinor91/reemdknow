@@ -4,66 +4,52 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReactNode, useState } from "react";
 
-interface ProductInfo {
-  productId: string;
-  productName: string;
-}
-
 interface ProductHoverCardProps {
   productUrl: string;
-  productNameHebrew: string; // The Hebrew name we already have
+  productNameHebrew: string;
   children: ReactNode;
 }
-
-// Shorten and clean product name
-const shortenProductName = (name: string, maxLength: number = 40): string => {
-  if (!name) return '';
-  
-  // Remove common filler words and emojis
-  let cleaned = name
-    .replace(/[⚡💯®™]/g, '')
-    .replace(/Authentic|Delivery Within.*?Hours?|from America|Many Colors.*?From/gi, '')
-    .trim();
-  
-  if (cleaned.length <= maxLength) return cleaned;
-  
-  // Truncate and add ellipsis
-  return cleaned.substring(0, maxLength).trim() + '...';
-};
 
 export const ProductHoverCard = ({ productUrl, productNameHebrew, children }: ProductHoverCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const { data: productInfo, isLoading } = useQuery({
-    queryKey: ['product-hover', productUrl],
-    queryFn: async (): Promise<ProductInfo | null> => {
-      const { data, error } = await supabase.functions.invoke('lazada-api', {
-        body: { 
-          action: 'batch-links', 
-          inputType: 'url', 
-          inputValue: productUrl.split('?')[0]
-        }
-      });
-      
+    queryKey: ['product-hover-db', productUrl],
+    queryFn: async () => {
+      // First try to get from database
+      const { data, error } = await supabase
+        .from('category_products')
+        .select('*')
+        .eq('affiliate_link', productUrl)
+        .maybeSingle();
+
       if (error) {
-        console.error('Error fetching product info:', error);
+        console.error('Error fetching product:', error);
         return null;
       }
-      
-      const urlInfo = data?.data?.result?.data?.urlBatchGetLinkInfoList?.[0];
-      if (urlInfo) {
-        return {
-          productId: urlInfo.productId,
-          productName: urlInfo.productName || ''
-        };
+
+      if (data) {
+        return data;
       }
-      
-      return null;
+
+      // Try without query params
+      const urlWithoutParams = productUrl.split('?')[0];
+      const { data: data2 } = await supabase
+        .from('category_products')
+        .select('*')
+        .ilike('affiliate_link', `${urlWithoutParams}%`)
+        .maybeSingle();
+
+      return data2;
     },
     enabled: isOpen,
-    staleTime: 1000 * 60 * 30,
-    retry: false,
+    staleTime: 1000 * 60 * 30, // Cache for 30 minutes
   });
+
+  const formatPrice = (price: number | null) => {
+    if (!price) return null;
+    return `฿${price.toLocaleString()}`;
+  };
 
   return (
     <HoverCard openDelay={200} closeDelay={100} open={isOpen} onOpenChange={setIsOpen}>
@@ -73,27 +59,63 @@ export const ProductHoverCard = ({ productUrl, productNameHebrew, children }: Pr
       <HoverCardContent 
         side="top" 
         align="center" 
-        className="w-64 p-3 bg-card border border-border shadow-lg z-50"
+        className="w-72 p-0 bg-card border border-border shadow-xl z-50 overflow-hidden"
         dir="rtl"
       >
         {isLoading ? (
-          <div className="space-y-2">
+          <div className="p-3 space-y-2">
+            <Skeleton className="h-32 w-full rounded" />
             <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-4 w-24" />
           </div>
-        ) : productInfo && productInfo.productName ? (
-          <div className="space-y-1">
+        ) : productInfo ? (
+          <div>
+            {productInfo.image_url && (
+              <div className="w-full h-32 bg-muted">
+                <img 
+                  src={productInfo.image_url} 
+                  alt={productNameHebrew}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            <div className="p-3 space-y-2">
+              <p className="text-sm font-semibold text-foreground">
+                {productNameHebrew}
+              </p>
+              {productInfo.name_english && (
+                <p className="text-xs text-muted-foreground line-clamp-1">
+                  {productInfo.name_english}
+                </p>
+              )}
+              <div className="flex items-center gap-3">
+                {productInfo.price_thb && (
+                  <span className="text-base font-bold text-orange-600">
+                    {formatPrice(productInfo.price_thb)}
+                  </span>
+                )}
+                {productInfo.rating && (
+                  <span className="text-xs text-muted-foreground">
+                    ⭐ {productInfo.rating}
+                  </span>
+                )}
+                {productInfo.sales_count && productInfo.sales_count > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    🔥 {productInfo.sales_count} נמכרו
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3">
             <p className="text-sm font-medium text-foreground">
               {productNameHebrew}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {shortenProductName(productInfo.productName)}
+            <p className="text-xs text-muted-foreground mt-1">
+              לחצו לצפייה ב-Lazada
             </p>
           </div>
-        ) : (
-          <p className="text-sm font-medium text-foreground">
-            {productNameHebrew}
-          </p>
         )}
       </HoverCardContent>
     </HoverCard>

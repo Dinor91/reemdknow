@@ -2,3 +2,6 @@ project_id = "cdubskcrxkqtzpnismle"
 
 [functions.lazada-api]
 verify_jwt = false
+
+[functions.update-category-products]
+verify_jwt = false
