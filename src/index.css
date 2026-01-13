@@ -33,6 +33,12 @@ All colors MUST be HSL.
     --telegram: 201 100% 55%;
 
     --heading: 25 88% 57%;
+    
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    
+    --cta-blue: 217 91% 60%;
+    --cta-blue-hover: 224 76% 48%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
@@ -86,6 +92,12 @@ All colors MUST be HSL.
     --telegram: 201 100% 55%;
 
     --heading: 25 88% 57%;
+    
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    
+    --cta-blue: 217 91% 60%;
+    --cta-blue-hover: 224 76% 48%;
 
     --destructive: 0 62.8% 50%;
     --destructive-foreground: 0 0% 100%;
