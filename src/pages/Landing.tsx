@@ -40,19 +40,38 @@ const Landing = () => {
           
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
-              {/* H1 - Value-First Headline */}
-              <h1 className="text-[28px] md:text-[40px] lg:text-[48px] font-bold text-foreground leading-[1.2] mb-4">
-                🔥 דילים חדשים כל יום
+              {/* H1 - Main Headline */}
+              <h1 className="text-[28px] md:text-[36px] lg:text-[40px] font-bold text-foreground leading-[1.3] mb-2">
+                🛒 קונים באלי אקספרס או לאזדה?
               </h1>
-
-              {/* Value Proposition */}
-              <p className="text-[18px] md:text-[22px] lg:text-[26px] text-muted-foreground mb-2">
-                מוצרים שנבדקו | מחירים שלא תמצאו בשום מקום
+              <p className="text-[24px] md:text-[28px] lg:text-[32px] font-bold text-foreground mb-8">
+                אל תשלמו יותר מדי.
               </p>
 
-              {/* Social Proof - Immediate */}
-              <p className="text-[16px] md:text-[18px] text-success font-semibold mb-8">
-                ✅ חיסכון ממוצע: <strong>150 ש״ח</strong> למוצר
+              {/* H2 - Sub-headline */}
+              <h2 className="text-[20px] md:text-[24px] font-semibold text-[#333333] mb-5">
+                כאן תקבלו כל יום:
+              </h2>
+
+              {/* Benefits List */}
+              <ul className="text-[16px] md:text-[18px] lg:text-[20px] font-medium text-success space-y-4 mb-8 max-w-md mx-auto text-right">
+                <li className="flex items-center gap-3 justify-end">
+                  <span>דילים חמים שנבדקו אישית</span>
+                  <span className="text-xl">✅</span>
+                </li>
+                <li className="flex items-center gap-3 justify-end">
+                  <span>מחירים שלא תמצאו בשום מקום</span>
+                  <span className="text-xl">✅</span>
+                </li>
+                <li className="flex items-center gap-3 justify-end">
+                  <span>חיסכון ממוצע: <strong>150 ש״ח</strong> למוצר</span>
+                  <span className="text-xl">✅</span>
+                </li>
+              </ul>
+
+              {/* Social Proof */}
+              <p className="text-[16px] md:text-[18px] font-medium text-[#333333] mb-8">
+                כבר <strong className="text-success">250+</strong> ישראלים חוסכים ככה.
               </p>
 
               {/* CTA Question */}
