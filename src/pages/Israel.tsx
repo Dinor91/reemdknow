@@ -1,7 +1,7 @@
 import { IsraelHero } from "@/components/IsraelHero";
 import { FeaturedProductsIsrael } from "@/components/FeaturedProductsIsrael";
+import { JoinCTASection } from "@/components/JoinCTASection";
 import { IsraelCategories } from "@/components/IsraelCategories";
-import { Partners } from "@/components/Partners";
 import { Footer } from "@/components/Footer";
 import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
 import { Header } from "@/components/Header";
@@ -25,10 +25,12 @@ const Israel = () => {
         {/* 2. Featured Products - הכי שווה מאלי */}
         <FeaturedProductsIsrael />
 
+        {/* 3. CTA Section - וואטסאפ/טלגרם */}
+        <JoinCTASection country="israel" />
+
         {/* 4. Categories Accordion */}
         <IsraelCategories />
 
-        <Partners />
         <Footer />
       </div>
       <FloatingWhatsAppButton country="israel" />
