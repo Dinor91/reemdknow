@@ -89,6 +89,96 @@ export type Database = {
         }
         Relationships: []
       }
+      feed_categories: {
+        Row: {
+          category_id: number
+          category_name_english: string | null
+          category_name_hebrew: string
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          category_id: number
+          category_name_english?: string | null
+          category_name_hebrew: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: number
+          category_name_english?: string | null
+          category_name_hebrew?: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      feed_products: {
+        Row: {
+          brand_name: string | null
+          category_l1: number | null
+          category_name_hebrew: string | null
+          commission_rate: number | null
+          created_at: string
+          currency: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          lazada_product_id: string
+          out_of_stock: boolean | null
+          price_thb: number | null
+          product_name: string
+          sales_7d: number | null
+          tracking_link: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand_name?: string | null
+          category_l1?: number | null
+          category_name_hebrew?: string | null
+          commission_rate?: number | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          lazada_product_id: string
+          out_of_stock?: boolean | null
+          price_thb?: number | null
+          product_name: string
+          sales_7d?: number | null
+          tracking_link?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand_name?: string | null
+          category_l1?: number | null
+          category_name_hebrew?: string | null
+          commission_rate?: number | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          lazada_product_id?: string
+          out_of_stock?: boolean | null
+          price_thb?: number | null
+          product_name?: string
+          sales_7d?: number | null
+          tracking_link?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lazada_products: {
         Row: {
           affiliate_link: string | null

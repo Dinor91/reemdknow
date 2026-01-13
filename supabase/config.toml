@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.update-category-products]
 verify_jwt = false
+
+[functions.sync-feed-products]
+verify_jwt = false

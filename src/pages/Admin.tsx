@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X } from "lucide-react";
+import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
@@ -291,6 +291,160 @@ const ProductsTab = () => {
   );
 };
 
+interface FeedProduct {
+  id: string;
+  lazada_product_id: string;
+  product_name: string;
+  image_url: string | null;
+  price_thb: number | null;
+  currency: string | null;
+  sales_7d: number | null;
+  commission_rate: number | null;
+  category_l1: number | null;
+  brand_name: string | null;
+  tracking_link: string | null;
+  is_featured: boolean | null;
+  out_of_stock: boolean | null;
+}
+
+const FeedTab = () => {
+  const [products, setProducts] = useState<FeedProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [filter, setFilter] = useState("");
+
+  const fetchFeedProducts = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("feed_products")
+      .select("*")
+      .order("sales_7d", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching feed products:", error);
+      toast.error("שגיאה בטעינת מוצרי הפיד");
+    } else {
+      setProducts(data || []);
+    }
+    setLoading(false);
+  };
+
+  const syncFromLazada = async () => {
+    setSyncing(true);
+    try {
+      const { error } = await supabase.functions.invoke("sync-feed-products");
+      if (error) throw error;
+      toast.success("הסינכרון החל! הרענן בעוד מספר שניות");
+      setTimeout(fetchFeedProducts, 10000);
+    } catch (e) {
+      console.error("Error syncing:", e);
+      toast.error("שגיאה בסינכרון");
+    }
+    setSyncing(false);
+  };
+
+  const toggleFeatured = async (product: FeedProduct) => {
+    const { error } = await supabase
+      .from("feed_products")
+      .update({ is_featured: !product.is_featured })
+      .eq("id", product.id);
+
+    if (error) {
+      toast.error("שגיאה בעדכון");
+    } else {
+      setProducts(products.map(p => 
+        p.id === product.id ? { ...p, is_featured: !p.is_featured } : p
+      ));
+      toast.success(product.is_featured ? "הוסר מהמועדפים" : "נוסף למועדפים");
+    }
+  };
+
+  useEffect(() => {
+    fetchFeedProducts();
+  }, []);
+
+  const filteredProducts = products.filter(p =>
+    p.product_name.toLowerCase().includes(filter.toLowerCase()) ||
+    (p.brand_name && p.brand_name.toLowerCase().includes(filter.toLowerCase()))
+  );
+
+  const featuredCount = products.filter(p => p.is_featured).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-4 items-center justify-between">
+        <Input
+          placeholder="חיפוש מוצר..."
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="max-w-xs"
+        />
+        <div className="flex gap-2">
+          <Button onClick={fetchFeedProducts} variant="outline" disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
+            רענן
+          </Button>
+          <Button onClick={syncFromLazada} disabled={syncing}>
+            <Store className={`h-4 w-4 ml-2 ${syncing ? "animate-pulse" : ""}`} />
+            סנכרן מ-Lazada
+          </Button>
+        </div>
+      </div>
+
+      <div className="text-sm text-muted-foreground">
+        סה"כ {products.length} מוצרים בפיד | ⭐ {featuredCount} מועדפים
+      </div>
+
+      {loading ? (
+        <p className="text-muted-foreground">טוען...</p>
+      ) : (
+        <div className="grid gap-3">
+          {filteredProducts.slice(0, 50).map((product) => (
+            <Card key={product.id} className={`p-3 ${product.is_featured ? 'border-orange-400 bg-orange-50/50' : ''}`}>
+              <div className="flex items-center gap-4">
+                {product.image_url ? (
+                  <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover" />
+                ) : (
+                  <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">📦</div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm line-clamp-2">{product.product_name}</div>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                    {product.brand_name && <span>{product.brand_name}</span>}
+                    {product.sales_7d && product.sales_7d > 0 && (
+                      <span className="text-orange-600">🔥 {product.sales_7d} נמכרו</span>
+                    )}
+                    {product.commission_rate && (
+                      <span className="text-green-600">{(product.commission_rate * 100).toFixed(1)}% עמלה</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {product.price_thb && (
+                    <span className="font-bold text-orange-600">฿{product.price_thb.toLocaleString()}</span>
+                  )}
+                  <Button
+                    size="sm"
+                    variant={product.is_featured ? "default" : "outline"}
+                    onClick={() => toggleFeatured(product)}
+                  >
+                    {product.is_featured ? <Star className="h-4 w-4" /> : <StarOff className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+          {filteredProducts.length > 50 && (
+            <p className="text-center text-muted-foreground text-sm">
+              מוצגים 50 מתוך {filteredProducts.length} מוצרים
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const StatsTab = () => {
   const [allClicks, setAllClicks] = useState<ClickData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -548,7 +702,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="stats" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="stats" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               סטטיסטיקות
@@ -557,12 +711,19 @@ const Admin = () => {
               <Package className="h-4 w-4" />
               מוצרים
             </TabsTrigger>
+            <TabsTrigger value="feed" className="flex items-center gap-2">
+              <Store className="h-4 w-4" />
+              פיד Lazada
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="stats">
             <StatsTab />
           </TabsContent>
           <TabsContent value="products">
             <ProductsTab />
+          </TabsContent>
+          <TabsContent value="feed">
+            <FeedTab />
           </TabsContent>
         </Tabs>
       </div>
