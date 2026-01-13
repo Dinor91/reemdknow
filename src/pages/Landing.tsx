@@ -136,19 +136,22 @@ const Landing = () => {
             <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
               {/* Israel Card */}
               <Link to="/israel" onClick={() => handleCountryClick("israel")} className="group">
-                <Card className="overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 h-full bg-gradient-to-br from-background via-background to-primary/5">
-                  <CardContent className="p-8 text-center">
-                    <div className="flex items-center justify-center gap-3 mb-6">
-                      <span className="text-4xl">🇮🇱</span>
+                <Card className="overflow-hidden h-full bg-gradient-to-br from-background to-blue-50/50 border-2 border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-blue-400">
+                  <div className="h-1 bg-blue-500"></div>
+                  <CardContent className="p-10 text-center">
+                    <div className="mb-6">
+                      <span className="text-7xl md:text-8xl block mb-4">🇮🇱</span>
                       <h3 className="text-2xl md:text-3xl font-bold text-foreground">ישראל</h3>
                     </div>
 
-                    <p className="text-muted-foreground mb-6 leading-relaxed text-lg md:text-xl">
-                      ?רוצים להקל על יוקר המחיה
+                    <p className="text-muted-foreground mb-8 leading-relaxed text-lg md:text-xl">
+                      גרים בישראל?
+                      <br />
+                      <span className="text-foreground font-medium">דילים מאלי אקספרס + קופונים בלעדיים</span>
                     </p>
 
                     <Button
-                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-[#f28433] hover:bg-[#f28433]/90 text-lg py-6"
+                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-blue-500 hover:bg-blue-600 text-white text-lg py-6"
                       size="lg"
                     >
                       <span>לחץ כאן</span>
@@ -159,19 +162,22 @@ const Landing = () => {
 
               {/* Thailand Card */}
               <Link to="/thailand" onClick={() => handleCountryClick("thailand")} className="group">
-                <Card className="overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 h-full bg-gradient-to-br from-background via-background to-secondary/5">
-                  <CardContent className="p-8 text-center">
-                    <div className="flex items-center justify-center gap-3 mb-6">
-                      <span className="text-4xl">🇹🇭</span>
+                <Card className="overflow-hidden h-full bg-gradient-to-br from-background to-orange-50/50 border-2 border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:shadow-[0_12px_24px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 hover:border-orange-400">
+                  <div className="h-1 bg-[#f28433]"></div>
+                  <CardContent className="p-10 text-center">
+                    <div className="mb-6">
+                      <span className="text-7xl md:text-8xl block mb-4">🇹🇭</span>
                       <h3 className="text-2xl md:text-3xl font-bold text-foreground">תאילנד</h3>
                     </div>
 
-                    <p className="text-muted-foreground mb-6 leading-relaxed text-lg md:text-xl">
-                      ?מטיילים פה? רילוקיישן
+                    <p className="text-muted-foreground mb-8 leading-relaxed text-lg md:text-xl">
+                      גרים או טסים לתאילנד?
+                      <br />
+                      <span className="text-foreground font-medium">דילים מלאזדה + משלוח מהיר</span>
                     </p>
 
                     <Button
-                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-[#f28433] hover:bg-[#f28433]/90 text-lg py-6 text-white"
+                      className="w-full group-hover:shadow-lg transition-all duration-300 bg-[#f28433] hover:bg-[#d97706] text-white text-lg py-6"
                       size="lg"
                     >
                       <span>לחץ כאן</span>
