@@ -1,1 +1,4 @@
 project_id = "cdubskcrxkqtzpnismle"
+
+[functions.lazada-api]
+verify_jwt = false
