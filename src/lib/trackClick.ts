@@ -6,10 +6,12 @@ export const trackButtonClick = async (
   country?: string
 ) => {
   try {
-    const { error } = await supabase.from("button_clicks").insert({
-      button_type: buttonType,
-      source: source,
-      country: country || null,
+    const { error } = await supabase.functions.invoke('track-click', {
+      body: {
+        button_type: buttonType,
+        source: source,
+        country: country || null,
+      },
     });
 
     if (error) {
