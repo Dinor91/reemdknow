@@ -59,6 +59,14 @@ export default {
         },
         whatsapp: "hsl(var(--whatsapp))",
         telegram: "hsl(var(--telegram))",
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        "cta-blue": {
+          DEFAULT: "hsl(var(--cta-blue))",
+          hover: "hsl(var(--cta-blue-hover))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
