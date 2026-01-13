@@ -226,14 +226,9 @@ export const ThailandCategories = () => {
                       <div className="flex items-center gap-3 flex-row-reverse w-full">
                         <span className="text-2xl">{category.emoji}</span>
                         <div className="text-right flex-1">
-                          <div className="flex items-center gap-2 justify-end">
-                            <span className="text-sm text-muted-foreground">
-                              ({category.products.length} מוצרים)
-                            </span>
-                            <h3 className="text-lg font-semibold text-card-foreground">
-                              {category.title}
-                            </h3>
-                          </div>
+                          <h3 className="text-lg font-semibold text-card-foreground">
+                            {category.title}
+                          </h3>
                         </div>
                       </div>
                     </AccordionTrigger>
@@ -283,14 +278,9 @@ export const ThailandCategories = () => {
                     <div className="flex items-center gap-3 flex-row-reverse w-full">
                       <span className="text-2xl">{categories[8].emoji}</span>
                       <div className="text-right flex-1">
-                        <div className="flex items-center gap-2 justify-end">
-                          <span className="text-sm text-muted-foreground">
-                            ({categories[8].products.length} מוצרים)
-                          </span>
-                          <h3 className="text-lg font-semibold text-card-foreground">
-                            {categories[8].title}
-                          </h3>
-                        </div>
+                        <h3 className="text-lg font-semibold text-card-foreground">
+                          {categories[8].title}
+                        </h3>
                       </div>
                     </div>
                   </AccordionTrigger>
