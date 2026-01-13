@@ -5,45 +5,57 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface LazadaProduct {
-  productId: number;
-  productName: string;
-  pictures: string[];
-  discountPrice: number;
-  currency: string;
-  totalCommissionRate: number;
-  brandName: string;
-  sales7d: number;
-  outOfStock: boolean;
-}
-
-interface ProductWithLink extends LazadaProduct {
-  trackingLink?: string;
+interface FeedProduct {
+  id: string;
+  lazada_product_id: string;
+  product_name: string;
+  image_url: string | null;
+  price_thb: number | null;
+  currency: string | null;
+  sales_7d: number | null;
+  commission_rate: number | null;
+  category_l1: number | null;
+  category_name_hebrew: string | null;
+  brand_name: string | null;
+  tracking_link: string | null;
+  is_featured: boolean | null;
+  out_of_stock: boolean | null;
 }
 
 const useFeaturedProducts = () => {
   return useQuery({
-    queryKey: ['featured-lazada-products'],
+    queryKey: ['featured-feed-products'],
     queryFn: async () => {
-      // Get product feed - fetch more products so we can sort by commission
+      // First try to get products from our cached feed_products table
+      const { data: cachedProducts, error: cacheError } = await supabase
+        .from('feed_products')
+        .select('*')
+        .eq('out_of_stock', false)
+        .order('sales_7d', { ascending: false })
+        .limit(8);
+
+      if (!cacheError && cachedProducts && cachedProducts.length >= 4) {
+        return cachedProducts as FeedProduct[];
+      }
+
+      // Fallback to live API call if cache is empty
       const { data: feedResponse, error: feedError } = await supabase.functions.invoke('lazada-api', {
         body: { action: 'product-feed', offerType: 1, page: 1, limit: 20 }
       });
 
       if (feedError) throw feedError;
 
-      let products: LazadaProduct[] = feedResponse?.data?.result?.data || [];
+      let products = feedResponse?.data?.result?.data || [];
       
-      // Sort by sales (most popular) and filter out of stock, then take top 4
       products = products
-        .filter(p => !p.outOfStock && p.discountPrice > 0)
-        .sort((a, b) => (b.sales7d || 0) - (a.sales7d || 0))
-        .slice(0, 4);
+        .filter((p: any) => !p.outOfStock && p.discountPrice > 0)
+        .sort((a: any, b: any) => (b.sales7d || 0) - (a.sales7d || 0))
+        .slice(0, 8);
       
       if (products.length === 0) return [];
 
       // Get tracking links for all products
-      const productIds = products.map(p => p.productId).join(',');
+      const productIds = products.map((p: any) => p.productId).join(',');
       const { data: linksResponse } = await supabase.functions.invoke('lazada-api', {
         body: { 
           action: 'batch-links', 
@@ -54,14 +66,26 @@ const useFeaturedProducts = () => {
 
       const links = linksResponse?.data?.result?.productBatchGetLinkInfoList || [];
       
-      // Merge products with their tracking links
-      return products.map((product): ProductWithLink => {
+      // Transform to FeedProduct format
+      return products.map((product: any): FeedProduct => {
         const linkInfo = links.find((l: { productId: string }) => 
           String(l.productId) === String(product.productId)
         );
         return {
-          ...product,
-          trackingLink: linkInfo?.regularPromotionLink || `https://www.lazada.co.th/products/-i${product.productId}.html`
+          id: String(product.productId),
+          lazada_product_id: String(product.productId),
+          product_name: product.productName,
+          image_url: product.pictures?.[0] || null,
+          price_thb: product.discountPrice,
+          currency: product.currency || '฿',
+          sales_7d: product.sales7d || 0,
+          commission_rate: product.totalCommissionRate,
+          category_l1: product.categoryL1,
+          category_name_hebrew: null,
+          brand_name: product.brandName,
+          tracking_link: linkInfo?.regularPromotionLink || `https://www.lazada.co.th/products/-i${product.productId}.html`,
+          is_featured: false,
+          out_of_stock: false
         };
       });
     },
@@ -74,41 +98,44 @@ const formatPrice = (price: number, currency: string) => {
 };
 
 const convertToILS = (thbPrice: number) => {
-  // Approximate conversion rate THB to ILS
   const rate = 0.11;
   return `₪${Math.round(thbPrice * rate).toLocaleString()}`;
 };
 
-const ProductCard = ({ product, onProductClick }: { product: ProductWithLink; onProductClick: (product: ProductWithLink) => void }) => (
+const ProductCard = ({ product, onProductClick }: { product: FeedProduct; onProductClick: (product: FeedProduct) => void }) => (
   <div className="bg-card border-2 border-border rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-orange-400 transition-all duration-300 flex flex-col h-full">
     <div className="aspect-square mb-4 overflow-hidden rounded-lg bg-muted">
       <img 
-        src={product.pictures?.[0] || '/placeholder.svg'} 
-        alt={product.productName}
+        src={product.image_url || '/placeholder.svg'} 
+        alt={product.product_name}
         className="w-full h-full object-cover"
         loading="lazy"
       />
     </div>
     <h3 className="text-sm font-semibold text-foreground text-right mb-2 leading-tight line-clamp-2 min-h-[2.5rem]">
-      {product.productName}
+      {product.product_name}
     </h3>
     <div className="flex flex-col gap-1.5 mb-4 text-sm mt-auto">
-      <span className="font-bold text-lg text-foreground">
-        {formatPrice(product.discountPrice, product.currency)}
-      </span>
-      <span className="text-muted-foreground text-xs">
-        ≈ {convertToILS(product.discountPrice)}
-      </span>
+      {product.price_thb && (
+        <>
+          <span className="font-bold text-lg text-foreground">
+            {formatPrice(product.price_thb, product.currency || '฿')}
+          </span>
+          <span className="text-muted-foreground text-xs">
+            ≈ {convertToILS(product.price_thb)}
+          </span>
+        </>
+      )}
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        {product.sales7d > 0 && (
+        {product.sales_7d && product.sales_7d > 0 && (
           <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">
-            🔥 {product.sales7d} נמכרו השבוע
+            🔥 {product.sales_7d} נמכרו השבוע
           </span>
         )}
       </div>
     </div>
     <a
-      href={product.trackingLink}
+      href={product.tracking_link || '#'}
       target="_blank"
       rel="noopener noreferrer"
       onClick={() => onProductClick(product)}
@@ -134,8 +161,8 @@ export const FeaturedProductsThailand = () => {
   const isMobile = useIsMobile();
   const { data: products, isLoading, error } = useFeaturedProducts();
 
-  const handleProductClick = (product: ProductWithLink) => {
-    trackFBInitiateCheckout(product.productName, product.trackingLink || '');
+  const handleProductClick = (product: FeedProduct) => {
+    trackFBInitiateCheckout(product.product_name, product.tracking_link || '');
   };
 
   if (error) {
@@ -175,7 +202,7 @@ export const FeaturedProductsThailand = () => {
                   ))
                 ) : (
                   products?.map((product) => (
-                    <CarouselItem key={product.productId} className="pr-4 basis-[85%]">
+                    <CarouselItem key={product.lazada_product_id} className="pr-4 basis-[85%]">
                       <ProductCard product={product} onProductClick={handleProductClick} />
                     </CarouselItem>
                   ))
@@ -198,8 +225,8 @@ export const FeaturedProductsThailand = () => {
                 <ProductCardSkeleton key={index} />
               ))
             ) : (
-              products?.map((product) => (
-                <ProductCard key={product.productId} product={product} onProductClick={handleProductClick} />
+              products?.slice(0, 4).map((product) => (
+                <ProductCard key={product.lazada_product_id} product={product} onProductClick={handleProductClick} />
               ))
             )}
           </div>
