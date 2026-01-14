@@ -33,7 +33,7 @@ const Landing = () => {
             <img
               src={heroImage}
               alt="REEM(D)KNOW - מוצרים חכמים שנבחרים בקפידה"
-              className="w-full max-w-full md:max-w-6xl mx-auto rounded-lg md:rounded-none object-cover"
+              className="w-full max-w-full md:max-w-5xl mx-auto rounded-lg md:rounded-xl object-cover max-h-[200px] md:max-h-[300px] lg:max-h-[350px]"
             />
           </div>
 
