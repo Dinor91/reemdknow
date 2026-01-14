@@ -39,7 +39,7 @@ export const Header = () => {
         </div>
 
         <Link to="/" className="flex items-center">
-          <img src={logo} alt="Reem(D)Know Logo" className="h-12 w-12 rounded-full object-cover" />
+          <img src={logo} alt="Reem(D)Know Logo" className="h-14 w-14 rounded-full object-cover" />
         </Link>
       </div>
     </header>
