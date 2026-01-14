@@ -15,7 +15,7 @@ const Israel = () => {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" dir="rtl">
       <FacebookPixel />
       <Header />
       <div className="pt-16">
