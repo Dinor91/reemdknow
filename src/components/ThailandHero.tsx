@@ -9,7 +9,7 @@ export const ThailandHero = () => {
           יש דרך חכמה יותר.
         </p>
         <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-          מותגים אמיתיים · משלוח למלון · תשלום כשמגיע
+          מותגים אמיתיים · משלוח למלון · דילים מטורפים
         </p>
       </div>
     </section>
