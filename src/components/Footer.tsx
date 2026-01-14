@@ -81,7 +81,7 @@ export const Footer = () => {
 
               {/* Left side - Brand Name */}
               <div className="flex flex-col items-center md:items-start gap-2 md:order-3 text-center md:text-left">
-                <p className="text-lg font-semibold text-foreground">Reem(D)Know</p>
+                <p className="text-lg font-semibold text-foreground">(D)Know- אחד שיודע</p>
                 <p className="text-sm text-muted-foreground">
                   קהילה של המלצות אמיתיות<br />על מוצרים שימושיים
                 </p>
