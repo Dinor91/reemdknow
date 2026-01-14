@@ -195,7 +195,7 @@ const Landing = () => {
           <div className="container mx-auto px-4">
             {/* Desktop heading */}
             <h2 className="hidden md:block text-4xl font-bold text-center mb-12 text-[#41b5b3]">
-              ?למה אלפי ישראלים בוחרים בנו
+              למה אלפי ישראלים בוחרים בנו?
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
               <div className="text-center">
@@ -209,7 +209,7 @@ const Landing = () => {
                 <div className="hidden md:flex w-16 h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-4">
                   <Users className="w-8 h-8 text-primary" />
                 </div>
-                <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">10K+</div>
+                <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">250</div>
                 <div className="text-sm text-muted-foreground">לקוחות מרוצים</div>
               </div>
               <div className="text-center">
