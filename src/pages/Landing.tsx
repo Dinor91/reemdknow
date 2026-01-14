@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { trackEvent } from "@/lib/analytics";
 import { FacebookPixel, trackFBViewContent } from "@/components/FacebookPixel";
 import { useEffect } from "react";
-import heroImage from "@/assets/hero-banner-new.jpeg";
+import heroImage from "@/assets/new-banner.jpg";
 
 const Landing = () => {
   useEffect(() => {
