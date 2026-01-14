@@ -71,10 +71,6 @@ const Landing = () => {
                 </li>
               </ul>
 
-              {/* Social Proof */}
-              <p className="text-[16px] md:text-[18px] font-medium text-[#333333] mb-8">
-                כבר <strong className="text-success">250+</strong> ישראלים חוסכים ככה.
-              </p>
 
               {/* CTA Question */}
               <h2 className="text-[24px] md:text-[32px] lg:text-[36px] font-bold text-foreground mb-4">
@@ -195,7 +191,7 @@ const Landing = () => {
           <div className="container mx-auto px-4">
             {/* Desktop heading */}
             <h2 className="hidden md:block text-4xl font-bold text-center mb-12 text-[#41b5b3]">
-              למה אלפי ישראלים בוחרים בנו?
+              למה מאות ישראלים כבר איתנו?
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
               <div className="text-center">
