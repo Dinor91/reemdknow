@@ -3,7 +3,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CallToActionBanner } from "./CallToActionBanner";
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { ProductHoverCard } from "./ProductHoverCard";
 
 interface Product {
   name: string;
@@ -179,11 +181,41 @@ const categories: Category[] = [
   }
 ];
 
+interface ProductData {
+  affiliate_link: string;
+  price_thb: number | null;
+  rating: number | null;
+  sales_count: number | null;
+}
+
 export const ThailandCategories = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [productsWithData, setProductsWithData] = useState<Record<string, ProductData>>({});
   const hasShownRef = useRef(false);
+
+  // Fetch products that have updated data (price, rating, or sales_count)
+  useEffect(() => {
+    const fetchProductsWithData = async () => {
+      const { data, error } = await supabase
+        .from('category_products')
+        .select('affiliate_link, price_thb, rating, sales_count')
+        .or('price_thb.not.is.null,rating.not.is.null,sales_count.not.is.null');
+      
+      if (!error && data) {
+        const productMap: Record<string, ProductData> = {};
+        data.forEach(p => {
+          // Only include if at least one value exists
+          if (p.price_thb || p.rating || p.sales_count) {
+            productMap[p.affiliate_link] = p;
+          }
+        });
+        setProductsWithData(productMap);
+      }
+    };
+    fetchProductsWithData();
+  }, []);
 
   const handleProductClick = () => {
     if (!hasShownRef.current) {
@@ -313,25 +345,43 @@ export const ThailandCategories = () => {
                         </AccordionTrigger>
                         <AccordionContent className="px-5 pb-4">
                           <div className="grid gap-3 sm:grid-cols-2 mt-2">
-                            {category.products.map((product, productIndex) => (
-                              <Button
-                                key={productIndex}
-                                variant="outline"
-                                className="justify-between h-auto py-3 px-4 w-full"
-                                asChild
-                              >
-                                <a
-                                  href={product.link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={() => handleProductClick()}
-                                  className="flex items-center gap-2 flex-row-reverse"
+                            {category.products.map((product, productIndex) => {
+                              const hasData = productsWithData[product.link];
+                              const productButton = (
+                                <Button
+                                  key={productIndex}
+                                  variant="outline"
+                                  className="justify-between h-auto py-3 px-4 w-full"
+                                  asChild
                                 >
-                                  <span className="text-right flex-1">{product.name}</span>
-                                  <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                                </a>
-                              </Button>
-                            ))}
+                                  <a
+                                    href={product.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={() => handleProductClick()}
+                                    className="flex items-center gap-2 flex-row-reverse"
+                                  >
+                                    <span className="text-right flex-1">{product.name}</span>
+                                    <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                                  </a>
+                                </Button>
+                              );
+
+                              // Show hover card only if product has updated data
+                              if (hasData) {
+                                return (
+                                  <ProductHoverCard
+                                    key={productIndex}
+                                    productUrl={product.link}
+                                    productNameHebrew={product.name}
+                                  >
+                                    {productButton}
+                                  </ProductHoverCard>
+                                );
+                              }
+
+                              return productButton;
+                            })}
                           </div>
                         </AccordionContent>
                       </AccordionItem>
