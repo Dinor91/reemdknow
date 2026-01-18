@@ -239,7 +239,11 @@ serve(async (req) => {
           if (feedProduct.currency) {
             updateData.currency = feedProduct.currency
           }
-          console.log(`✅ Found full data for "${product.name_hebrew}": price=${feedProduct.discountPrice}, sales=${feedProduct.sales7d}`)
+          // Update out_of_stock status from feed
+          if (feedProduct.outOfStock !== undefined) {
+            updateData.out_of_stock = feedProduct.outOfStock === true || feedProduct.outOfStock === 'true'
+          }
+          console.log(`✅ Found full data for "${product.name_hebrew}": price=${feedProduct.discountPrice}, sales=${feedProduct.sales7d}, outOfStock=${feedProduct.outOfStock}`)
         } else {
           console.log(`⚠️ Product ${productId} (${product.name_hebrew}) not found in feed - only updating ID`)
         }
