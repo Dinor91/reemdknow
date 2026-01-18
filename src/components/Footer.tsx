@@ -55,7 +55,7 @@ export const Footer = () => {
                     </svg>
                   </a>
                   <a 
-                    href="https://www.tiktok.com/@reemdino?_r=1&_t=ZS-9345BE2lhPc" 
+                    href="https://www.tiktok.com/@reemdknow?_r=1&_t=ZS-93B0gL6bFmK" 
                     target="_blank" 
                     rel="noopener noreferrer" 
                     aria-label="TikTok"
