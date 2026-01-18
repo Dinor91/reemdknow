@@ -32,7 +32,7 @@ export const FloatingWhatsAppButton = ({ country }: FloatingWhatsAppButtonProps)
 
   const instagramLink = "https://www.instagram.com/reemdknow?igsh=MWxrNWR5ZHdwazd0dA%3D%3D&utm_source=qr";
   const facebookLink = "https://www.facebook.com/share/1H2sX5ZMoV/?mibextid=wwXIfr";
-  const tiktokLink = "https://www.tiktok.com/@reemdino?_r=1&_t=ZS-9345BE2lhPc";
+  const tiktokLink = "https://www.tiktok.com/@reemdknow?_r=1&_t=ZS-93B0gL6bFmK";
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
