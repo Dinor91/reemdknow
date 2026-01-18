@@ -50,6 +50,7 @@ export type Database = {
           lazada_product_id: string | null
           name_english: string | null
           name_hebrew: string
+          out_of_stock: boolean | null
           price_thb: number | null
           rating: number | null
           sales_count: number | null
@@ -66,6 +67,7 @@ export type Database = {
           lazada_product_id?: string | null
           name_english?: string | null
           name_hebrew: string
+          out_of_stock?: boolean | null
           price_thb?: number | null
           rating?: number | null
           sales_count?: number | null
@@ -82,6 +84,7 @@ export type Database = {
           lazada_product_id?: string | null
           name_english?: string | null
           name_hebrew?: string
+          out_of_stock?: boolean | null
           price_thb?: number | null
           rating?: number | null
           sales_count?: number | null

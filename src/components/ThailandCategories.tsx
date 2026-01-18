@@ -186,6 +186,7 @@ interface ProductData {
   price_thb: number | null;
   rating: number | null;
   sales_count: number | null;
+  out_of_stock: boolean | null;
 }
 
 export const ThailandCategories = () => {
@@ -195,19 +196,19 @@ export const ThailandCategories = () => {
   const [productsWithData, setProductsWithData] = useState<Record<string, ProductData>>({});
   const hasShownRef = useRef(false);
 
-  // Fetch products that have updated data (price, rating, or sales_count)
+  // Fetch products that have updated data (price, rating, sales_count, or out_of_stock)
   useEffect(() => {
     const fetchProductsWithData = async () => {
       const { data, error } = await supabase
         .from('category_products')
-        .select('affiliate_link, price_thb, rating, sales_count')
-        .or('price_thb.not.is.null,rating.not.is.null,sales_count.not.is.null');
+        .select('affiliate_link, price_thb, rating, sales_count, out_of_stock')
+        .or('price_thb.not.is.null,rating.not.is.null,sales_count.not.is.null,out_of_stock.eq.true');
       
       if (!error && data) {
         const productMap: Record<string, ProductData> = {};
         data.forEach(p => {
-          // Only include if at least one value exists
-          if (p.price_thb || p.rating || p.sales_count) {
+          // Only include if at least one value exists or out_of_stock is true
+          if (p.price_thb || p.rating || p.sales_count || p.out_of_stock) {
             productMap[p.affiliate_link] = p;
           }
         });
@@ -346,12 +347,15 @@ export const ThailandCategories = () => {
                         <AccordionContent className="px-5 pb-4">
                           <div className="grid gap-3 sm:grid-cols-2 mt-2">
                             {category.products.map((product, productIndex) => {
-                              const hasData = productsWithData[product.link];
+                              const productData = productsWithData[product.link];
+                              const isOutOfStock = productData?.out_of_stock === true;
+                              const hasData = productData && (productData.price_thb || productData.rating || productData.sales_count);
+                              
                               const productButton = (
                                 <Button
                                   key={productIndex}
                                   variant="outline"
-                                  className="justify-between h-auto py-3 px-4 w-full"
+                                  className={`justify-between h-auto py-3 px-4 w-full ${isOutOfStock ? 'opacity-60 border-red-300 bg-red-50/50' : ''}`}
                                   asChild
                                 >
                                   <a
@@ -361,7 +365,14 @@ export const ThailandCategories = () => {
                                     onClick={() => handleProductClick()}
                                     className="flex items-center gap-2 flex-row-reverse"
                                   >
-                                    <span className="text-right flex-1">{product.name}</span>
+                                    <span className="text-right flex-1 flex items-center gap-2 flex-row-reverse">
+                                      {product.name}
+                                      {isOutOfStock && (
+                                        <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                          אזל
+                                        </span>
+                                      )}
+                                    </span>
                                     <ExternalLink className="h-4 w-4 flex-shrink-0" />
                                   </a>
                                 </Button>
