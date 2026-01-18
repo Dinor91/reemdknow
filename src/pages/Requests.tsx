@@ -59,9 +59,9 @@ const Requests = () => {
   if (isSubmitted) {
     return (
       <div className="min-h-screen flex flex-col bg-background" dir="rtl">
-        <Header />
-        <main className="flex-1 flex items-center justify-center py-12">
-          <div className="text-center max-w-md mx-auto px-4">
+      <Header />
+      <main className="flex-1 flex items-center justify-center pt-24 pb-12">
+        <div className="text-center max-w-md mx-auto px-4 relative z-0">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
