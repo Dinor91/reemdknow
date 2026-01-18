@@ -1,8 +1,9 @@
-import { Home, Baby, Sparkles, Hammer, Trees, Tent, Utensils, Sofa, ShieldCheck, WashingMachine, ExternalLink } from "lucide-react";
+import { Home, Baby, Sparkles, Hammer, Trees, Tent, Utensils, Sofa, ShieldCheck, WashingMachine, ExternalLink, Search, X } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { CallToActionBanner } from "./CallToActionBanner";
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 
 interface Product {
   name: string;
@@ -181,6 +182,7 @@ const categories: Category[] = [
 export const ThailandCategories = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const hasShownRef = useRef(false);
 
   const handleProductClick = () => {
@@ -192,12 +194,41 @@ export const ThailandCategories = () => {
     }
   };
 
+  // Filter categories and products based on search term
+  const filteredCategories = useMemo(() => {
+    if (!searchTerm.trim()) return categories;
+    
+    const term = searchTerm.trim().toLowerCase();
+    return categories
+      .map(category => {
+        // Check if category title matches
+        const categoryMatches = category.title.toLowerCase().includes(term);
+        // Filter products that match
+        const matchingProducts = category.products.filter(product => 
+          product.name.toLowerCase().includes(term)
+        );
+        
+        // Return category with filtered products if there are matches
+        if (categoryMatches) {
+          return category; // Show all products if category title matches
+        } else if (matchingProducts.length > 0) {
+          return { ...category, products: matchingProducts };
+        }
+        return null;
+      })
+      .filter((cat): cat is Category => cat !== null);
+  }, [searchTerm]);
+
+  const totalProductsFound = useMemo(() => {
+    return filteredCategories.reduce((sum, cat) => sum + cat.products.length, 0);
+  }, [filteredCategories]);
+
   return (
     <section className="bg-background py-8 md:py-12">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-6xl">
           {/* Section Title */}
-          <div className="text-center mb-10">
+          <div className="text-center mb-6">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
               ההמלצות של <span dir="ltr">(D)Know</span>
             </h2>
@@ -205,111 +236,110 @@ export const ThailandCategories = () => {
               לחצו על קטגוריה לראות את כל המוצרים
             </p>
           </div>
-          {/* First 8 categories in 2 columns */}
-          <div className="grid md:grid-cols-2 gap-4 mb-4">
-            {categories.slice(0, 8).map((category, index) => {
-              const Icon = category.icon;
-              const categoryId = `item-${index}`;
-              return (
-                <Accordion
-                  key={index}
-                  type="single"
-                  collapsible
-                  value={openCategory === categoryId ? categoryId : ""}
-                  onValueChange={(value) => setOpenCategory(value || null)}
-                >
-                  <AccordionItem
-                    value={categoryId}
-                    className="rounded-xl bg-card shadow-sm border-2 border-border overflow-hidden transition-all hover:border-orange-400 hover:bg-orange-50/50"
-                  >
-                    <AccordionTrigger className="px-5 py-4 hover:no-underline transition-colors">
-                      <div className="flex items-center gap-3 flex-row-reverse w-full">
-                        <span className="text-2xl">{category.emoji}</span>
-                        <div className="text-right flex-1">
-                          <h3 className="text-lg font-semibold text-card-foreground">
-                            {category.title}
-                          </h3>
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-5 pb-4">
-                      <div className="grid gap-3 sm:grid-cols-2 mt-2">
-                        {category.products.map((product, productIndex) => (
-                          <Button
-                            key={productIndex}
-                            variant="outline"
-                            className="justify-between h-auto py-3 px-4 w-full"
-                            asChild
-                          >
-                            <a
-                              href={product.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() => handleProductClick()}
-                              className="flex items-center gap-2 flex-row-reverse"
-                            >
-                              <span className="text-right flex-1">{product.name}</span>
-                              <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                            </a>
-                          </Button>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              );
-            })}
-          </div>
 
-          {/* 9th category centered */}
-          {categories[8] && (
-            <div className="max-w-2xl mx-auto">
-              <Accordion
-                type="single"
-                collapsible
-                value={openCategory === "item-8" ? "item-8" : ""}
-                onValueChange={(value) => setOpenCategory(value || null)}
-              >
-                <AccordionItem
-                  value="item-8"
-                  className="rounded-xl bg-card shadow-sm border-2 border-border overflow-hidden transition-all hover:border-orange-400 hover:bg-orange-50/50"
+          {/* Search Bar */}
+          <div className="max-w-md mx-auto mb-8">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="חיפוש מוצר..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-10 pl-10 py-6 text-base rounded-xl border-2 border-border focus:border-orange-400"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                  onClick={() => setSearchTerm("")}
                 >
-                  <AccordionTrigger className="px-5 py-4 hover:no-underline transition-colors">
-                    <div className="flex items-center gap-3 flex-row-reverse w-full">
-                      <span className="text-2xl">{categories[8].emoji}</span>
-                      <div className="text-right flex-1">
-                        <h3 className="text-lg font-semibold text-card-foreground">
-                          {categories[8].title}
-                        </h3>
-                      </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-5 pb-4">
-                    <div className="grid gap-3 sm:grid-cols-2 mt-2">
-                      {categories[8].products.map((product, productIndex) => (
-                        <Button
-                          key={productIndex}
-                          variant="outline"
-                          className="justify-between h-auto py-3 px-4 w-full"
-                          asChild
-                        >
-                          <a
-                            href={product.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => handleProductClick()}
-                            className="flex items-center gap-2 flex-row-reverse"
-                          >
-                            <span className="text-right flex-1">{product.name}</span>
-                            <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                          </a>
-                        </Button>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
+            {searchTerm && (
+              <p className="text-sm text-muted-foreground text-center mt-2">
+                נמצאו {totalProductsFound} מוצרים ב-{filteredCategories.length} קטגוריות
+              </p>
+            )}
+          </div>
+          {/* Categories Grid - filtered results */}
+          {filteredCategories.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-lg text-muted-foreground">
+                לא נמצאו מוצרים עבור "{searchTerm}"
+              </p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => setSearchTerm("")}
+              >
+                נקה חיפוש
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                {filteredCategories.map((category, index) => {
+                  const categoryId = `item-${index}`;
+                  return (
+                    <Accordion
+                      key={`${category.title}-${index}`}
+                      type="single"
+                      collapsible
+                      value={openCategory === categoryId ? categoryId : ""}
+                      onValueChange={(value) => setOpenCategory(value || null)}
+                    >
+                      <AccordionItem
+                        value={categoryId}
+                        className="rounded-xl bg-card shadow-sm border-2 border-border overflow-hidden transition-all hover:border-orange-400 hover:bg-orange-50/50"
+                      >
+                        <AccordionTrigger className="px-5 py-4 hover:no-underline transition-colors">
+                          <div className="flex items-center gap-3 flex-row-reverse w-full">
+                            <span className="text-2xl">{category.emoji}</span>
+                            <div className="text-right flex-1">
+                              <h3 className="text-lg font-semibold text-card-foreground">
+                                {category.title}
+                                {searchTerm && (
+                                  <span className="text-sm font-normal text-muted-foreground mr-2">
+                                    ({category.products.length})
+                                  </span>
+                                )}
+                              </h3>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-5 pb-4">
+                          <div className="grid gap-3 sm:grid-cols-2 mt-2">
+                            {category.products.map((product, productIndex) => (
+                              <Button
+                                key={productIndex}
+                                variant="outline"
+                                className="justify-between h-auto py-3 px-4 w-full"
+                                asChild
+                              >
+                                <a
+                                  href={product.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={() => handleProductClick()}
+                                  className="flex items-center gap-2 flex-row-reverse"
+                                >
+                                  <span className="text-right flex-1">{product.name}</span>
+                                  <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                                </a>
+                              </Button>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       </div>
