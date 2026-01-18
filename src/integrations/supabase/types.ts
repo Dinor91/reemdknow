@@ -92,6 +92,45 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          email: string
+          id: string
+          location: string
+          phone: string | null
+          platform: string
+          request_text: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          location?: string
+          phone?: string | null
+          platform?: string
+          request_text: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          location?: string
+          phone?: string | null
+          platform?: string
+          request_text?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       feed_categories: {
         Row: {
           category_id: number

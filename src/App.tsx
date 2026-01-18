@@ -9,6 +9,7 @@ import Thailand from "./pages/Thailand";
 import ChannelSelect from "./pages/ChannelSelect";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
+import Requests from "./pages/Requests";
 import NotFound from "./pages/NotFound";
 import { CountryProvider } from "./contexts/CountryContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -66,6 +67,7 @@ const AppContent = () => {
         <Route path="/israel" element={<Israel />} />
         <Route path="/join" element={<ChannelSelect />} />
         <Route path="/thailand" element={<Thailand />} />
+        <Route path="/requests" element={<Requests />} />
         <Route path="/auth" element={<Auth />} />
         <Route
           path="/admin"

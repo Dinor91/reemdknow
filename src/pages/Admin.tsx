@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff } from "lucide-react";
+import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, MapPin } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
@@ -445,6 +445,171 @@ const FeedTab = () => {
   );
 };
 
+interface ContactRequest {
+  id: string;
+  email: string;
+  phone: string | null;
+  request_text: string;
+  platform: string;
+  location: string;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+}
+
+const RequestsTab = () => {
+  const [requests, setRequests] = useState<ContactRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("");
+
+  const fetchRequests = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("contact_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching requests:", error);
+      toast.error("שגיאה בטעינת פניות");
+    } else {
+      setRequests(data || []);
+    }
+    setLoading(false);
+  };
+
+  const updateStatus = async (id: string, newStatus: string) => {
+    const { error } = await supabase
+      .from("contact_requests")
+      .update({ status: newStatus })
+      .eq("id", id);
+
+    if (error) {
+      toast.error("שגיאה בעדכון סטטוס");
+    } else {
+      toast.success("סטטוס עודכן");
+      fetchRequests();
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const filteredRequests = requests.filter(r =>
+    r.email.toLowerCase().includes(filter.toLowerCase()) ||
+    r.request_text.toLowerCase().includes(filter.toLowerCase()) ||
+    (r.phone && r.phone.includes(filter))
+  );
+
+  const statusColors: Record<string, string> = {
+    new: "bg-blue-100 text-blue-700",
+    in_progress: "bg-yellow-100 text-yellow-700",
+    done: "bg-green-100 text-green-700",
+    cancelled: "bg-gray-100 text-gray-500"
+  };
+
+  const statusLabels: Record<string, string> = {
+    new: "חדש",
+    in_progress: "בטיפול",
+    done: "טופל",
+    cancelled: "בוטל"
+  };
+
+  const platformLabels: Record<string, string> = {
+    lazada: "Lazada",
+    aliexpress: "AliExpress",
+    other: "אחר"
+  };
+
+  const locationLabels: Record<string, string> = {
+    thailand: "🇹🇭 תאילנד",
+    israel: "🇮🇱 ישראל"
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-4 items-center justify-between">
+        <Input
+          placeholder="חיפוש לפי מייל או תוכן..."
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="max-w-xs"
+        />
+        <Button onClick={fetchRequests} variant="outline" disabled={loading}>
+          <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
+          רענן
+        </Button>
+      </div>
+
+      <div className="text-sm text-muted-foreground">
+        סה"כ {requests.length} פניות | {requests.filter(r => r.status === 'new').length} חדשות
+      </div>
+
+      {loading ? (
+        <p className="text-muted-foreground">טוען...</p>
+      ) : filteredRequests.length === 0 ? (
+        <Card className="p-8 text-center">
+          <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+          <p className="text-muted-foreground">אין פניות עדיין</p>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {filteredRequests.map((request) => (
+            <Card key={request.id} className={`p-4 ${request.status === 'new' ? 'border-blue-400' : ''}`}>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className={`text-xs px-2 py-1 rounded-full ${statusColors[request.status] || statusColors.new}`}>
+                        {statusLabels[request.status] || request.status}
+                      </span>
+                      <span className="text-xs bg-muted px-2 py-1 rounded">
+                        {platformLabels[request.platform] || request.platform}
+                      </span>
+                      <span className="text-xs">
+                        {locationLabels[request.location] || request.location}
+                      </span>
+                    </div>
+                    <p className="text-sm mb-2">{request.request_text}</p>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {request.email}
+                      </span>
+                      {request.phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {request.phone}
+                        </span>
+                      )}
+                      <span>
+                        {new Date(request.created_at).toLocaleDateString('he-IL')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    {request.status === 'new' && (
+                      <Button size="sm" variant="outline" onClick={() => updateStatus(request.id, 'in_progress')}>
+                        התחל טיפול
+                      </Button>
+                    )}
+                    {request.status === 'in_progress' && (
+                      <Button size="sm" onClick={() => updateStatus(request.id, 'done')}>
+                        סיים
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const StatsTab = () => {
   const [allClicks, setAllClicks] = useState<ClickData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -702,7 +867,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="stats" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="stats" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               סטטיסטיקות
@@ -715,6 +880,10 @@ const Admin = () => {
               <Store className="h-4 w-4" />
               פיד Lazada
             </TabsTrigger>
+            <TabsTrigger value="requests" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              פניות
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="stats">
             <StatsTab />
@@ -724,6 +893,9 @@ const Admin = () => {
           </TabsContent>
           <TabsContent value="feed">
             <FeedTab />
+          </TabsContent>
+          <TabsContent value="requests">
+            <RequestsTab />
           </TabsContent>
         </Tabs>
       </div>

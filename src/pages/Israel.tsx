@@ -2,6 +2,7 @@ import { IsraelHero } from "@/components/IsraelHero";
 import { FeaturedProductsIsrael } from "@/components/FeaturedProductsIsrael";
 import { JoinCTASection } from "@/components/JoinCTASection";
 import { IsraelCategories } from "@/components/IsraelCategories";
+import { RequestBanner } from "@/components/RequestBanner";
 import { Footer } from "@/components/Footer";
 import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
 import { Header } from "@/components/Header";
@@ -30,6 +31,9 @@ const Israel = () => {
 
         {/* 4. Categories Accordion */}
         <IsraelCategories />
+
+        {/* 5. Request Banner */}
+        <RequestBanner variant="israel" />
 
         <Footer />
       </div>

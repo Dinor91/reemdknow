@@ -2,6 +2,7 @@ import { ThailandHero } from "@/components/ThailandHero";
 import { ThailandCategories } from "@/components/ThailandCategories";
 import { FeaturedProductsThailand } from "@/components/FeaturedProductsThailand";
 import { JoinCTASection } from "@/components/JoinCTASection";
+import { RequestBanner } from "@/components/RequestBanner";
 import { Footer } from "@/components/Footer";
 import { FloatingWhatsAppButton } from "@/components/FloatingWhatsAppButton";
 import { Header } from "@/components/Header";
@@ -30,6 +31,9 @@ const Thailand = () => {
 
         {/* 4. Categories Accordion */}
         <ThailandCategories />
+
+        {/* 5. Request Banner */}
+        <RequestBanner variant="thailand" />
 
         <Footer />
       </div>
