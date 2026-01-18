@@ -31,10 +31,18 @@ const useFeaturedProducts = () => {
 
       // Filter and limit the results client-side
       if (!cacheError && cachedProducts && cachedProducts.length >= 4) {
-        const filtered = cachedProducts
+        // Sort: featured products first, then by sales
+        const sorted = [...cachedProducts]
           .filter((p: FeedProduct) => !p.out_of_stock)
+          .sort((a: FeedProduct, b: FeedProduct) => {
+            // Featured products come first
+            if (a.is_featured && !b.is_featured) return -1;
+            if (!a.is_featured && b.is_featured) return 1;
+            // Then sort by sales
+            return (b.sales_7d || 0) - (a.sales_7d || 0);
+          })
           .slice(0, 8);
-        return filtered as FeedProduct[];
+        return sorted as FeedProduct[];
       }
 
       // Fallback to live API call if cache is empty
