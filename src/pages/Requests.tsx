@@ -89,11 +89,11 @@ const Requests = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background" dir="rtl">
       <Header />
-      <main className="flex-1 py-8 md:py-12">
+      <main className="flex-1 pt-24 pb-8 md:pt-28 md:pb-12">
         <div className="container mx-auto px-4">
           <div className="max-w-xl mx-auto">
             {/* Header */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-8 relative z-0">
               <h1 className="text-3xl font-bold text-foreground mb-3">
                 📝 שלחו לנו בקשה
               </h1>
