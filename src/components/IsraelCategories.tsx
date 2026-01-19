@@ -145,7 +145,7 @@ export const IsraelCategories = () => {
                       <AccordionContent className="px-5 pb-6 bg-muted/30">
                         <div className="text-center py-8">
                           <p className="text-muted-foreground text-lg">
-                            📦 מוצרים יתווספו בקרוב...
+                            מוצרים יתווספו בקרוב...
                           </p>
                         </div>
                       </AccordionContent>

@@ -57,7 +57,7 @@ export const JoinCTASection = ({ country }: JoinCTASectionProps) => {
               className="flex items-center justify-center gap-2"
               onClick={handleWhatsAppClick}
             >
-              💬 וואטסאפ
+              וואטסאפ
             </a>
           </Button>
 
@@ -73,7 +73,7 @@ export const JoinCTASection = ({ country }: JoinCTASectionProps) => {
               className="flex items-center justify-center gap-2"
               onClick={handleTelegramClick}
             >
-              📱 טלגרם
+              טלגרם
             </a>
           </Button>
         </div>
