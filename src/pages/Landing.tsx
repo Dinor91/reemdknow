@@ -188,10 +188,6 @@ const Landing = () => {
         {/* Stats Section */}
         <section className="pt-12 md:pt-16 pb-16 md:pb-24 bg-background">
           <div className="container mx-auto px-4">
-            {/* Desktop heading */}
-            <h2 className="hidden md:block text-4xl font-bold text-center mb-12 text-foreground">
-              למה מאות ישראלים כבר בקהילה שלי?
-            </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
               <div className="text-center">
                 <div className="hidden md:flex w-16 h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-4">
