@@ -95,7 +95,7 @@ const Requests = () => {
             {/* Header */}
             <div className="text-center mb-8 relative z-0">
               <h1 className="text-3xl font-bold text-foreground mb-3">
-                📝 שלחו לנו בקשה
+                שלחו לי בקשה
               </h1>
               <p className="text-lg text-muted-foreground">
                 מחפשים מוצר ספציפי? ספרו לנו ונמצא לכם את הדיל הכי טוב!

@@ -27,7 +27,7 @@ export const RequestBanner = ({ variant = 'thailand' }: RequestBannerProps) => {
             }
           >
             <Link to="/requests">
-              שלחו לנו בקשה 📝
+              שלחו לי בקשה
             </Link>
           </Button>
         </div>

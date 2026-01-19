@@ -41,7 +41,7 @@ const Landing = () => {
             <div className="max-w-3xl mx-auto text-center">
               {/* H1 - Main Headline */}
               <h1 className="text-[28px] md:text-[36px] lg:text-[40px] font-bold text-foreground leading-[1.3] mb-2">
-                🛒 קונים באליאקספרס או לאזדה?
+                קונים באליאקספרס או לאזדה?
               </h1>
               <p className="text-[24px] md:text-[28px] lg:text-[32px] font-bold text-foreground mb-8">
                 אל תשלמו יותר מדי.
