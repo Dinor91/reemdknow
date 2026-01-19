@@ -190,29 +190,29 @@ const Landing = () => {
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
               <div className="text-center">
-                <div className="hidden md:flex w-16 h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-4">
-                  <ShoppingBag className="w-8 h-8 text-primary" />
+                <div className="flex w-10 h-10 md:w-16 md:h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-3 md:mb-4">
+                  <ShoppingBag className="w-5 h-5 md:w-8 md:h-8 text-primary" />
                 </div>
                 <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">500+</div>
                 <div className="text-sm text-muted-foreground">מוצרים נבחרים</div>
               </div>
               <div className="text-center">
-                <div className="hidden md:flex w-16 h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-primary" />
+                <div className="flex w-10 h-10 md:w-16 md:h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-3 md:mb-4">
+                  <Users className="w-5 h-5 md:w-8 md:h-8 text-primary" />
                 </div>
                 <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">250</div>
                 <div className="text-sm text-muted-foreground">לקוחות מרוצים</div>
               </div>
               <div className="text-center">
-                <div className="hidden md:flex w-16 h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-4">
-                  <TrendingUp className="w-8 h-8 text-primary" />
+                <div className="flex w-10 h-10 md:w-16 md:h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-3 md:mb-4">
+                  <TrendingUp className="w-5 h-5 md:w-8 md:h-8 text-primary" />
                 </div>
                 <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">95%</div>
                 <div className="text-sm text-muted-foreground">שביעות רצון</div>
               </div>
               <div className="text-center">
-                <div className="hidden md:flex w-16 h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-4">
-                  <MapPin className="w-6 h-6 text-primary" />
+                <div className="flex w-10 h-10 md:w-16 md:h-16 bg-primary/10 rounded-full items-center justify-center mx-auto mb-3 md:mb-4">
+                  <MapPin className="w-5 h-5 md:w-6 md:h-6 text-primary" />
                 </div>
                 <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">2</div>
                 <div className="text-sm text-muted-foreground">מדינות</div>
