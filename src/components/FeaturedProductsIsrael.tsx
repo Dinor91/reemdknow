@@ -84,7 +84,7 @@ const ProductCard = ({ product, onProductClick }: { product: Product; onProductC
       onClick={() => onProductClick(product)}
       className="block w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold text-center rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
     >
-      לדיל באלי 🛒
+      לדיל באלי
     </a>
   </div>
 );
@@ -134,7 +134,7 @@ export const FeaturedProductsIsrael = () => {
               </div>
             </Carousel>
             <p className="text-center text-sm text-muted-foreground mt-4">
-              👈 החליקו לעוד מוצרים
+              החליקו לעוד מוצרים
             </p>
           </div>
         ) : (

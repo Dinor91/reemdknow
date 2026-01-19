@@ -66,7 +66,7 @@ const Requests = () => {
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-4">
-              הבקשה נשלחה בהצלחה! 🎉
+              הבקשה נשלחה בהצלחה!
             </h1>
             <p className="text-muted-foreground mb-6">
               קיבלנו את הבקשה שלך ונחזור אליך בהקדם עם המלצות מותאמות אישית.
@@ -98,7 +98,7 @@ const Requests = () => {
                 שלחו לי בקשה
               </h1>
               <p className="text-lg text-muted-foreground">
-                מחפשים מוצר ספציפי? ספרו לנו ונמצא לכם את הדיל הכי טוב!
+                מחפשים מוצר ספציפי? ספרו לי ונמצא לכם את הדיל הכי טוב!
               </p>
             </div>
 
@@ -107,7 +107,7 @@ const Requests = () => {
               {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-base">
-                  📧 אימייל <span className="text-red-500">*</span>
+                  אימייל <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="email"
@@ -120,14 +120,14 @@ const Requests = () => {
                   dir="ltr"
                 />
                 <p className="text-xs text-muted-foreground">
-                  נשלח לך תשובה + עדכונים על דילים חמים
+                  <strong>נשלח לך תשובה + עדכונים על דילים חמים</strong>
                 </p>
               </div>
 
               {/* Phone */}
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-base">
-                  📱 טלפון (אופציונלי)
+                  טלפון (אופציונלי)
                 </Label>
                 <Input
                   id="phone"
@@ -139,14 +139,14 @@ const Requests = () => {
                   dir="ltr"
                 />
                 <p className="text-xs text-muted-foreground">
-                  לתקשורת מהירה בווטסאפ
+                  <strong>לקבלת מענה מהיר וישיר</strong>
                 </p>
               </div>
 
               {/* Request Text */}
               <div className="space-y-2">
                 <Label htmlFor="request" className="text-base">
-                  🛒 מה אתם מחפשים? <span className="text-red-500">*</span>
+                  מה אתם מחפשים? <span className="text-red-500">*</span>
                 </Label>
                 <Textarea
                   id="request"
@@ -160,7 +160,7 @@ const Requests = () => {
 
               {/* Platform */}
               <div className="space-y-3">
-                <Label className="text-base">🏪 מאיפה להביא?</Label>
+                <Label className="text-base">פלטפורמה מועדפת</Label>
                 <RadioGroup
                   value={formData.platform}
                   onValueChange={(value) => setFormData({ ...formData, platform: value })}
@@ -183,7 +183,7 @@ const Requests = () => {
 
               {/* Location */}
               <div className="space-y-3">
-                <Label className="text-base">🌍 לאן המשלוח?</Label>
+                <Label className="text-base">לאן המשלוח?</Label>
                 <RadioGroup
                   value={formData.location}
                   onValueChange={(value) => setFormData({ ...formData, location: value })}
@@ -191,11 +191,11 @@ const Requests = () => {
                 >
                   <div className="flex items-center space-x-2 space-x-reverse">
                     <RadioGroupItem value="thailand" id="thailand" />
-                    <Label htmlFor="thailand" className="cursor-pointer">🇹🇭 תאילנד</Label>
+                    <Label htmlFor="thailand" className="cursor-pointer">תאילנד</Label>
                   </div>
                   <div className="flex items-center space-x-2 space-x-reverse">
                     <RadioGroupItem value="israel" id="israel" />
-                    <Label htmlFor="israel" className="cursor-pointer">🇮🇱 ישראל</Label>
+                    <Label htmlFor="israel" className="cursor-pointer">ישראל</Label>
                   </div>
                 </RadioGroup>
               </div>

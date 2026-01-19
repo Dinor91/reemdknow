@@ -135,7 +135,7 @@ const ProductCard = ({ product, onProductClick }: { product: FeedProduct; onProd
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         {product.sales_7d && product.sales_7d > 0 && (
           <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">
-            🔥 {product.sales_7d} נמכרו השבוע
+            {product.sales_7d} נמכרו השבוע
           </span>
         )}
       </div>
@@ -147,7 +147,7 @@ const ProductCard = ({ product, onProductClick }: { product: FeedProduct; onProd
       onClick={() => onProductClick(product)}
       className="block w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white text-base font-semibold text-center rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
     >
-      לדיל בלאזדה 🛒
+      לדיל בלאזדה
     </a>
   </div>
 );
@@ -181,7 +181,7 @@ export const FeaturedProductsThailand = () => {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-            🔥 הכי שווה השבוע
+            הכי שווה השבוע
           </h2>
           <p className="text-lg text-muted-foreground">
             המוצרים הכי פופולריים ב-Lazada
@@ -220,7 +220,7 @@ export const FeaturedProductsThailand = () => {
               </div>
             </Carousel>
             <p className="text-center text-sm text-muted-foreground mt-4">
-              👈 החליקו לעוד מוצרים
+              החליקו לעוד מוצרים
             </p>
           </div>
         ) : (
