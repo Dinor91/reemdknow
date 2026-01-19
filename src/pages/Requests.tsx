@@ -97,7 +97,7 @@ const Requests = () => {
               <h1 className="text-3xl font-bold text-foreground mb-3">
                 שלחו לי בקשה
               </h1>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-lg text-muted-foreground font-bold">
                 מחפשים מוצר ספציפי? ספרו לי ונמצא לכם את הדיל הכי טוב!
               </p>
             </div>
@@ -120,7 +120,7 @@ const Requests = () => {
                   dir="ltr"
                 />
                 <p className="text-xs text-muted-foreground">
-                  <strong>נשלח לך תשובה + עדכונים על דילים חמים</strong>
+                  <strong>אשלח לך תשובה+ עדכונים</strong>
                 </p>
               </div>
 
