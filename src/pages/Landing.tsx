@@ -53,7 +53,7 @@ const Landing = () => {
               {/* Benefits List */}
               <ul
                 dir="rtl"
-                className="text-[16px] md:text-[18px] lg:text-[20px] font-medium text-success space-y-4 mb-8 max-w-md mx-auto"
+                className="text-[16px] md:text-[18px] lg:text-[20px] font-medium text-foreground space-y-4 mb-8 max-w-md mx-auto"
               >
                 <li className="flex items-center gap-3">
                   <span className="text-xl">✅</span>
@@ -76,7 +76,7 @@ const Landing = () => {
               <h2 className="text-[24px] md:text-[32px] lg:text-[36px] font-bold text-foreground mb-4">
                 ?איפה אתם בעולם
               </h2>
-              <p className="text-[16px] md:text-[18px] text-muted-foreground mb-8">
+              <p className="text-[20px] md:text-[24px] font-semibold text-[#333333] mb-8">
                 בחרו את היעד שלכם וקבלו המלצות מותאמות אישית
               </p>
 
@@ -132,12 +132,12 @@ const Landing = () => {
         <section className="py-12 md:py-16 bg-background">
           <div className="container mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-foreground">
-              למה <span className="text-success">250</span> אנשים כבר הצטרפו אליי?
+              למה <span className="text-foreground">250</span> אנשים כבר הצטרפו אליי?
             </h2>
 
             <div className="max-w-2xl mx-auto">
               {/* Problem */}
-              <div className="mb-8 p-6 bg-muted rounded-xl">
+              <div className="mb-8 p-6 bg-[#f28433]/5 rounded-xl">
                 <h3 className="text-lg md:text-xl font-semibold text-foreground mb-4 text-center">
                   רוב המוצרים ברשת זה:
                 </h3>
@@ -158,7 +158,7 @@ const Landing = () => {
               </div>
 
               {/* Solution */}
-              <div className="p-6 bg-success/10 rounded-xl border border-success/20">
+              <div className="p-6 bg-blue-500/5 rounded-xl">
                 <h3 className="text-lg md:text-xl font-semibold text-foreground mb-4 text-center">הפתרון שלי פשוט:</h3>
                 <ul className="space-y-3">
                   <li className="flex items-center gap-3 text-foreground">
@@ -190,7 +190,7 @@ const Landing = () => {
         <section className="pt-12 md:pt-16 pb-16 md:pb-24 bg-background">
           <div className="container mx-auto px-4">
             {/* Desktop heading */}
-            <h2 className="hidden md:block text-4xl font-bold text-center mb-12 text-[#41b5b3]">
+            <h2 className="hidden md:block text-4xl font-bold text-center mb-12 text-foreground">
               למה מאות ישראלים כבר איתנו?
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
