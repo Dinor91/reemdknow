@@ -73,7 +73,7 @@ const Landing = () => {
 
               {/* CTA Question */}
               <h2 className="text-[24px] md:text-[32px] lg:text-[36px] font-bold text-foreground mb-4">
-                ?איפה אתם בעולם
+                איפה אתם בעולם?
               </h2>
               <p className="text-[20px] md:text-[24px] font-semibold text-[#333333] mb-8">
                 בחרו את היעד שלכם וקבלו המלצות מותאמות אישית
