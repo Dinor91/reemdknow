@@ -76,7 +76,7 @@ const Landing = () => {
                 איפה אתם בעולם?
               </h2>
               <p className="text-[20px] md:text-[24px] font-semibold text-[#333333] mb-8">
-                בחרו את היעד שלכם וקבלו המלצות מותאמות אישית
+                בחרו את היעד שלכם, הצטרפו לווטסאפ/ טלגרם וקבלו המלצות על בסיס יומי
               </p>
 
               {/* Country Selection Cards */}

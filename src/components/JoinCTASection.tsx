@@ -53,7 +53,7 @@ export const JoinCTASection = ({ country }: JoinCTASectionProps) => {
           3-4 מוצרים בשבוע, בלי ספאם!
         </p>
         <p className="text-lg font-medium text-foreground mb-7">
-          250+ ישראלים כבר שם 👇
+          תוכלו לכתוב לי גם בקשות 👇
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
