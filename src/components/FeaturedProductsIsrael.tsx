@@ -103,10 +103,10 @@ export const FeaturedProductsIsrael = () => {
         {/* Section Title */}
         <div className="text-center mb-10">
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-            🔥 הכי שווה מאלי השבוע
+            הכי שווה השבוע
           </h2>
           <p className="text-lg text-muted-foreground">
-            המוצרים עם הכי הרבה חיסכון
+            המוצרים הכי פופולריים ב-AliExpress
           </p>
         </div>
 

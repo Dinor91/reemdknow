@@ -33,7 +33,7 @@ export const JoinCTASection = ({ country }: JoinCTASectionProps) => {
     <section dir="rtl" className="bg-muted border-2 border-border rounded-2xl py-10 px-6 md:px-8 mx-4 md:mx-auto max-w-3xl my-10 text-center">
       <div className="mx-auto max-w-xl">
         <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
-          💬 רוצים עוד המלצות?
+          רוצים עוד המלצות?
         </h2>
         <p className="text-lg text-muted-foreground leading-relaxed mb-5">
           בקבוצה שלי אני משתף רק מוצרים שווים שעוברים סינון.
