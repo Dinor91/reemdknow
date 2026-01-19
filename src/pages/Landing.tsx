@@ -71,7 +71,6 @@ const Landing = () => {
                 </li>
               </ul>
 
-
               {/* CTA Question */}
               <h2 className="text-[24px] md:text-[32px] lg:text-[36px] font-bold text-foreground mb-4">
                 ?איפה אתם בעולם
@@ -139,7 +138,7 @@ const Landing = () => {
               {/* Problem */}
               <div className="mb-8 p-6 bg-[#f28433]/5 rounded-xl">
                 <h3 className="text-lg md:text-xl font-semibold text-foreground mb-4 text-center">
-                  רוב המוצרים ברשת זה:
+                  רוב המוצרים ברשת הם:
                 </h3>
                 <ul className="space-y-3">
                   <li className="flex items-center gap-3 text-muted-foreground">
