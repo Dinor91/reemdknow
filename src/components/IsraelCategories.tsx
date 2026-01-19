@@ -65,7 +65,7 @@ export const IsraelCategories = () => {
           {/* Section Title */}
           <div className="text-center mb-6">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-              ההמלצות של (D)Know
+              ההמלצות של <span dir="ltr">(D)Know</span>
             </h2>
             <p className="text-lg text-muted-foreground">
               לחצו על קטגוריה לראות את כל המוצרים
