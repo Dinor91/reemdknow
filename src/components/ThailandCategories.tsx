@@ -1,4 +1,4 @@
-import { Home, Baby, Sparkles, Hammer, Trees, Tent, Utensils, Sofa, ShieldCheck, WashingMachine, ExternalLink, Search, X } from "lucide-react";
+import { Home, Baby, Sparkles, Hammer, Trees, Tent, Utensils, Sofa, ShieldCheck, WashingMachine, ExternalLink, Search, X, Package } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ interface Category {
   title: string;
   description: string;
   products: Product[];
+  isDynamic?: boolean;
 }
 
 const categories: Category[] = [
@@ -194,6 +195,7 @@ export const ThailandCategories = () => {
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [productsWithData, setProductsWithData] = useState<Record<string, ProductData>>({});
+  const [dynamicCategories, setDynamicCategories] = useState<Category[]>([]);
   const hasShownRef = useRef(false);
 
   // Fetch products that have updated data (price, rating, sales_count, or out_of_stock)
@@ -218,6 +220,34 @@ export const ThailandCategories = () => {
     fetchProductsWithData();
   }, []);
 
+  // Fetch dynamic categories from database (like "כללי")
+  useEffect(() => {
+    const fetchDynamicCategories = async () => {
+      const { data, error } = await supabase
+        .from('category_products')
+        .select('name_hebrew, affiliate_link, category, out_of_stock')
+        .eq('category', 'כללי')
+        .eq('is_active', true)
+        .order('name_hebrew');
+      
+      if (!error && data && data.length > 0) {
+        const generalCategory: Category = {
+          icon: Package,
+          emoji: "📦",
+          title: "כללי",
+          description: "מוצרים מומלצים נוספים",
+          products: data.map(p => ({
+            name: p.name_hebrew || 'מוצר',
+            link: p.affiliate_link
+          })),
+          isDynamic: true
+        };
+        setDynamicCategories([generalCategory]);
+      }
+    };
+    fetchDynamicCategories();
+  }, []);
+
   const handleProductClick = () => {
     if (!hasShownRef.current) {
       setTimeout(() => {
@@ -227,12 +257,17 @@ export const ThailandCategories = () => {
     }
   };
 
+  // Combine static and dynamic categories
+  const allCategories = useMemo(() => {
+    return [...categories, ...dynamicCategories];
+  }, [dynamicCategories]);
+
   // Filter categories and products based on search term
   const filteredCategories = useMemo(() => {
-    if (!searchTerm.trim()) return categories;
+    if (!searchTerm.trim()) return allCategories;
     
     const term = searchTerm.trim().toLowerCase();
-    return categories
+    return allCategories
       .map(category => {
         // Check if category title matches
         const categoryMatches = category.title.toLowerCase().includes(term);
@@ -250,7 +285,7 @@ export const ThailandCategories = () => {
         return null;
       })
       .filter((cat): cat is Category => cat !== null);
-  }, [searchTerm]);
+  }, [searchTerm, allCategories]);
 
   const totalProductsFound = useMemo(() => {
     return filteredCategories.reduce((sum, cat) => sum + cat.products.length, 0);
