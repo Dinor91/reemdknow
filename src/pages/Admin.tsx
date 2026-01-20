@@ -71,7 +71,8 @@ const CATEGORIES = [
   "טיולים",
   "חצר וגינה",
   "הדברה",
-  "DIY"
+  "DIY",
+  "כללי"
 ];
 
 const ProductsTab = () => {
