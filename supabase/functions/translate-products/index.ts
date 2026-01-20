@@ -21,24 +21,28 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get products that need translation (where name_hebrew = name_english)
+    // Get products that need translation (where name_hebrew contains non-Hebrew characters)
+    // Using raw SQL filter to find names starting with non-Hebrew characters
     const { data: products, error: fetchError } = await supabase
       .from("category_products")
       .select("id, name_hebrew, name_english")
       .eq("category", "כללי")
+      .or("name_hebrew.ilike.[%,name_hebrew.ilike.(%,name_hebrew.like.A%,name_hebrew.like.B%,name_hebrew.like.C%,name_hebrew.like.D%,name_hebrew.like.E%,name_hebrew.like.F%,name_hebrew.like.G%,name_hebrew.like.H%,name_hebrew.like.I%,name_hebrew.like.J%,name_hebrew.like.K%,name_hebrew.like.L%,name_hebrew.like.M%,name_hebrew.like.N%,name_hebrew.like.O%,name_hebrew.like.P%,name_hebrew.like.Q%,name_hebrew.like.R%,name_hebrew.like.S%,name_hebrew.like.T%,name_hebrew.like.U%,name_hebrew.like.V%,name_hebrew.like.W%,name_hebrew.like.X%,name_hebrew.like.Y%,name_hebrew.like.Z%")
       .limit(50); // Process 50 at a time to avoid timeout
+
+    const productsNeedingTranslation = products || [];
 
     if (fetchError) throw fetchError;
 
-    if (!products || products.length === 0) {
+    if (!productsNeedingTranslation || productsNeedingTranslation.length === 0) {
       return new Response(
-        JSON.stringify({ message: "No products to translate", translated: 0 }),
+        JSON.stringify({ message: "No products to translate", translated: 0, checked: products?.length || 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Prepare batch translation request
-    const productNames = products.map(p => p.name_english || p.name_hebrew).join("\n---\n");
+    const productNames = productsNeedingTranslation.map(p => p.name_english || p.name_hebrew).join("\n---\n");
     
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -85,7 +89,7 @@ Examples:
 
     // Update products with translations
     let updatedCount = 0;
-    for (let i = 0; i < products.length && i < translations.length; i++) {
+    for (let i = 0; i < productsNeedingTranslation.length && i < translations.length; i++) {
       const translation = translations[i];
       if (translation && translation.length > 0) {
         const { error: updateError } = await supabase
@@ -94,7 +98,7 @@ Examples:
             name_hebrew: translation,
             updated_at: new Date().toISOString()
           })
-          .eq("id", products[i].id);
+          .eq("id", productsNeedingTranslation[i].id);
 
         if (!updateError) {
           updatedCount++;
@@ -106,8 +110,9 @@ Examples:
       JSON.stringify({ 
         message: "Translation complete", 
         translated: updatedCount,
-        total: products.length,
-        remaining: products.length > 50 ? "Run again to translate more" : "All done"
+        needingTranslation: productsNeedingTranslation.length,
+        totalChecked: products?.length || 0,
+        remaining: productsNeedingTranslation.length >= 50 ? "Run again to translate more" : "All done"
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
