@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, MapPin } from "lucide-react";
+import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,6 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ClickData {
   id: string;
@@ -46,6 +48,7 @@ interface CategoryProduct {
   sales_count: number | null;
   category: string;
   is_active: boolean;
+  out_of_stock: boolean | null;
 }
 
 const chartConfig = {
@@ -66,6 +69,7 @@ const ProductsTab = () => {
   const [editData, setEditData] = useState<Partial<CategoryProduct>>({});
   const [filter, setFilter] = useState("");
   const [updatingFromApi, setUpdatingFromApi] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -100,10 +104,13 @@ const ProductsTab = () => {
   const startEdit = (product: CategoryProduct) => {
     setEditingId(product.id);
     setEditData({
+      name_hebrew: product.name_hebrew,
+      affiliate_link: product.affiliate_link,
       image_url: product.image_url || "",
       price_thb: product.price_thb || undefined,
       rating: product.rating || undefined,
       sales_count: product.sales_count || undefined,
+      out_of_stock: product.out_of_stock || false,
     });
   };
 
@@ -116,10 +123,13 @@ const ProductsTab = () => {
     const { error } = await supabase
       .from("category_products")
       .update({
+        name_hebrew: editData.name_hebrew,
+        affiliate_link: editData.affiliate_link,
         image_url: editData.image_url || null,
         price_thb: editData.price_thb || null,
         rating: editData.rating || null,
         sales_count: editData.sales_count || null,
+        out_of_stock: editData.out_of_stock || false,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);
@@ -132,6 +142,42 @@ const ProductsTab = () => {
       setEditingId(null);
       fetchProducts();
     }
+  };
+
+  const toggleOutOfStock = async (product: CategoryProduct) => {
+    const newValue = !product.out_of_stock;
+    const { error } = await supabase
+      .from("category_products")
+      .update({ out_of_stock: newValue, updated_at: new Date().toISOString() })
+      .eq("id", product.id);
+
+    if (error) {
+      toast.error("שגיאה בעדכון");
+    } else {
+      setProducts(products.map(p => 
+        p.id === product.id ? { ...p, out_of_stock: newValue } : p
+      ));
+      toast.success(newValue ? "סומן כאזל במלאי" : "סומן כזמין");
+    }
+  };
+
+  const toggleCategory = (category: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(category)) {
+      newExpanded.delete(category);
+    } else {
+      newExpanded.add(category);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  const expandAll = () => {
+    const allCategories = new Set(Object.keys(groupedProducts));
+    setExpandedCategories(allCategories);
+  };
+
+  const collapseAll = () => {
+    setExpandedCategories(new Set());
   };
 
   useEffect(() => {
@@ -163,6 +209,12 @@ const ProductsTab = () => {
           className="max-w-xs"
         />
         <div className="flex gap-2">
+          <Button onClick={expandAll} variant="ghost" size="sm">
+            פתח הכל
+          </Button>
+          <Button onClick={collapseAll} variant="ghost" size="sm">
+            סגור הכל
+          </Button>
           <Button onClick={fetchProducts} variant="outline" disabled={loading}>
             <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
             רענן
@@ -175,114 +227,191 @@ const ProductsTab = () => {
       </div>
 
       <div className="text-sm text-muted-foreground">
-        סה"כ {products.length} מוצרים | {products.filter(p => p.price_thb).length} עם מחיר | {products.filter(p => p.image_url).length} עם תמונה
+        סה"כ {products.length} מוצרים | {products.filter(p => p.price_thb).length} עם מחיר | {products.filter(p => p.out_of_stock).length} אזלו במלאי
       </div>
 
       {loading ? (
         <p className="text-muted-foreground">טוען...</p>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-2">
           {Object.entries(groupedProducts).map(([category, categoryProducts]) => (
-            <Card key={category} className="p-4">
-              <h3 className="text-lg font-semibold mb-3 border-b pb-2">{category} ({categoryProducts.length})</h3>
-              <div className="space-y-2">
-                {categoryProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className={`p-3 rounded-lg border ${editingId === product.id ? "border-orange-400 bg-orange-50" : "bg-muted/30"}`}
-                  >
-                    {editingId === product.id ? (
-                      <div className="space-y-3">
-                        <div className="font-medium">{product.name_hebrew}</div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          <div>
-                            <label className="text-xs text-muted-foreground">תמונה URL</label>
-                            <Input
-                              value={editData.image_url || ""}
-                              onChange={(e) => setEditData({ ...editData, image_url: e.target.value })}
-                              placeholder="https://..."
-                              className="text-sm"
-                            />
+            <Card key={category} className="overflow-hidden">
+              <button
+                onClick={() => toggleCategory(category)}
+                className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold">{category}</h3>
+                  <span className="text-sm text-muted-foreground">({categoryProducts.length})</span>
+                  {categoryProducts.some(p => p.out_of_stock) && (
+                    <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                      {categoryProducts.filter(p => p.out_of_stock).length} אזלו
+                    </span>
+                  )}
+                </div>
+                {expandedCategories.has(category) ? (
+                  <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                )}
+              </button>
+              
+              {expandedCategories.has(category) && (
+                <div className="border-t p-4 space-y-2">
+                  {categoryProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      className={`p-3 rounded-lg border ${
+                        product.out_of_stock 
+                          ? "border-red-300 bg-red-50/50" 
+                          : editingId === product.id 
+                            ? "border-orange-400 bg-orange-50" 
+                            : "bg-muted/30"
+                      }`}
+                    >
+                      {editingId === product.id ? (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-xs text-muted-foreground">שם המוצר</label>
+                              <Input
+                                value={editData.name_hebrew || ""}
+                                onChange={(e) => setEditData({ ...editData, name_hebrew: e.target.value })}
+                                placeholder="שם המוצר"
+                                className="text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground">קישור לאזדה</label>
+                              <Input
+                                value={editData.affiliate_link || ""}
+                                onChange={(e) => setEditData({ ...editData, affiliate_link: e.target.value })}
+                                placeholder="https://..."
+                                className="text-sm"
+                              />
+                            </div>
                           </div>
-                          <div>
-                            <label className="text-xs text-muted-foreground">מחיר (฿)</label>
-                            <Input
-                              type="number"
-                              value={editData.price_thb || ""}
-                              onChange={(e) => setEditData({ ...editData, price_thb: parseFloat(e.target.value) || undefined })}
-                              placeholder="0"
-                              className="text-sm"
-                            />
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            <div>
+                              <label className="text-xs text-muted-foreground">תמונה URL</label>
+                              <Input
+                                value={editData.image_url || ""}
+                                onChange={(e) => setEditData({ ...editData, image_url: e.target.value })}
+                                placeholder="https://..."
+                                className="text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground">מחיר (฿)</label>
+                              <Input
+                                type="number"
+                                value={editData.price_thb || ""}
+                                onChange={(e) => setEditData({ ...editData, price_thb: parseFloat(e.target.value) || undefined })}
+                                placeholder="0"
+                                className="text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground">דירוג</label>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                max="5"
+                                value={editData.rating || ""}
+                                onChange={(e) => setEditData({ ...editData, rating: parseFloat(e.target.value) || undefined })}
+                                placeholder="4.5"
+                                className="text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground">נמכרו</label>
+                              <Input
+                                type="number"
+                                value={editData.sales_count || ""}
+                                onChange={(e) => setEditData({ ...editData, sales_count: parseInt(e.target.value) || undefined })}
+                                placeholder="0"
+                                className="text-sm"
+                              />
+                            </div>
+                            <div className="flex items-end gap-2">
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={editData.out_of_stock || false}
+                                  onCheckedChange={(checked) => setEditData({ ...editData, out_of_stock: checked })}
+                                />
+                                <label className="text-xs text-muted-foreground">אזל במלאי</label>
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <label className="text-xs text-muted-foreground">דירוג</label>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              max="5"
-                              value={editData.rating || ""}
-                              onChange={(e) => setEditData({ ...editData, rating: parseFloat(e.target.value) || undefined })}
-                              placeholder="4.5"
-                              className="text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-muted-foreground">נמכרו</label>
-                            <Input
-                              type="number"
-                              value={editData.sales_count || ""}
-                              onChange={(e) => setEditData({ ...editData, sales_count: parseInt(e.target.value) || undefined })}
-                              placeholder="0"
-                              className="text-sm"
-                            />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => saveEdit(product.id)}>
+                              <Save className="h-3 w-3 ml-1" />
+                              שמור
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={cancelEdit}>
+                              <X className="h-3 w-3 ml-1" />
+                              ביטול
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={() => saveEdit(product.id)}>
-                            <Save className="h-3 w-3 ml-1" />
-                            שמור
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={cancelEdit}>
-                            <X className="h-3 w-3 ml-1" />
-                            ביטול
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          {product.image_url ? (
-                            <img src={product.image_url} alt="" className="w-10 h-10 rounded object-cover" />
-                          ) : (
-                            <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs">📦</div>
-                          )}
-                          <div className="min-w-0">
-                            <div className="font-medium truncate">{product.name_hebrew}</div>
-                            {product.name_english && (
-                              <div className="text-xs text-muted-foreground truncate">{product.name_english}</div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {product.image_url ? (
+                              <img src={product.image_url} alt="" className="w-10 h-10 rounded object-cover" />
+                            ) : (
+                              <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs">📦</div>
                             )}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <div className="font-medium truncate">{product.name_hebrew}</div>
+                                {product.out_of_stock && (
+                                  <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded flex items-center gap-1">
+                                    <PackageX className="h-3 w-3" />
+                                    אזל
+                                  </span>
+                                )}
+                              </div>
+                              {product.name_english && (
+                                <div className="text-xs text-muted-foreground truncate">{product.name_english}</div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm">
+                            {product.price_thb ? (
+                              <span className="font-medium text-orange-600">฿{product.price_thb.toLocaleString()}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                            {product.rating ? (
+                              <span>⭐ {product.rating}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <Switch
+                                checked={product.out_of_stock || false}
+                                onCheckedChange={() => toggleOutOfStock(product)}
+                              />
+                            </div>
+                            <a
+                              href={product.affiliate_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                            <Button size="sm" variant="ghost" onClick={() => startEdit(product)}>
+                              ערוך
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          {product.price_thb ? (
-                            <span className="font-medium text-orange-600">฿{product.price_thb.toLocaleString()}</span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                          {product.rating ? (
-                            <span>⭐ {product.rating}</span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                          <Button size="sm" variant="ghost" onClick={() => startEdit(product)}>
-                            ערוך
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
           ))}
         </div>
@@ -312,13 +441,16 @@ const FeedTab = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<"sales" | "commission" | "price">("sales");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const ITEMS_PER_PAGE = 20;
 
   const fetchFeedProducts = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("feed_products")
-      .select("*")
-      .order("sales_7d", { ascending: false });
+      .select("*");
 
     if (error) {
       console.error("Error fetching feed products:", error);
@@ -363,12 +495,48 @@ const FeedTab = () => {
     fetchFeedProducts();
   }, []);
 
+  // Filter products
   const filteredProducts = products.filter(p =>
     p.product_name.toLowerCase().includes(filter.toLowerCase()) ||
     (p.brand_name && p.brand_name.toLowerCase().includes(filter.toLowerCase()))
   );
 
+  // Sort products
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    let aVal: number, bVal: number;
+    
+    switch (sortBy) {
+      case "sales":
+        aVal = a.sales_7d || 0;
+        bVal = b.sales_7d || 0;
+        break;
+      case "commission":
+        aVal = a.commission_rate || 0;
+        bVal = b.commission_rate || 0;
+        break;
+      case "price":
+        aVal = a.price_thb || 0;
+        bVal = b.price_thb || 0;
+        break;
+      default:
+        aVal = 0;
+        bVal = 0;
+    }
+    
+    return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(sortedProducts.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedProducts = sortedProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
   const featuredCount = products.filter(p => p.is_featured).length;
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, sortBy, sortOrder]);
 
   return (
     <div className="space-y-4">
@@ -391,55 +559,131 @@ const FeedTab = () => {
         </div>
       </div>
 
+      {/* Filtering options */}
+      <Card className="p-3">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">מיון:</span>
+          </div>
+          <Select value={sortBy} onValueChange={(val) => setSortBy(val as "sales" | "commission" | "price")}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sales">מכירות</SelectItem>
+              <SelectItem value="commission">עמלה</SelectItem>
+              <SelectItem value="price">מחיר</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortOrder} onValueChange={(val) => setSortOrder(val as "asc" | "desc")}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="desc">גבוה לנמוך</SelectItem>
+              <SelectItem value="asc">נמוך לגבוה</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
+
       <div className="text-sm text-muted-foreground">
-        סה"כ {products.length} מוצרים בפיד | ⭐ {featuredCount} מועדפים
+        סה"כ {products.length} מוצרים בפיד | ⭐ {featuredCount} מועדפים | מציג {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, sortedProducts.length)} מתוך {sortedProducts.length}
       </div>
 
       {loading ? (
         <p className="text-muted-foreground">טוען...</p>
       ) : (
-        <div className="grid gap-3">
-          {filteredProducts.slice(0, 50).map((product) => (
-            <Card key={product.id} className={`p-3 ${product.is_featured ? 'border-orange-400 bg-orange-50/50' : ''}`}>
-              <div className="flex items-center gap-4">
-                {product.image_url ? (
-                  <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover" />
-                ) : (
-                  <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">📦</div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm line-clamp-2">{product.product_name}</div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                    {product.brand_name && <span>{product.brand_name}</span>}
-                    {product.sales_7d && product.sales_7d > 0 && (
-                      <span className="text-orange-600">🔥 {product.sales_7d} נמכרו</span>
+        <>
+          <div className="grid gap-3">
+            {paginatedProducts.map((product) => (
+              <Card key={product.id} className={`p-3 ${product.is_featured ? 'border-orange-400 bg-orange-50/50' : ''}`}>
+                <div className="flex items-center gap-4">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover" />
+                  ) : (
+                    <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">📦</div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm line-clamp-2">{product.product_name}</div>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                      {product.brand_name && <span>{product.brand_name}</span>}
+                      {product.sales_7d && product.sales_7d > 0 && (
+                        <span className="text-orange-600">🔥 {product.sales_7d} נמכרו</span>
+                      )}
+                      {product.commission_rate && (
+                        <span className="text-green-600">{(product.commission_rate * 100).toFixed(1)}% עמלה</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {product.price_thb && (
+                      <span className="font-bold text-orange-600">฿{product.price_thb.toLocaleString()}</span>
                     )}
-                    {product.commission_rate && (
-                      <span className="text-green-600">{(product.commission_rate * 100).toFixed(1)}% עמלה</span>
-                    )}
+                    <Button
+                      size="sm"
+                      variant={product.is_featured ? "default" : "outline"}
+                      onClick={() => toggleFeatured(product)}
+                    >
+                      {product.is_featured ? <Star className="h-4 w-4" /> : <StarOff className="h-4 w-4" />}
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  {product.price_thb && (
-                    <span className="font-bold text-orange-600">฿{product.price_thb.toLocaleString()}</span>
-                  )}
-                  <Button
-                    size="sm"
-                    variant={product.is_featured ? "default" : "outline"}
-                    onClick={() => toggleFeatured(product)}
-                  >
-                    {product.is_featured ? <Star className="h-4 w-4" /> : <StarOff className="h-4 w-4" />}
-                  </Button>
-                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
               </div>
-            </Card>
-          ))}
-          {filteredProducts.length > 50 && (
-            <p className="text-center text-muted-foreground text-sm">
-              מוצגים 50 מתוך {filteredProducts.length} מוצרים
-            </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground mr-2">
+                עמוד {currentPage} מתוך {totalPages}
+              </span>
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
@@ -492,6 +736,39 @@ const RequestsTab = () => {
     }
   };
 
+  const exportToExcel = () => {
+    // Create CSV content
+    const headers = ["תאריך", "מייל", "טלפון", "פלטפורמה", "מיקום", "סטטוס", "תוכן הפניה", "הערות מנהל"];
+    const rows = requests.map(r => [
+      new Date(r.created_at).toLocaleDateString('he-IL'),
+      r.email,
+      r.phone || "",
+      r.platform,
+      r.location,
+      r.status,
+      r.request_text.replace(/,/g, ";"),
+      r.admin_notes?.replace(/,/g, ";") || ""
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    // Add BOM for Hebrew support
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `פניות_${new Date().toLocaleDateString('he-IL')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("הקובץ הורד בהצלחה!");
+  };
+
   useEffect(() => {
     fetchRequests();
   }, []);
@@ -536,10 +813,16 @@ const RequestsTab = () => {
           onChange={(e) => setFilter(e.target.value)}
           className="max-w-xs"
         />
-        <Button onClick={fetchRequests} variant="outline" disabled={loading}>
-          <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
-          רענן
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={exportToExcel} variant="outline" disabled={requests.length === 0}>
+            <Download className="h-4 w-4 ml-2" />
+            ייצוא לאקסל
+          </Button>
+          <Button onClick={fetchRequests} variant="outline" disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
+            רענן
+          </Button>
+        </div>
       </div>
 
       <div className="text-sm text-muted-foreground">
