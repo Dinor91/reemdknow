@@ -157,6 +157,16 @@ serve(async (req) => {
     for (const product of validProducts) {
       const productId = String(product.productId)
       
+      // Calculate discount percentage
+      let discountPercentage = null
+      if (product.originalPrice && product.discountPrice) {
+        const original = parseFloat(product.originalPrice)
+        const sale = parseFloat(product.discountPrice)
+        if (original > sale) {
+          discountPercentage = Math.round(((original - sale) / original) * 100)
+        }
+      }
+
       const { error: upsertError } = await supabase
         .from('feed_products')
         .upsert({
@@ -164,6 +174,10 @@ serve(async (req) => {
           product_name: product.productName,
           image_url: product.pictures?.[0],
           price_thb: product.discountPrice,
+          original_price_thb: product.originalPrice || null,
+          discount_percentage: discountPercentage,
+          rating: product.ratingScore || null,
+          reviews_count: product.reviewCount || 0,
           currency: product.currency || '฿',
           sales_7d: product.sales7d || 0,
           commission_rate: product.totalCommissionRate,
