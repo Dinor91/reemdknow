@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { crypto as stdCrypto } from 'https://deno.land/std@0.168.0/crypto/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +12,13 @@ const ALIEXPRESS_APP_SECRET = Deno.env.get('ALIEXPRESS_APP_SECRET')
 const ALIEXPRESS_TRACKING_ID = Deno.env.get('ALIEXPRESS_TRACKING_ID')
 const ALIEXPRESS_API_URL = 'https://api-sg.aliexpress.com/sync'
 
+// Helper to convert Uint8Array to hex string
+function toHex(buffer: Uint8Array): string {
+  return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
+}
+
 // Generate HMAC-SHA256 signature for AliExpress API
+// For HMAC signature: apiPath + sorted_params (key1value1key2value2...)
 async function generateSignature(apiPath: string, params: Record<string, string>, appSecret: string): Promise<string> {
   // Sort parameters alphabetically
   const sortedParams = Object.keys(params)
@@ -26,10 +33,10 @@ async function generateSignature(apiPath: string, params: Record<string, string>
     .map(([key, value]) => `${key}${value}`)
     .join('')
 
-  // Add API path prefix for signature
+  // For HMAC-SHA256: apiPath + sortedParams
   const signStr = apiPath + sortedString
 
-  console.log('Sign string (first 100 chars):', signStr.substring(0, 100))
+  console.log('Sign string (first 150 chars):', signStr.substring(0, 150))
 
   // Create HMAC-SHA256 signature
   const encoder = new TextEncoder()
@@ -45,14 +52,14 @@ async function generateSignature(apiPath: string, params: Record<string, string>
   )
 
   const signature = await crypto.subtle.sign('HMAC', key, messageData)
-  const hashArray = Array.from(new Uint8Array(signature))
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
+  return toHex(new Uint8Array(signature))
 }
 
 // Call AliExpress Affiliate API
 async function callAliExpressAPI(method: string, additionalParams: Record<string, string> = {}) {
   const timestamp = Date.now().toString()
-  const apiPath = method.replace(/\./g, '/')
+  // API path format: /aliexpress/affiliate/hotproduct/query
+  const apiPath = '/' + method.replace(/\./g, '/')
 
   const params: Record<string, string> = {
     app_key: ALIEXPRESS_APP_KEY!,
