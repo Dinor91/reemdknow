@@ -1,7 +1,7 @@
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { About } from "@/components/About";
-import { ShoppingBag, Users, TrendingUp, MapPin } from "lucide-react";
+import { ShoppingBag, Users, TrendingUp, MapPin, Star, Flame, Send } from "lucide-react";
 import { Link } from "react-router-dom";
 import { trackEvent } from "@/lib/analytics";
 import { FacebookPixel, trackFBViewContent } from "@/components/FacebookPixel";
@@ -47,37 +47,44 @@ const Landing = () => {
                 אל תשלמו יותר מדי.
               </p>
 
-              {/* H2 - Sub-headline */}
-              <h2 className="text-[20px] md:text-[24px] font-semibold text-[#333333] mb-5">כאן תקבלו כל יום:</h2>
-
-              {/* Benefits List */}
-              <ul
-                dir="rtl"
-                className="text-[16px] md:text-[18px] lg:text-[20px] font-medium text-foreground space-y-4 mb-8 max-w-md mx-auto"
-              >
-                <li className="flex items-center gap-3">
-                  <span className="text-xl">✅</span>
-                  <span>דילים חמים שנבדקו אישית</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="text-xl">✅</span>
-                  <span>מחירים שלא תמצאו בשום מקום</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="text-xl">✅</span>
-                  <span>
-                    חיסכון ממוצע: <strong>150 ש״ח</strong> למוצר
-                  </span>
-                </li>
-              </ul>
-
               {/* CTA Question */}
               <h2 className="text-[24px] md:text-[32px] lg:text-[36px] font-bold text-foreground mb-4">
                 איפה אתם בעולם?
               </h2>
-              <p className="text-[20px] md:text-[24px] font-semibold text-[#333333] mb-8">
+              <p className="text-[20px] md:text-[24px] font-semibold text-[#333333] mb-6">
                 בחרו את היעד שלכם, הצטרפו לווטסאפ/ טלגרם וקבלו המלצות על בסיס יומי
               </p>
+
+              {/* Quick Navigation Icons */}
+              <div className="flex items-center justify-center gap-4 md:gap-8 mb-8 text-muted-foreground">
+                <Link to="/join" className="flex flex-col items-center gap-1 hover:text-foreground transition-colors group">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <Users className="w-5 h-5 md:w-6 md:h-6" />
+                  </div>
+                  <span className="text-xs md:text-sm font-medium">קהילה</span>
+                </Link>
+                <div className="h-6 w-px bg-border hidden md:block" />
+                <Link to="/israel" className="flex flex-col items-center gap-1 hover:text-foreground transition-colors group">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <Star className="w-5 h-5 md:w-6 md:h-6" />
+                  </div>
+                  <span className="text-xs md:text-sm font-medium">המלצות</span>
+                </Link>
+                <div className="h-6 w-px bg-border hidden md:block" />
+                <Link to="/thailand" className="flex flex-col items-center gap-1 hover:text-foreground transition-colors group">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <Flame className="w-5 h-5 md:w-6 md:h-6" />
+                  </div>
+                  <span className="text-xs md:text-sm font-medium">פופולריים</span>
+                </Link>
+                <div className="h-6 w-px bg-border hidden md:block" />
+                <Link to="/requests" className="flex flex-col items-center gap-1 hover:text-foreground transition-colors group">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <Send className="w-5 h-5 md:w-6 md:h-6" />
+                  </div>
+                  <span className="text-xs md:text-sm font-medium">בקשות</span>
+                </Link>
+              </div>
 
               {/* Country Selection Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-3xl mx-auto">
