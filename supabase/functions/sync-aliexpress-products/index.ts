@@ -69,13 +69,16 @@ async function callAliExpressAPI(method: string, additionalParams: Record<string
   const url = `${ALIEXPRESS_API_URL}?${queryString}`
 
   console.log(`Calling AliExpress API: ${method}`)
+  console.log(`Request URL: ${url.substring(0, 200)}...`)
 
   const response = await fetch(url, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' }
   })
 
-  return await response.json()
+  const data = await response.json()
+  console.log(`API Response: ${JSON.stringify(data).substring(0, 500)}`)
+  return data
 }
 
 // Get hot products from AliExpress
