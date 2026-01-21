@@ -6,10 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// AliExpress API configuration
-const ALIEXPRESS_APP_KEY = Deno.env.get('ALIEXPRESS_APP_KEY')
-const ALIEXPRESS_APP_SECRET = Deno.env.get('ALIEXPRESS_APP_SECRET')
-const ALIEXPRESS_TRACKING_ID = Deno.env.get('ALIEXPRESS_TRACKING_ID')
+// AliExpress API configuration - trim whitespace from env vars
+const ALIEXPRESS_APP_KEY = Deno.env.get('ALIEXPRESS_APP_KEY')?.trim()
+const ALIEXPRESS_APP_SECRET = Deno.env.get('ALIEXPRESS_APP_SECRET')?.trim()
+const ALIEXPRESS_TRACKING_ID = Deno.env.get('ALIEXPRESS_TRACKING_ID')?.trim()
 const ALIEXPRESS_API_URL = 'https://api-sg.aliexpress.com/sync'
 
 // Helper to convert Uint8Array to hex string
@@ -17,9 +17,9 @@ function toHex(buffer: Uint8Array): string {
   return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
 }
 
-// Generate HMAC-SHA256 signature for AliExpress API
-// For HMAC signature: apiPath + sorted_params (key1value1key2value2...)
-async function generateSignature(apiPath: string, params: Record<string, string>, appSecret: string): Promise<string> {
+// Generate MD5 signature for AliExpress API
+// Format: MD5(SECRET + key1value1key2value2... + SECRET)
+async function generateSignature(params: Record<string, string>, appSecret: string): Promise<string> {
   // Sort parameters alphabetically
   const sortedParams = Object.keys(params)
     .sort()
@@ -33,39 +33,27 @@ async function generateSignature(apiPath: string, params: Record<string, string>
     .map(([key, value]) => `${key}${value}`)
     .join('')
 
-  // For HMAC-SHA256: apiPath + sortedParams
-  const signStr = apiPath + sortedString
+  // MD5 format: SECRET + sortedParams + SECRET
+  const signStr = appSecret + sortedString + appSecret
 
-  console.log('Sign string (first 150 chars):', signStr.substring(0, 150))
+  console.log('Sign string (first 200 chars):', signStr.substring(0, 200))
 
-  // Create HMAC-SHA256 signature
+  // Create MD5 hash using Deno std crypto
   const encoder = new TextEncoder()
-  const keyData = encoder.encode(appSecret)
-  const messageData = encoder.encode(signStr)
-
-  const key = await crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-
-  const signature = await crypto.subtle.sign('HMAC', key, messageData)
-  return toHex(new Uint8Array(signature))
+  const data = encoder.encode(signStr)
+  const hashBuffer = await stdCrypto.subtle.digest('MD5', data)
+  return toHex(new Uint8Array(hashBuffer))
 }
 
 // Call AliExpress Affiliate API
 async function callAliExpressAPI(method: string, additionalParams: Record<string, string> = {}) {
   const timestamp = Date.now().toString()
-  // API path format: /aliexpress/affiliate/hotproduct/query
-  const apiPath = '/' + method.replace(/\./g, '/')
 
   const params: Record<string, string> = {
     app_key: ALIEXPRESS_APP_KEY!,
     method,
     timestamp,
-    sign_method: 'sha256',
+    sign_method: 'md5',
     v: '2.0',
     ...additionalParams
   }
@@ -75,7 +63,7 @@ async function callAliExpressAPI(method: string, additionalParams: Record<string
     params.tracking_id = ALIEXPRESS_TRACKING_ID
   }
 
-  const signature = await generateSignature(apiPath, params, ALIEXPRESS_APP_SECRET!)
+  const signature = await generateSignature(params, ALIEXPRESS_APP_SECRET!)
   params.sign = signature
 
   const queryString = Object.entries(params)
