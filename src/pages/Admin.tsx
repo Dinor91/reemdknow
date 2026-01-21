@@ -318,6 +318,11 @@ const ProductsTab = () => {
       toast.error("שגיאה בהוספת מוצר");
     } else {
       toast.success("המוצר נוסף בהצלחה!");
+      // Trigger automatic image scraping in background if no image was provided
+      if (!newProduct.image_url) {
+        toast.info("מחפש תמונה אוטומטית...");
+        supabase.functions.invoke("scrape-lazada-images").catch(console.error);
+      }
       setShowAddProduct(false);
       setNewProduct({
         name_hebrew: "",
@@ -452,6 +457,11 @@ const ProductsTab = () => {
       toast.error("שגיאה בהוספת מוצר");
     } else {
       toast.success("המוצר נוסף בהצלחה!");
+      // Trigger automatic image scraping in background if no image was provided
+      if (!newAliProduct.image_url) {
+        toast.info("מחפש תמונה אוטומטית...");
+        supabase.functions.invoke("scrape-product-images").catch(console.error);
+      }
       setShowAddProduct(false);
       setNewAliProduct({
         product_name_hebrew: "",
