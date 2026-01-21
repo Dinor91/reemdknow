@@ -14,6 +14,111 @@ export type Database = {
   }
   public: {
     Tables: {
+      aliexpress_feed_categories: {
+        Row: {
+          category_id: string
+          category_name_english: string | null
+          category_name_hebrew: string
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          parent_category_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          category_name_english?: string | null
+          category_name_hebrew: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          parent_category_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          category_name_english?: string | null
+          category_name_hebrew?: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          parent_category_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      aliexpress_feed_products: {
+        Row: {
+          aliexpress_product_id: string
+          category_id: string | null
+          category_name_hebrew: string | null
+          commission_rate: number | null
+          created_at: string
+          currency: string | null
+          discount_percentage: number | null
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          original_price_usd: number | null
+          out_of_stock: boolean | null
+          price_usd: number | null
+          product_name: string
+          product_name_hebrew: string | null
+          rating: number | null
+          reviews_count: number | null
+          sales_30d: number | null
+          tracking_link: string | null
+          updated_at: string
+        }
+        Insert: {
+          aliexpress_product_id: string
+          category_id?: string | null
+          category_name_hebrew?: string | null
+          commission_rate?: number | null
+          created_at?: string
+          currency?: string | null
+          discount_percentage?: number | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          original_price_usd?: number | null
+          out_of_stock?: boolean | null
+          price_usd?: number | null
+          product_name: string
+          product_name_hebrew?: string | null
+          rating?: number | null
+          reviews_count?: number | null
+          sales_30d?: number | null
+          tracking_link?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aliexpress_product_id?: string
+          category_id?: string | null
+          category_name_hebrew?: string | null
+          commission_rate?: number | null
+          created_at?: string
+          currency?: string | null
+          discount_percentage?: number | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          original_price_usd?: number | null
+          out_of_stock?: boolean | null
+          price_usd?: number | null
+          product_name?: string
+          product_name_hebrew?: string | null
+          rating?: number | null
+          reviews_count?: number | null
+          sales_30d?: number | null
+          tracking_link?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       button_clicks: {
         Row: {
           button_type: string
