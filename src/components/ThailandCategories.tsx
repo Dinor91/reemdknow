@@ -439,7 +439,7 @@ export const ThailandCategories = () => {
           )}
         </div>
       </div>
-      <CallToActionBanner open={dialogOpen} onOpenChange={setDialogOpen} />
+      <CallToActionBanner open={dialogOpen} onOpenChange={setDialogOpen} country="thailand" />
     </section>
   );
 };
