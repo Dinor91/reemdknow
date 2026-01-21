@@ -1521,13 +1521,27 @@ const FeedTab = () => {
               (paginatedProducts as LazadaFeedProduct[]).map((product) => (
                 <Card key={product.id} className={`p-3 ${product.is_featured ? 'border-orange-400 bg-orange-50/50' : ''}`}>
                   <div className="flex items-center gap-4">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover" />
-                    ) : (
-                      <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">📦</div>
-                    )}
+                    <a 
+                      href={product.tracking_link || `https://www.lazada.co.th/products/-i${product.lazada_product_id}.html`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                    >
+                      {product.image_url ? (
+                        <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover" />
+                      ) : (
+                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">📦</div>
+                      )}
+                    </a>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm line-clamp-2">{product.product_name}</div>
+                      <a 
+                        href={product.tracking_link || `https://www.lazada.co.th/products/-i${product.lazada_product_id}.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-sm line-clamp-2 hover:text-orange-600 transition-colors cursor-pointer"
+                      >
+                        {product.product_name}
+                      </a>
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                         {product.brand_name && <span>{product.brand_name}</span>}
                         {product.sales_7d && product.sales_7d > 0 && (
@@ -1542,6 +1556,15 @@ const FeedTab = () => {
                       {product.price_thb && (
                         <span className="font-bold text-orange-600">฿{product.price_thb.toLocaleString()}</span>
                       )}
+                      <a
+                        href={product.tracking_link || `https://www.lazada.co.th/products/-i${product.lazada_product_id}.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 hover:bg-muted rounded transition-colors"
+                        title="פתח מוצר"
+                      >
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                      </a>
                       <Button
                         size="sm"
                         variant={product.is_featured ? "default" : "outline"}
@@ -1558,15 +1581,27 @@ const FeedTab = () => {
               (paginatedProducts as AliExpressFeedProduct[]).map((product) => (
                 <Card key={product.id} className={`p-3 ${product.is_featured ? 'border-red-400 bg-red-50/50' : ''}`}>
                   <div className="flex items-center gap-4">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover" />
-                    ) : (
-                      <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">📦</div>
-                    )}
+                    <a 
+                      href={product.tracking_link || `https://www.aliexpress.com/item/${product.aliexpress_product_id}.html`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                    >
+                      {product.image_url ? (
+                        <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover" />
+                      ) : (
+                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">📦</div>
+                      )}
+                    </a>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm line-clamp-2">
+                      <a 
+                        href={product.tracking_link || `https://www.aliexpress.com/item/${product.aliexpress_product_id}.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-sm line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer"
+                      >
                         {product.product_name_hebrew || product.product_name}
-                      </div>
+                      </a>
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                         {product.sales_30d && product.sales_30d > 0 && (
                           <span className="text-red-600">🔥 {product.sales_30d} נמכרו</span>
@@ -1586,6 +1621,15 @@ const FeedTab = () => {
                       {product.price_usd && (
                         <span className="font-bold text-red-600">${product.price_usd.toFixed(2)}</span>
                       )}
+                      <a
+                        href={product.tracking_link || `https://www.aliexpress.com/item/${product.aliexpress_product_id}.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 hover:bg-muted rounded transition-colors"
+                        title="פתח מוצר"
+                      >
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                      </a>
                       <Button
                         size="sm"
                         variant={product.is_featured ? "default" : "outline"}
