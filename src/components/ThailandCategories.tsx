@@ -1,252 +1,93 @@
-import { Home, Baby, Sparkles, Hammer, Trees, Tent, Utensils, Sofa, ShieldCheck, WashingMachine, ExternalLink, Search, X, Package } from "lucide-react";
+import { Home, Baby, Sparkles, Hammer, Trees, Tent, Utensils, Sofa, ShieldCheck, WashingMachine, Search, X, ExternalLink, Package } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CallToActionBanner } from "./CallToActionBanner";
-import { useRef, useState, useMemo, useEffect } from "react";
+import { useRef, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ProductHoverCard } from "./ProductHoverCard";
-
-interface Product {
-  name: string;
-  link: string;
-}
+import { useQuery } from "@tanstack/react-query";
 
 interface Category {
   icon: any;
   emoji: string;
   title: string;
-  description: string;
-  products: Product[];
-  isDynamic?: boolean;
 }
 
-const categories: Category[] = [
-  {
-    icon: Home,
-    emoji: "🔌",
-    title: "מוצרי חשמל",
-    description: "מכשירי חשמל לבית",
-    products: [
-      { name: "מתקן מים", link: "https://c.lazada.co.th/t/c.X31ts4?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מיקרוגל MIDEA", link: "https://c.lazada.co.th/t/c.X31v21?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "קומקום", link: "https://c.lazada.co.th/t/c.X31E0R?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "טוסטר", link: "https://c.lazada.co.th/t/c.X3tjTX?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מצנם", link: "https://c.lazada.co.th/t/c.X3tjSI?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "הליכון קומפקטי", link: "https://c.lazada.co.th/t/c.X3tj51?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "שואב רובוטי שוטף", link: "https://c.lazada.co.th/t/c.X3tj9L?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מסנן אוויר XIAOMI", link: "https://c.lazada.co.th/t/c.X3tQ8d?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מטען נייד UGREEN", link: "https://c.lazada.co.th/t/c.XeQjoD?sub_id1=+November-+first+campaign+&sub_aff_id=Reem%28D%29Know" },
-      { name: "שייקר NINJA", link: "https://c.lazada.co.th/t/c.XeQjqK?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" }
-    ]
-  },
-  {
-    icon: Sofa,
-    emoji: "🪑",
-    title: "ריהוט ונוחות",
-    description: "רהיטים ואביזרים לבית",
-    products: [
-      { name: "שולחן+כיסא פינת אוכל", link: "https://c.lazada.co.th/t/c.X31FBY" },
-      { name: "כיסאות בר", link: "https://c.lazada.co.th/t/c.X31FtB" },
-      { name: "מעקה מיטת ילד", link: "https://c.lazada.co.th/t/c.X31tRa?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מעמד למחשב נייד", link: "https://c.lazada.co.th/t/c.X31vZX" },
-      { name: "שידות מיטה", link: "https://c.lazada.co.th/t/c.X31FtO" },
-      { name: "קונסולה (חדר משחקים/סלון)", link: "https://www.lazada.co.th/products/xuxu-12090cm-i5340164561-s22696809645.html" },
-      { name: "שולחן עבודה פשוט", link: "https://c.lazada.co.th/t/c.X31FGT" },
-      { name: "שולחן סלון", link: "https://c.lazada.co.th/t/c.X31FGJ" },
-      { name: "סל כביסה", link: "https://c.lazada.co.th/t/c.X31FGB" },
-      { name: "ספת רביצה", link: "https://c.lazada.co.th/t/c.X31Fuj" }
-    ]
-  },
-  {
-    icon: Utensils,
-    emoji: "🇮🇱",
-    title: "מוצרי מזון ישראליים",
-    description: "מזון ישראלי באיכות",
-    products: [
-      { name: "קפה טורקי", link: "https://c.lazada.co.th/t/c.X31twh?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "במבה", link: "https://c.lazada.co.th/t/c.X31tDK?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "ביסלי", link: "https://c.lazada.co.th/t/c.X31tzt?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "ויטמנצ'יק", link: "https://c.lazada.co.th/t/c.X31tAT?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "טחינה גולמית הר ברכה", link: "https://c.lazada.co.th/t/c.X31tAm?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "יין לקידוש תירוש", link: "https://c.lazada.co.th/t/c.X31G8o" },
-      { name: "פתיבר", link: "https://c.lazada.co.th/t/c.X31GRG" },
-      { name: "חלבה בטעם וניל", link: "https://c.lazada.co.th/t/c.X31G8X" },
-      { name: "כוסמת", link: "https://c.lazada.co.th/t/c.X31GRZ" },
-      { name: "שקדי מרק", link: "https://c.lazada.co.th/t/c.X31GQD" }
-    ]
-  },
-  {
-    icon: Baby,
-    emoji: "👶",
-    title: "לילדים",
-    description: "משחקים וציוד לילדים",
-    products: [
-      { name: "מגנטים STEAM", link: "https://c.lazada.co.th/t/c.X31tgc?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מכוניות הוט ווילס", link: "https://c.lazada.co.th/t/c.X31tjT?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "LEGO בתפזורת", link: "https://c.lazada.co.th/t/c.X31tjG?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "ג'אנגה (לבני עץ)", link: "https://c.lazada.co.th/t/c.X31tRC?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מגנטים Marble", link: "https://c.lazada.co.th/t/c.X4kEIE?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "משחק איות אנגלית", link: "https://c.lazada.co.th/t/c.X31va0" },
-      { name: "משטח פעילות לתינוק", link: "https://c.lazada.co.th/t/c.X3tQEF?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מגן מזרון תינוק", link: "https://c.lazada.co.th/t/c.X3tQvv?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מגן מזרון פעוט", link: "https://c.lazada.co.th/t/c.X3tQBF?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מצופים", link: "https://c.lazada.co.th/t/c.X3tQyO?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" }
-    ]
-  },
-  {
-    icon: ShieldCheck,
-    emoji: "🦟",
-    title: "הדברה",
-    description: "פתרונות הדברה ובטיחות",
-    products: [
-      { name: "דוחה יתושים חשמלי", link: "https://c.lazada.co.th/t/c.X31tIq?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "רשת מגנטית לדלת", link: "https://c.lazada.co.th/t/c.X31tFr?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "ג'ל אנטי נמלים", link: "https://c.lazada.co.th/t/c.X31Glt" },
-      { name: "תרסיס אנטי נמלים", link: "https://c.lazada.co.th/t/c.XeQ8f0?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "קוטל ג'וקים לניקוז", link: "https://c.lazada.co.th/t/c.XeQ85O?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "ספריי נגד מזיקים", link: "https://c.lazada.co.th/t/c.X31GmQ" }
-    ]
-  },
-  {
-    icon: WashingMachine,
-    emoji: "🧺",
-    title: "מוצרי ניקיון וכביסה",
-    description: "ניקיון וכביסה איכותיים",
-    products: [
-      { name: "מטליות חיטוי CIF", link: "https://c.lazada.co.th/t/c.X31Ga4?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מטליות ניקוי סנו", link: "https://c.lazada.co.th/t/c.X3tQpy?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מגבונים", link: "https://c.lazada.co.th/t/c.X3tQGW?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "אבקת כביסה", link: "https://c.lazada.co.th/t/c.XeQ8T4?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "ג'ל כביסה", link: "https://c.lazada.co.th/t/c.XeQ87e?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "טבליות כביסה TIDE", link: "https://c.lazada.co.th/t/c.XeQ8Rc?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "טבליות כביסה TIDE OXI", link: "https://c.lazada.co.th/t/c.XeQ8je?sub_id1=November-+first+campaign+&sub_aff_id=Reem%28D%29Know" },
-      { name: "טוש מסיר כתם TIDE OXI", link: "https://c.lazada.co.th/t/c.XeQ8RK?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מתלה כביסה קומפקטי", link: "https://c.lazada.co.th/t/c.XeQ8lb?sub_id1=+November-+first+campaign+&sub_aff_id=Reem%28D%29Know" },
-      { name: "מתלה כביסה גדול", link: "https://c.lazada.co.th/t/c.XeQ8mq?sub_id1=+November-+first+campaign+&sub_aff_id=Reem%28D%29Know" }
-    ]
-  },
-  {
-    icon: Hammer,
-    emoji: "🔧",
-    title: "DIY",
-    description: "כלים ופתרונות חכמים",
-    products: [
-      { name: "וו תלייה דביק", link: "https://c.lazada.co.th/t/c.X31Gcb?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מגוון אזיקונים", link: "https://c.lazada.co.th/t/c.X31t9M?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מברגה עדינה", link: "https://c.lazada.co.th/t/c.X31tl6?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "ברגים לקיר גבס", link: "https://c.lazada.co.th/t/c.X31tPz?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מברגה מולטי טול", link: "https://c.lazada.co.th/t/c.XeQ8Jx?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "פטיש", link: "https://c.lazada.co.th/t/c.XeQ8H9?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מפצל שקעים קומפקטי", link: "https://c.lazada.co.th/t/c.XeQ8FZ?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מפצל שקעים גדול", link: "https://c.lazada.co.th/t/c.XeQ8xY?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מתאם שקע", link: "https://c.lazada.co.th/t/c.XeQ8w9?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מסמר פלדה", link: "https://c.lazada.co.th/t/c.XeQ8DX?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" }
-    ]
-  },
-  {
-    icon: Trees,
-    emoji: "🌳",
-    title: "חצר וגינה",
-    description: "פתרונות לחוץ",
-    products: [
-      { name: "רשת צל", link: "https://c.lazada.co.th/t/c.X31t4z?sub_aff_id=Reem%28D%29Know" },
-      { name: "גדר לבריכה", link: "https://s.lazada.co.th/s.ZZimFo?cc" },
-      { name: "ממטרה+צינור", link: "https://c.lazada.co.th/t/c.X31t90?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "שולחן מתקפל", link: "https://c.lazada.co.th/t/c.X31t9B?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מזרקה לילדים", link: "https://c.lazada.co.th/t/c.XeQ8ya?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "בריכה מתנפחת", link: "https://c.lazada.co.th/t/c.XeQ8yr?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "בריכת פעוטות מתנפחת", link: "https://c.lazada.co.th/t/c.XeQjdd?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "טרמפולינה", link: "https://c.lazada.co.th/t/c.XeQ8Bl?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מיטת שיזוף", link: "https://c.lazada.co.th/t/c.XeQjbG?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "שער כדורגל", link: "https://c.lazada.co.th/t/c.XeQ8zL?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" }
-    ]
-  },
-  {
-    icon: Tent,
-    emoji: "⛺",
-    title: "טיולים",
-    description: "ציוד חכם למשפחות מטיילות",
-    products: [
-      { name: "מעמד לטלפון", link: "https://c.lazada.co.th/t/c.X31tkk?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "בקבוק Owala", link: "https://c.lazada.co.th/t/c.X31FBL" },
-      { name: "קרם הגנה", link: "https://c.lazada.co.th/t/c.X31Ft7" },
-      { name: "טרמפיסט לעגלת תינוק", link: "https://c.lazada.co.th/t/c.X31FJM" },
-      { name: "צידנית", link: "https://c.lazada.co.th/t/c.XeQj3t?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מחצלת", link: "https://c.lazada.co.th/t/c.XeQjPB?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "כיסא מתקפל", link: "https://c.lazada.co.th/t/c.XeQjOB?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "סט משחקי חול", link: "https://c.lazada.co.th/t/c.XeQjar?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "מטריה", link: "https://c.lazada.co.th/t/c.XeQjNb?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" },
-      { name: "שכמיה", link: "https://c.lazada.co.th/t/c.XeQjnc?sub_id1=November-+first+campaign&sub_aff_id=Reem%28D%29Know" }
-    ]
-  }
-];
-
-interface ProductData {
-  affiliate_link: string;
+// Unified product for display
+interface DisplayProduct {
+  id: string;
+  name: string;
+  image_url: string | null;
   price_thb: number | null;
   rating: number | null;
   sales_count: number | null;
-  out_of_stock: boolean | null;
+  tracking_link: string;
+  category: string;
+  out_of_stock: boolean;
 }
 
+const categories: Category[] = [
+  { icon: Home, emoji: "🔌", title: "מוצרי חשמל" },
+  { icon: Sofa, emoji: "🪑", title: "ריהוט ונוחות" },
+  { icon: Utensils, emoji: "🇮🇱", title: "מוצרי מזון ישראליים" },
+  { icon: Baby, emoji: "👶", title: "לילדים" },
+  { icon: ShieldCheck, emoji: "🦟", title: "הדברה" },
+  { icon: WashingMachine, emoji: "🧺", title: "מוצרי ניקיון וכביסה" },
+  { icon: Hammer, emoji: "🔧", title: "DIY" },
+  { icon: Trees, emoji: "🌳", title: "חצר וגינה" },
+  { icon: Tent, emoji: "⛺", title: "טיולים" },
+  { icon: Package, emoji: "📦", title: "כללי" }
+];
+
 export const ThailandCategories = () => {
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [productsWithData, setProductsWithData] = useState<Record<string, ProductData>>({});
-  const [dynamicCategories, setDynamicCategories] = useState<Category[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const hasShownRef = useRef(false);
 
-  // Fetch products that have updated data (price, rating, sales_count, or out_of_stock)
-  useEffect(() => {
-    const fetchProductsWithData = async () => {
+  // Fetch products from category_products table
+  const { data: dbProducts = [], isLoading: loading } = useQuery({
+    queryKey: ['thailand-category-products'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('category_products')
-        .select('affiliate_link, price_thb, rating, sales_count, out_of_stock')
-        .or('price_thb.not.is.null,rating.not.is.null,sales_count.not.is.null,out_of_stock.eq.true');
-      
-      if (!error && data) {
-        const productMap: Record<string, ProductData> = {};
-        data.forEach(p => {
-          // Only include if at least one value exists or out_of_stock is true
-          if (p.price_thb || p.rating || p.sales_count || p.out_of_stock) {
-            productMap[p.affiliate_link] = p;
-          }
-        });
-        setProductsWithData(productMap);
-      }
-    };
-    fetchProductsWithData();
-  }, []);
-
-  // Fetch dynamic categories from database (like "כללי")
-  useEffect(() => {
-    const fetchDynamicCategories = async () => {
-      const { data, error } = await supabase
-        .from('category_products')
-        .select('name_hebrew, affiliate_link, category, out_of_stock')
-        .eq('category', 'כללי')
+        .select('*')
         .eq('is_active', true)
-        .order('name_hebrew');
+        .order('sales_count', { ascending: false, nullsFirst: false });
       
-      if (!error && data && data.length > 0) {
-        const generalCategory: Category = {
-          icon: Package,
-          emoji: "📦",
-          title: "כללי",
-          description: "מוצרים מומלצים נוספים",
-          products: data.map(p => ({
-            name: p.name_hebrew || 'מוצר',
-            link: p.affiliate_link
-          })),
-          isDynamic: true
-        };
-        setDynamicCategories([generalCategory]);
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // Transform DB products to unified format
+  const products: DisplayProduct[] = useMemo(() => {
+    return dbProducts.map(p => ({
+      id: p.id,
+      name: p.name_hebrew,
+      image_url: p.image_url,
+      price_thb: p.price_thb,
+      rating: p.rating,
+      sales_count: p.sales_count,
+      tracking_link: p.affiliate_link,
+      category: p.category,
+      out_of_stock: p.out_of_stock || false,
+    }));
+  }, [dbProducts]);
+
+  // Group products by category
+  const productsByCategory = useMemo(() => {
+    const grouped: Record<string, DisplayProduct[]> = {};
+    products.forEach(p => {
+      const cat = p.category || "כללי";
+      if (!grouped[cat]) {
+        grouped[cat] = [];
       }
-    };
-    fetchDynamicCategories();
-  }, []);
+      grouped[cat].push(p);
+    });
+    return grouped;
+  }, [products]);
 
   const handleProductClick = () => {
     if (!hasShownRef.current) {
@@ -257,50 +98,48 @@ export const ThailandCategories = () => {
     }
   };
 
-  // Combine static and dynamic categories
-  const allCategories = useMemo(() => {
-    return [...categories, ...dynamicCategories];
-  }, [dynamicCategories]);
-
-  // Filter categories and products based on search term
+  // Filter categories based on search term
   const filteredCategories = useMemo(() => {
-    if (!searchTerm.trim()) return allCategories;
+    if (!searchTerm.trim()) return categories;
     
     const term = searchTerm.trim().toLowerCase();
-    return allCategories
-      .map(category => {
-        // Check if category title matches
-        const categoryMatches = category.title.toLowerCase().includes(term);
-        // Filter products that match
-        const matchingProducts = category.products.filter(product => 
-          product.name.toLowerCase().includes(term)
-        );
-        
-        // Return category with filtered products if there are matches
-        if (categoryMatches) {
-          return category; // Show all products if category title matches
-        } else if (matchingProducts.length > 0) {
-          return { ...category, products: matchingProducts };
-        }
-        return null;
-      })
-      .filter((cat): cat is Category => cat !== null);
-  }, [searchTerm, allCategories]);
+    return categories.filter(category => {
+      // Check if category title matches
+      if (category.title.toLowerCase().includes(term)) return true;
+      // Check if any product in this category matches
+      const categoryProducts = productsByCategory[category.title] || [];
+      return categoryProducts.some(p => 
+        p.name.toLowerCase().includes(term)
+      );
+    });
+  }, [searchTerm, productsByCategory]);
 
-  const totalProductsFound = useMemo(() => {
-    return filteredCategories.reduce((sum, cat) => sum + cat.products.length, 0);
-  }, [filteredCategories]);
+  // Get products for a specific category, filtered by search
+  const getFilteredProducts = (categoryTitle: string) => {
+    const categoryProducts = productsByCategory[categoryTitle] || [];
+    if (!searchTerm.trim()) return categoryProducts;
+    
+    const term = searchTerm.trim().toLowerCase();
+    // If category matches, show all products
+    if (categoryTitle.toLowerCase().includes(term)) return categoryProducts;
+    // Otherwise filter products
+    return categoryProducts.filter(p => 
+      p.name.toLowerCase().includes(term)
+    );
+  };
+
+  const convertThbToILS = (thb: number) => Math.round(thb * 0.10);
 
   return (
     <section className="bg-background py-8 md:py-12">
       <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-4xl">
           {/* Section Title */}
           <div className="text-center mb-6">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
               ההמלצות של <span dir="ltr">(D)Know</span>
             </h2>
-            <p className="text-lg md:text-xl text-muted-foreground">
+            <p className="text-lg text-muted-foreground">
               לחצו על קטגוריה לראות את כל המוצרים
             </p>
           </div>
@@ -311,7 +150,7 @@ export const ThailandCategories = () => {
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="חיפוש מוצר..."
+                placeholder="חיפוש קטגוריה או מוצר..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pr-10 pl-10 py-6 text-base rounded-xl border-2 border-border focus:border-orange-400"
@@ -329,15 +168,20 @@ export const ThailandCategories = () => {
             </div>
             {searchTerm && (
               <p className="text-sm text-muted-foreground text-center mt-2">
-                נמצאו {totalProductsFound} מוצרים ב-{filteredCategories.length} קטגוריות
+                נמצאו {filteredCategories.length} קטגוריות
               </p>
             )}
           </div>
-          {/* Categories Grid - filtered results */}
-          {filteredCategories.length === 0 ? (
+
+          {/* Loading State */}
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-lg text-muted-foreground">טוען מוצרים...</p>
+            </div>
+          ) : filteredCategories.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-lg text-muted-foreground">
-                לא נמצאו מוצרים עבור "{searchTerm}"
+                לא נמצאו קטגוריות עבור "{searchTerm}"
               </p>
               <Button 
                 variant="outline" 
@@ -348,97 +192,114 @@ export const ThailandCategories = () => {
               </Button>
             </div>
           ) : (
-            <>
-              <div className="grid md:grid-cols-2 gap-4 mb-4">
-                {filteredCategories.map((category, index) => {
-                  const categoryId = `item-${index}`;
-                  return (
-                    <Accordion
-                      key={`${category.title}-${index}`}
-                      type="single"
-                      collapsible
-                      value={openCategory === categoryId ? categoryId : ""}
-                      onValueChange={(value) => setOpenCategory(value || null)}
+            <div className="space-y-4">
+              {filteredCategories.map((category, index) => {
+                const categoryId = `thailand-item-${index}`;
+                const categoryProducts = getFilteredProducts(category.title);
+                const hasProducts = categoryProducts.length > 0;
+                
+                return (
+                  <Accordion
+                    key={index}
+                    type="single"
+                    collapsible
+                    value={openCategory === categoryId ? categoryId : ""}
+                    onValueChange={(value) => setOpenCategory(value || null)}
+                  >
+                    <AccordionItem
+                      value={categoryId}
+                      className="rounded-xl bg-card shadow-sm border-2 border-border overflow-hidden transition-all hover:border-orange-500 hover:bg-orange-50/50"
                     >
-                      <AccordionItem
-                        value={categoryId}
-                        className="rounded-xl bg-card shadow-sm border-2 border-border overflow-hidden transition-all hover:border-orange-400 hover:bg-orange-50/50"
-                      >
-                        <AccordionTrigger className="px-5 py-4 hover:no-underline transition-colors">
-                          <div className="flex items-center gap-3 flex-row-reverse w-full">
-                            <span className="text-2xl">{category.emoji}</span>
-                            <div className="text-right flex-1">
-                              <h3 className="text-lg font-semibold text-card-foreground">
-                                {category.title}
-                                {searchTerm && (
-                                  <span className="text-sm font-normal text-muted-foreground mr-2">
-                                    ({category.products.length})
-                                  </span>
-                                )}
-                              </h3>
-                            </div>
+                      <AccordionTrigger className="px-5 py-4 hover:no-underline transition-colors">
+                        <div className="flex items-center gap-3 flex-row-reverse w-full">
+                          <span className="text-2xl">{category.emoji}</span>
+                          <div className="text-right flex-1">
+                            <h3 className="text-lg font-semibold text-card-foreground">
+                              {category.title}
+                            </h3>
+                            {hasProducts ? (
+                              <span className="text-sm text-muted-foreground">({categoryProducts.length} מוצרים)</span>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">(בקרוב)</span>
+                            )}
                           </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="px-5 pb-4">
-                          <div className="grid gap-3 sm:grid-cols-2 mt-2">
-                            {category.products.map((product, productIndex) => {
-                              const productData = productsWithData[product.link];
-                              const isOutOfStock = productData?.out_of_stock === true;
-                              const hasData = productData && (productData.price_thb || productData.rating || productData.sales_count);
-                              
-                              const productButton = (
-                                <Button
-                                  key={productIndex}
-                                  variant="outline"
-                                  className={`justify-between h-auto py-3 px-4 w-full ${isOutOfStock ? 'opacity-60 border-red-300 bg-red-50/50' : ''}`}
-                                  asChild
-                                >
-                                  <a
-                                    href={product.link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={() => handleProductClick()}
-                                    className="flex items-center gap-2 flex-row-reverse"
-                                  >
-                                    <span className="text-right flex-1 flex items-center gap-2 flex-row-reverse">
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-5 pb-6 bg-muted/30">
+                        {hasProducts ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {categoryProducts.map((product) => (
+                              <a
+                                key={product.id}
+                                href={product.tracking_link || "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={handleProductClick}
+                                className={`block p-3 rounded-lg border bg-white hover:shadow-md transition-all ${
+                                  product.out_of_stock ? 'opacity-60 border-red-200' : 'border-border hover:border-orange-300'
+                                }`}
+                              >
+                                <div className="flex gap-3">
+                                  {product.image_url ? (
+                                    <img 
+                                      src={product.image_url} 
+                                      alt={product.name}
+                                      className="w-16 h-16 rounded object-cover flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-16 h-16 rounded bg-muted flex items-center justify-center text-2xl flex-shrink-0">
+                                      📦
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-sm line-clamp-2 mb-1">
                                       {product.name}
-                                      {isOutOfStock && (
-                                        <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full whitespace-nowrap">
-                                          אזל
-                                        </span>
+                                    </div>
+                                    {product.out_of_stock && (
+                                      <span className="inline-block text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded mb-1">
+                                        אזל במלאי
+                                      </span>
+                                    )}
+                                    <div className="flex items-center gap-2 text-sm">
+                                      {product.price_thb && (
+                                        <>
+                                          <span className="font-bold text-orange-600">฿{product.price_thb.toFixed(0)}</span>
+                                          <span className="text-muted-foreground text-xs">
+                                            (~₪{convertThbToILS(product.price_thb)})
+                                          </span>
+                                        </>
                                       )}
-                                    </span>
-                                    <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                                  </a>
-                                </Button>
-                              );
-
-                              // Show hover card only if product has updated data
-                              if (hasData) {
-                                return (
-                                  <ProductHoverCard
-                                    key={productIndex}
-                                    productUrl={product.link}
-                                    productNameHebrew={product.name}
-                                  >
-                                    {productButton}
-                                  </ProductHoverCard>
-                                );
-                              }
-
-                              return productButton;
-                            })}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                      {product.rating && <span>⭐ {product.rating.toFixed(1)}</span>}
+                                      {product.sales_count && product.sales_count > 0 && (
+                                        <span>🔥 {product.sales_count.toLocaleString()} נמכרו</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                </div>
+                              </a>
+                            ))}
                           </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  );
-                })}
-              </div>
-            </>
+                        ) : (
+                          <div className="text-center py-8">
+                            <p className="text-muted-foreground text-lg">
+                              מוצרים יתווספו בקרוב...
+                            </p>
+                          </div>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
+
+      {/* CTA Banner Dialog */}
       <CallToActionBanner open={dialogOpen} onOpenChange={setDialogOpen} country="thailand" />
     </section>
   );
