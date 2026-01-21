@@ -108,19 +108,23 @@ const convertToILS = (thbPrice: number) => {
   return `₪${Math.round(thbPrice * rate).toLocaleString()}`;
 };
 
-const ProductCard = ({ product, onProductClick }: { product: FeedProduct; onProductClick: (product: FeedProduct) => void }) => (
-  <div className="bg-card border-2 border-border rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-orange-400 transition-all duration-300 flex flex-col h-full">
-    <div className="aspect-square mb-4 overflow-hidden rounded-lg bg-muted">
-      <img 
-        src={product.image_url || '/placeholder.svg'} 
-        alt={product.product_name}
-        className="w-full h-full object-cover"
-        loading="lazy"
-      />
-    </div>
-    <h3 className="text-sm font-semibold text-foreground text-right mb-2 leading-tight line-clamp-2 min-h-[2.5rem]">
-      {product.product_name}
-    </h3>
+const ProductCard = ({ product, onProductClick }: { product: FeedProduct; onProductClick: (product: FeedProduct) => void }) => {
+  // Use Hebrew translation if available, otherwise use original product name
+  const displayName = product.category_name_hebrew || product.product_name;
+  
+  return (
+    <div className="bg-card border-2 border-border rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-orange-400 transition-all duration-300 flex flex-col h-full">
+      <div className="aspect-square mb-4 overflow-hidden rounded-lg bg-muted">
+        <img 
+          src={product.image_url || '/placeholder.svg'} 
+          alt={displayName}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+      <h3 className="text-sm font-semibold text-foreground text-right mb-2 leading-tight line-clamp-2 min-h-[2.5rem]">
+        {displayName}
+      </h3>
     <div className="flex flex-col gap-1.5 mb-4 text-sm mt-auto">
       {product.price_thb && (
         <>
@@ -150,7 +154,7 @@ const ProductCard = ({ product, onProductClick }: { product: FeedProduct; onProd
       לדיל בלאזדה
     </a>
   </div>
-);
+);};
 
 const ProductCardSkeleton = () => (
   <div className="bg-card border-2 border-border rounded-2xl p-4 flex flex-col h-full">
