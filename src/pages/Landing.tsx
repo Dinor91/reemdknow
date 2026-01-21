@@ -43,48 +43,50 @@ const Landing = () => {
               <h1 className="text-[28px] md:text-[36px] lg:text-[40px] font-bold text-foreground leading-[1.3] mb-2">
                 קונים באליאקספרס או לאזדה?
               </h1>
-              <p className="text-[24px] md:text-[28px] lg:text-[32px] font-bold text-foreground mb-8">
+              <p className="text-[24px] md:text-[28px] lg:text-[32px] font-bold text-foreground mb-10">
                 אל תשלמו יותר מדי.
               </p>
+
+              {/* What's on the site */}
+              <div className="mb-10">
+                <h2 className="text-[18px] md:text-[20px] font-semibold text-muted-foreground mb-5">
+                  מה תמצאו באתר?
+                </h2>
+                <div className="flex items-start justify-center gap-6 md:gap-10 text-foreground">
+                  <Link to="/join" className="flex flex-col items-center gap-2 hover:text-primary transition-colors group max-w-[70px] md:max-w-[90px]">
+                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                      <Users className="w-6 h-6 md:w-7 md:h-7 text-primary" />
+                    </div>
+                    <span className="text-xs md:text-sm font-medium text-center leading-tight">הקהילה שלי</span>
+                  </Link>
+                  <Link to="/israel" className="flex flex-col items-center gap-2 hover:text-primary transition-colors group max-w-[70px] md:max-w-[90px]">
+                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                      <Star className="w-6 h-6 md:w-7 md:h-7 text-primary" />
+                    </div>
+                    <span className="text-xs md:text-sm font-medium text-center leading-tight">המלצות העורך</span>
+                  </Link>
+                  <Link to="/thailand" className="flex flex-col items-center gap-2 hover:text-primary transition-colors group max-w-[70px] md:max-w-[90px]">
+                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                      <Flame className="w-6 h-6 md:w-7 md:h-7 text-primary" />
+                    </div>
+                    <span className="text-xs md:text-sm font-medium text-center leading-tight">הכי נמכרים</span>
+                  </Link>
+                  <Link to="/requests" className="flex flex-col items-center gap-2 hover:text-primary transition-colors group max-w-[70px] md:max-w-[90px]">
+                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                      <Send className="w-6 h-6 md:w-7 md:h-7 text-primary" />
+                    </div>
+                    <span className="text-xs md:text-sm font-medium text-center leading-tight">מצאו לי מוצר</span>
+                  </Link>
+                </div>
+              </div>
 
               {/* CTA Question */}
               <h2 className="text-[24px] md:text-[32px] lg:text-[36px] font-bold text-foreground mb-4">
                 איפה אתם בעולם?
               </h2>
-              <p className="text-[20px] md:text-[24px] font-semibold text-[#333333] mb-6">
+              <p className="text-[20px] md:text-[24px] font-semibold text-[#333333] mb-8">
                 בחרו את היעד שלכם, הצטרפו לווטסאפ/ טלגרם וקבלו המלצות על בסיס יומי
               </p>
-
-              {/* Quick Navigation Icons */}
-              <div className="flex items-center justify-center gap-4 md:gap-8 mb-8 text-muted-foreground">
-                <Link to="/join" className="flex flex-col items-center gap-1 hover:text-foreground transition-colors group">
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                    <Users className="w-5 h-5 md:w-6 md:h-6" />
-                  </div>
-                  <span className="text-xs md:text-sm font-medium">קהילה</span>
-                </Link>
-                <div className="h-6 w-px bg-border hidden md:block" />
-                <Link to="/israel" className="flex flex-col items-center gap-1 hover:text-foreground transition-colors group">
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                    <Star className="w-5 h-5 md:w-6 md:h-6" />
-                  </div>
-                  <span className="text-xs md:text-sm font-medium">המלצות</span>
-                </Link>
-                <div className="h-6 w-px bg-border hidden md:block" />
-                <Link to="/thailand" className="flex flex-col items-center gap-1 hover:text-foreground transition-colors group">
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                    <Flame className="w-5 h-5 md:w-6 md:h-6" />
-                  </div>
-                  <span className="text-xs md:text-sm font-medium">פופולריים</span>
-                </Link>
-                <div className="h-6 w-px bg-border hidden md:block" />
-                <Link to="/requests" className="flex flex-col items-center gap-1 hover:text-foreground transition-colors group">
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                    <Send className="w-5 h-5 md:w-6 md:h-6" />
-                  </div>
-                  <span className="text-xs md:text-sm font-medium">בקשות</span>
-                </Link>
-              </div>
 
               {/* Country Selection Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-3xl mx-auto">
