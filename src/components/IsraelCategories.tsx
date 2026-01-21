@@ -376,7 +376,7 @@ export const IsraelCategories = () => {
       </div>
 
       {/* CTA Banner Dialog */}
-      <CallToActionBanner open={dialogOpen} onOpenChange={setDialogOpen} />
+      <CallToActionBanner open={dialogOpen} onOpenChange={setDialogOpen} country="israel" />
     </section>
   );
 };

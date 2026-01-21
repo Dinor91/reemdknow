@@ -6,9 +6,23 @@ import { trackWhatsAppClick, trackTelegramClick } from "@/lib/analytics";
 interface CallToActionBannerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  country?: 'israel' | 'thailand';
 }
 
-export const CallToActionBanner = ({ open, onOpenChange }: CallToActionBannerProps) => {
+const COUNTRY_LINKS = {
+  israel: {
+    whatsapp: "https://chat.whatsapp.com/Dfcih86pI6D35dehovi5KN",
+    telegram: "https://t.me/+Wi46HCt_SbU3YWI0"
+  },
+  thailand: {
+    whatsapp: "https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j",
+    telegram: "https://t.me/+wJIFEYTlOuUzZjBk"
+  }
+};
+
+export const CallToActionBanner = ({ open, onOpenChange, country = 'thailand' }: CallToActionBannerProps) => {
+  const links = COUNTRY_LINKS[country];
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -29,14 +43,14 @@ export const CallToActionBanner = ({ open, onOpenChange }: CallToActionBannerPro
           
           <div className="flex flex-col gap-3">
             <Button asChild size="lg" className="bg-whatsapp hover:bg-whatsapp/90 hover:scale-105 transition-all text-white w-full shadow-lg">
-              <a href="https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2" onClick={() => trackWhatsAppClick("cta_banner")}>
+              <a href={links.whatsapp} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2" onClick={() => trackWhatsAppClick("cta_banner")}>
                 <MessageCircle className="h-5 w-5" />
                 <span className="font-semibold">הצטרפו בווטסאפ</span>
               </a>
             </Button>
             
             <Button asChild size="lg" className="bg-telegram hover:bg-telegram/90 hover:scale-105 transition-all text-white w-full shadow-lg">
-              <a href="https://t.me/+wJIFEYTlOuUzZjBk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2" onClick={() => trackTelegramClick("cta_banner")}>
+              <a href={links.telegram} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2" onClick={() => trackTelegramClick("cta_banner")}>
                 <Send className="h-5 w-5" />
                 <span className="font-semibold">הצטרפו בטלגרם</span>
               </a>
