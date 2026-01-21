@@ -268,27 +268,27 @@ export const IsraelCategories = () => {
                                         אזל במלאי
                                       </span>
                                     )}
-                                    <div className="flex items-center gap-2 text-sm">
-                                      {product.price_usd && (
-                                        <>
-                                          <span className="font-bold text-blue-600">${product.price_usd.toFixed(2)}</span>
-                                          <span className="text-muted-foreground text-xs">
-                                            (~₪{convertToILS(product.price_usd)})
-                                          </span>
-                                        </>
-                                      )}
-                                      {product.discount_percentage && product.discount_percentage > 0 && (
-                                        <span className="text-xs text-green-600 font-medium">
-                                          -{product.discount_percentage}%
+                                    {(product.price_usd && product.price_usd > 0) && (
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-bold text-blue-600">${product.price_usd.toFixed(2)}</span>
+                                        <span className="text-muted-foreground text-xs">
+                                          (~₪{convertToILS(product.price_usd)})
                                         </span>
-                                      )}
-                                    </div>
-                                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                                    {product.rating && <span>⭐ {product.rating.toFixed(1)}</span>}
-                                                    {product.sales_count && product.sales_count > 0 && (
-                                                      <span>🔥 {product.sales_count.toLocaleString()} נמכרו</span>
-                                                    )}
-                                                  </div>
+                                        {product.discount_percentage && product.discount_percentage > 0 && (
+                                          <span className="text-xs text-green-600 font-medium">
+                                            -{product.discount_percentage}%
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {((product.rating && product.rating > 0) || (product.sales_count && product.sales_count > 0)) && (
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                        {product.rating && product.rating > 0 && <span>⭐ {product.rating.toFixed(1)}</span>}
+                                        {product.sales_count && product.sales_count > 0 && (
+                                          <span>🔥 {product.sales_count.toLocaleString()} נמכרו</span>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                   <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                 </div>
