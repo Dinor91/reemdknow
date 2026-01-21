@@ -1,4 +1,4 @@
-import { Laptop, Headphones, Home, Shirt, Dumbbell, Search, X, ExternalLink, Package } from "lucide-react";
+import { Car, Smartphone, Baby, Home, HomeIcon, Shirt, Plane, Heart, Wrench, Search, X, ExternalLink, Package } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,36 +30,16 @@ interface DisplayProduct {
 }
 
 const categories: Category[] = [
-  {
-    icon: Laptop,
-    emoji: "💻",
-    title: "טכנולוגיה",
-  },
-  {
-    icon: Headphones,
-    emoji: "🎧",
-    title: "אלקטרוניקה",
-  },
-  {
-    icon: Home,
-    emoji: "🏠",
-    title: "לבית",
-  },
-  {
-    icon: Shirt,
-    emoji: "👕",
-    title: "אופנה ואקססוריז",
-  },
-  {
-    icon: Dumbbell,
-    emoji: "🏃‍♂️",
-    title: "ספורט וטיולים",
-  },
-  {
-    icon: Package,
-    emoji: "📦",
-    title: "כללי",
-  }
+  { icon: Smartphone, emoji: "📱", title: "גאדג׳טים" },
+  { icon: Car, emoji: "🚗", title: "רכב" },
+  { icon: Baby, emoji: "👶", title: "ילדים" },
+  { icon: Home, emoji: "🏠", title: "בית" },
+  { icon: HomeIcon, emoji: "🏠", title: "בית חכם" },
+  { icon: Shirt, emoji: "👕", title: "אופנה" },
+  { icon: Plane, emoji: "✈️", title: "נסיעות" },
+  { icon: Heart, emoji: "❤️", title: "בריאות" },
+  { icon: Wrench, emoji: "🔧", title: "כלי עבודה" },
+  { icon: Package, emoji: "📦", title: "כללי" }
 ];
 
 export const IsraelCategories = () => {
