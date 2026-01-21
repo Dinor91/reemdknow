@@ -173,28 +173,33 @@ serve(async (req) => {
 
     const allProducts: any[] = []
 
-    // Fetch products using hot products or search
-    for (let page = 1; page <= 3; page++) {
-      let result
+    // Default search keywords if none provided (popular product categories)
+    const searchKeywords = keywords || 'electronics,phone accessories,bluetooth earphones,smart watch,USB charger'
+    const keywordList = searchKeywords.split(',').map((k: string) => k.trim())
 
-      if (keywords) {
-        result = await searchProducts(keywords, page, 50, categoryIds)
-        const products = result?.aliexpress_affiliate_product_query_response?.resp_result?.result?.products?.product || []
-        if (products.length === 0) break
-        allProducts.push(...products)
-      } else {
-        result = await getHotProducts(page, 50, categoryIds)
-        const products = result?.aliexpress_affiliate_hotproduct_query_response?.resp_result?.result?.products?.product || []
-        if (products.length === 0) break
-        allProducts.push(...products)
-      }
-
-      console.log(`Fetched page ${page}, total: ${allProducts.length}`)
-      
+    // Fetch products using search API (available to all affiliates)
+    for (const keyword of keywordList) {
       if (allProducts.length >= maxProducts) break
       
-      // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 500))
+      console.log(`Searching for: ${keyword}`)
+      
+      for (let page = 1; page <= 2; page++) {
+        const result = await searchProducts(keyword, page, 50, categoryIds)
+        const products = result?.aliexpress_affiliate_product_query_response?.resp_result?.result?.products?.product || []
+        
+        if (products.length === 0) {
+          console.log(`No products found for "${keyword}" on page ${page}`)
+          break
+        }
+        
+        allProducts.push(...products)
+        console.log(`Fetched ${products.length} products for "${keyword}", total: ${allProducts.length}`)
+        
+        if (allProducts.length >= maxProducts) break
+        
+        // Rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
     }
 
     console.log(`Total products from AliExpress: ${allProducts.length}`)
