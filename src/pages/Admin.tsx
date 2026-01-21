@@ -611,7 +611,8 @@ const ProductsTab = () => {
   );
 };
 
-interface FeedProduct {
+// Lazada Feed Product interface
+interface LazadaFeedProduct {
   id: string;
   lazada_product_id: string;
   product_name: string;
@@ -627,8 +628,33 @@ interface FeedProduct {
   out_of_stock: boolean | null;
 }
 
+// AliExpress Feed Product interface
+interface AliExpressFeedProduct {
+  id: string;
+  aliexpress_product_id: string;
+  product_name: string;
+  product_name_hebrew: string | null;
+  image_url: string | null;
+  price_usd: number | null;
+  original_price_usd: number | null;
+  discount_percentage: number | null;
+  commission_rate: number | null;
+  sales_30d: number | null;
+  rating: number | null;
+  reviews_count: number | null;
+  category_id: string | null;
+  category_name_hebrew: string | null;
+  tracking_link: string | null;
+  is_featured: boolean | null;
+  out_of_stock: boolean | null;
+}
+
+type FeedPlatform = "lazada" | "aliexpress";
+
 const FeedTab = () => {
-  const [products, setProducts] = useState<FeedProduct[]>([]);
+  const [platform, setPlatform] = useState<FeedPlatform>("lazada");
+  const [lazadaProducts, setLazadaProducts] = useState<LazadaFeedProduct[]>([]);
+  const [aliexpressProducts, setAliexpressProducts] = useState<AliExpressFeedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState("");
@@ -637,25 +663,47 @@ const FeedTab = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const ITEMS_PER_PAGE = 20;
 
-  const fetchFeedProducts = async () => {
-    setLoading(true);
+  const fetchLazadaProducts = async () => {
     const { data, error } = await supabase
       .from("feed_products")
       .select("*");
 
     if (error) {
-      console.error("Error fetching feed products:", error);
-      toast.error("שגיאה בטעינת מוצרי הפיד");
+      console.error("Error fetching Lazada products:", error);
+      toast.error("שגיאה בטעינת מוצרי Lazada");
     } else {
-      setProducts(data || []);
+      setLazadaProducts(data || []);
+    }
+  };
+
+  const fetchAliexpressProducts = async () => {
+    const { data, error } = await supabase
+      .from("aliexpress_feed_products")
+      .select("*");
+
+    if (error) {
+      console.error("Error fetching AliExpress products:", error);
+      toast.error("שגיאה בטעינת מוצרי AliExpress");
+    } else {
+      setAliexpressProducts(data || []);
+    }
+  };
+
+  const fetchFeedProducts = async () => {
+    setLoading(true);
+    if (platform === "lazada") {
+      await fetchLazadaProducts();
+    } else {
+      await fetchAliexpressProducts();
     }
     setLoading(false);
   };
 
-  const syncFromLazada = async () => {
+  const syncProducts = async () => {
     setSyncing(true);
     try {
-      const { error } = await supabase.functions.invoke("sync-feed-products");
+      const functionName = platform === "lazada" ? "sync-feed-products" : "sync-aliexpress-products";
+      const { error } = await supabase.functions.invoke(functionName);
       if (error) throw error;
       toast.success("הסינכרון החל! הרענן בעוד מספר שניות");
       setTimeout(fetchFeedProducts, 10000);
@@ -666,7 +714,7 @@ const FeedTab = () => {
     setSyncing(false);
   };
 
-  const toggleFeatured = async (product: FeedProduct) => {
+  const toggleLazadaFeatured = async (product: LazadaFeedProduct) => {
     const { error } = await supabase
       .from("feed_products")
       .update({ is_featured: !product.is_featured })
@@ -675,7 +723,23 @@ const FeedTab = () => {
     if (error) {
       toast.error("שגיאה בעדכון");
     } else {
-      setProducts(products.map(p => 
+      setLazadaProducts(lazadaProducts.map(p => 
+        p.id === product.id ? { ...p, is_featured: !p.is_featured } : p
+      ));
+      toast.success(product.is_featured ? "הוסר מהמועדפים" : "נוסף למועדפים");
+    }
+  };
+
+  const toggleAliexpressFeatured = async (product: AliExpressFeedProduct) => {
+    const { error } = await supabase
+      .from("aliexpress_feed_products")
+      .update({ is_featured: !product.is_featured })
+      .eq("id", product.id);
+
+    if (error) {
+      toast.error("שגיאה בעדכון");
+    } else {
+      setAliexpressProducts(aliexpressProducts.map(p => 
         p.id === product.id ? { ...p, is_featured: !p.is_featured } : p
       ));
       toast.success(product.is_featured ? "הוסר מהמועדפים" : "נוסף למועדפים");
@@ -684,34 +748,70 @@ const FeedTab = () => {
 
   useEffect(() => {
     fetchFeedProducts();
-  }, []);
+  }, [platform]);
+
+  // Get current products based on platform
+  const currentProducts = platform === "lazada" ? lazadaProducts : aliexpressProducts;
 
   // Filter products
-  const filteredProducts = products.filter(p =>
-    p.product_name.toLowerCase().includes(filter.toLowerCase()) ||
-    (p.brand_name && p.brand_name.toLowerCase().includes(filter.toLowerCase()))
-  );
+  const filteredProducts = currentProducts.filter(p => {
+    const name = p.product_name.toLowerCase();
+    const searchTerm = filter.toLowerCase();
+    if (platform === "lazada") {
+      const lazadaProduct = p as LazadaFeedProduct;
+      return name.includes(searchTerm) || 
+        (lazadaProduct.brand_name && lazadaProduct.brand_name.toLowerCase().includes(searchTerm));
+    } else {
+      const aliProduct = p as AliExpressFeedProduct;
+      return name.includes(searchTerm) || 
+        (aliProduct.product_name_hebrew && aliProduct.product_name_hebrew.includes(filter));
+    }
+  });
 
   // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     let aVal: number, bVal: number;
     
-    switch (sortBy) {
-      case "sales":
-        aVal = a.sales_7d || 0;
-        bVal = b.sales_7d || 0;
-        break;
-      case "commission":
-        aVal = a.commission_rate || 0;
-        bVal = b.commission_rate || 0;
-        break;
-      case "price":
-        aVal = a.price_thb || 0;
-        bVal = b.price_thb || 0;
-        break;
-      default:
-        aVal = 0;
-        bVal = 0;
+    if (platform === "lazada") {
+      const aLaz = a as LazadaFeedProduct;
+      const bLaz = b as LazadaFeedProduct;
+      switch (sortBy) {
+        case "sales":
+          aVal = aLaz.sales_7d || 0;
+          bVal = bLaz.sales_7d || 0;
+          break;
+        case "commission":
+          aVal = aLaz.commission_rate || 0;
+          bVal = bLaz.commission_rate || 0;
+          break;
+        case "price":
+          aVal = aLaz.price_thb || 0;
+          bVal = bLaz.price_thb || 0;
+          break;
+        default:
+          aVal = 0;
+          bVal = 0;
+      }
+    } else {
+      const aAli = a as AliExpressFeedProduct;
+      const bAli = b as AliExpressFeedProduct;
+      switch (sortBy) {
+        case "sales":
+          aVal = aAli.sales_30d || 0;
+          bVal = bAli.sales_30d || 0;
+          break;
+        case "commission":
+          aVal = aAli.commission_rate || 0;
+          bVal = bAli.commission_rate || 0;
+          break;
+        case "price":
+          aVal = aAli.price_usd || 0;
+          bVal = bAli.price_usd || 0;
+          break;
+        default:
+          aVal = 0;
+          bVal = 0;
+      }
     }
     
     return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
@@ -722,15 +822,35 @@ const FeedTab = () => {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedProducts = sortedProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  const featuredCount = products.filter(p => p.is_featured).length;
+  const featuredCount = currentProducts.filter(p => p.is_featured).length;
 
   // Reset to page 1 when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [filter, sortBy, sortOrder]);
+  }, [filter, sortBy, sortOrder, platform]);
 
   return (
     <div className="space-y-4">
+      {/* Platform Selector */}
+      <div className="flex items-center gap-2 border-b pb-3">
+        <Button
+          variant={platform === "lazada" ? "default" : "outline"}
+          onClick={() => setPlatform("lazada")}
+          className={platform === "lazada" ? "bg-orange-500 hover:bg-orange-600" : ""}
+        >
+          <Store className="h-4 w-4 ml-2" />
+          Lazada (תאילנד)
+        </Button>
+        <Button
+          variant={platform === "aliexpress" ? "default" : "outline"}
+          onClick={() => setPlatform("aliexpress")}
+          className={platform === "aliexpress" ? "bg-red-500 hover:bg-red-600" : ""}
+        >
+          <Package className="h-4 w-4 ml-2" />
+          AliExpress (ישראל)
+        </Button>
+      </div>
+
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <Input
           placeholder="חיפוש מוצר..."
@@ -743,9 +863,9 @@ const FeedTab = () => {
             <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
             רענן
           </Button>
-          <Button onClick={syncFromLazada} disabled={syncing}>
+          <Button onClick={syncProducts} disabled={syncing}>
             <Store className={`h-4 w-4 ml-2 ${syncing ? "animate-pulse" : ""}`} />
-            סנכרן מ-Lazada
+            סנכרן מ-{platform === "lazada" ? "Lazada" : "AliExpress"}
           </Button>
         </div>
       </div>
@@ -780,7 +900,7 @@ const FeedTab = () => {
       </Card>
 
       <div className="text-sm text-muted-foreground">
-        סה"כ {products.length} מוצרים בפיד | ⭐ {featuredCount} מועדפים | מציג {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, sortedProducts.length)} מתוך {sortedProducts.length}
+        סה"כ {currentProducts.length} מוצרים בפיד | ⭐ {featuredCount} מועדפים | מציג {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, sortedProducts.length)} מתוך {sortedProducts.length}
       </div>
 
       {loading ? (
@@ -788,41 +908,88 @@ const FeedTab = () => {
       ) : (
         <>
           <div className="grid gap-3">
-            {paginatedProducts.map((product) => (
-              <Card key={product.id} className={`p-3 ${product.is_featured ? 'border-orange-400 bg-orange-50/50' : ''}`}>
-                <div className="flex items-center gap-4">
-                  {product.image_url ? (
-                    <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover" />
-                  ) : (
-                    <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">📦</div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm line-clamp-2">{product.product_name}</div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                      {product.brand_name && <span>{product.brand_name}</span>}
-                      {product.sales_7d && product.sales_7d > 0 && (
-                        <span className="text-orange-600">🔥 {product.sales_7d} נמכרו</span>
+            {platform === "lazada" ? (
+              // Lazada Products
+              (paginatedProducts as LazadaFeedProduct[]).map((product) => (
+                <Card key={product.id} className={`p-3 ${product.is_featured ? 'border-orange-400 bg-orange-50/50' : ''}`}>
+                  <div className="flex items-center gap-4">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover" />
+                    ) : (
+                      <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">📦</div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm line-clamp-2">{product.product_name}</div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                        {product.brand_name && <span>{product.brand_name}</span>}
+                        {product.sales_7d && product.sales_7d > 0 && (
+                          <span className="text-orange-600">🔥 {product.sales_7d} נמכרו</span>
+                        )}
+                        {product.commission_rate && (
+                          <span className="text-green-600">{(product.commission_rate * 100).toFixed(1)}% עמלה</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {product.price_thb && (
+                        <span className="font-bold text-orange-600">฿{product.price_thb.toLocaleString()}</span>
                       )}
-                      {product.commission_rate && (
-                        <span className="text-green-600">{(product.commission_rate * 100).toFixed(1)}% עמלה</span>
-                      )}
+                      <Button
+                        size="sm"
+                        variant={product.is_featured ? "default" : "outline"}
+                        onClick={() => toggleLazadaFeatured(product)}
+                      >
+                        {product.is_featured ? <Star className="h-4 w-4" /> : <StarOff className="h-4 w-4" />}
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {product.price_thb && (
-                      <span className="font-bold text-orange-600">฿{product.price_thb.toLocaleString()}</span>
+                </Card>
+              ))
+            ) : (
+              // AliExpress Products
+              (paginatedProducts as AliExpressFeedProduct[]).map((product) => (
+                <Card key={product.id} className={`p-3 ${product.is_featured ? 'border-red-400 bg-red-50/50' : ''}`}>
+                  <div className="flex items-center gap-4">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover" />
+                    ) : (
+                      <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">📦</div>
                     )}
-                    <Button
-                      size="sm"
-                      variant={product.is_featured ? "default" : "outline"}
-                      onClick={() => toggleFeatured(product)}
-                    >
-                      {product.is_featured ? <Star className="h-4 w-4" /> : <StarOff className="h-4 w-4" />}
-                    </Button>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm line-clamp-2">
+                        {product.product_name_hebrew || product.product_name}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                        {product.sales_30d && product.sales_30d > 0 && (
+                          <span className="text-red-600">🔥 {product.sales_30d} נמכרו</span>
+                        )}
+                        {product.commission_rate && (
+                          <span className="text-green-600">{(product.commission_rate * 100).toFixed(1)}% עמלה</span>
+                        )}
+                        {product.discount_percentage && product.discount_percentage > 0 && (
+                          <span className="text-purple-600">-{product.discount_percentage}%</span>
+                        )}
+                        {product.rating && (
+                          <span className="text-amber-500">⭐ {product.rating.toFixed(1)}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {product.price_usd && (
+                        <span className="font-bold text-red-600">${product.price_usd.toFixed(2)}</span>
+                      )}
+                      <Button
+                        size="sm"
+                        variant={product.is_featured ? "default" : "outline"}
+                        onClick={() => toggleAliexpressFeatured(product)}
+                      >
+                        {product.is_featured ? <Star className="h-4 w-4" /> : <StarOff className="h-4 w-4" />}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              ))
+            )}
           </div>
 
           {/* Pagination */}
