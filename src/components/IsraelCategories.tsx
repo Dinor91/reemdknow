@@ -2,9 +2,10 @@ import { Laptop, Headphones, Home, Shirt, Dumbbell, Search, X, ExternalLink, Pac
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CallToActionBanner } from "./CallToActionBanner";
+import { useQuery } from "@tanstack/react-query";
 
 interface Category {
   icon: any;
@@ -12,19 +13,20 @@ interface Category {
   title: string;
 }
 
-interface ProductData {
+// Unified product for display
+interface DisplayProduct {
   id: string;
-  product_name: string;
-  product_name_hebrew: string | null;
+  name: string;
   image_url: string | null;
   price_usd: number | null;
   original_price_usd: number | null;
   discount_percentage: number | null;
   rating: number | null;
-  sales_30d: number | null;
+  sales_count: number | null;
   tracking_link: string | null;
-  category_name_hebrew: string | null;
-  out_of_stock: boolean | null;
+  category: string;
+  out_of_stock: boolean;
+  source: 'editor' | 'feed';
 }
 
 const categories: Category[] = [
@@ -63,33 +65,93 @@ const categories: Category[] = [
 export const IsraelCategories = () => {
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [products, setProducts] = useState<ProductData[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const hasShownRef = useRef(false);
 
-  // Fetch featured products from aliexpress_feed_products
-  useEffect(() => {
-    const fetchProducts = async () => {
+  // Fetch editor products from israel_editor_products (PRIMARY source for manually added)
+  const { data: editorProducts = [], isLoading: editorLoading } = useQuery({
+    queryKey: ['israel-editor-products-public'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('israel_editor_products')
+        .select('*')
+        .eq('is_active', true)
+        .eq('out_of_stock', false)
+        .order('sales_count', { ascending: false, nullsFirst: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // Fetch featured products from aliexpress_feed_products (SECONDARY source for feed products)
+  const { data: feedProducts = [], isLoading: feedLoading } = useQuery({
+    queryKey: ['aliexpress-featured-products'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('aliexpress_feed_products')
         .select('*')
         .eq('is_featured', true)
+        .eq('out_of_stock', false)
         .order('sales_30d', { ascending: false });
       
-      if (!error && data) {
-        setProducts(data);
-      }
-      setLoading(false);
-    };
-    fetchProducts();
-  }, []);
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const loading = editorLoading || feedLoading;
+
+  // Combine products from both sources into unified format
+  const products: DisplayProduct[] = useMemo(() => {
+    const unified: DisplayProduct[] = [];
+
+    // Add editor products first (they take priority)
+    editorProducts.forEach(p => {
+      unified.push({
+        id: p.id,
+        name: p.product_name_hebrew,
+        image_url: p.image_url,
+        price_usd: p.price_usd,
+        original_price_usd: p.original_price_usd,
+        discount_percentage: p.discount_percentage,
+        rating: p.rating,
+        sales_count: p.sales_count,
+        tracking_link: p.tracking_link,
+        category: p.category_name_hebrew,
+        out_of_stock: p.out_of_stock || false,
+        source: 'editor',
+      });
+    });
+
+    // Add featured feed products
+    feedProducts.forEach(p => {
+      unified.push({
+        id: p.id,
+        name: p.product_name_hebrew || p.product_name,
+        image_url: p.image_url,
+        price_usd: p.price_usd,
+        original_price_usd: p.original_price_usd,
+        discount_percentage: p.discount_percentage,
+        rating: p.rating,
+        sales_count: p.sales_30d,
+        tracking_link: p.tracking_link,
+        category: p.category_name_hebrew || "כללי",
+        out_of_stock: p.out_of_stock || false,
+        source: 'feed',
+      });
+    });
+
+    return unified;
+  }, [editorProducts, feedProducts]);
 
   // Group products by category
   const productsByCategory = useMemo(() => {
-    const grouped: Record<string, ProductData[]> = {};
+    const grouped: Record<string, DisplayProduct[]> = {};
     products.forEach(p => {
-      const cat = p.category_name_hebrew || "כללי";
+      const cat = p.category || "כללי";
       if (!grouped[cat]) {
         grouped[cat] = [];
       }
@@ -118,8 +180,7 @@ export const IsraelCategories = () => {
       // Check if any product in this category matches
       const categoryProducts = productsByCategory[category.title] || [];
       return categoryProducts.some(p => 
-        (p.product_name_hebrew?.toLowerCase().includes(term)) ||
-        (p.product_name?.toLowerCase().includes(term))
+        p.name.toLowerCase().includes(term)
       );
     });
   }, [searchTerm, productsByCategory]);
@@ -134,8 +195,7 @@ export const IsraelCategories = () => {
     if (categoryTitle.toLowerCase().includes(term)) return categoryProducts;
     // Otherwise filter products
     return categoryProducts.filter(p => 
-      (p.product_name_hebrew?.toLowerCase().includes(term)) ||
-      (p.product_name?.toLowerCase().includes(term))
+      p.name.toLowerCase().includes(term)
     );
   };
 
@@ -252,21 +312,21 @@ export const IsraelCategories = () => {
                               >
                                 <div className="flex gap-3">
                                   {product.image_url ? (
-                                    <img 
-                                      src={product.image_url} 
-                                      alt={product.product_name_hebrew || product.product_name}
-                                      className="w-16 h-16 rounded object-cover flex-shrink-0"
-                                    />
-                                  ) : (
-                                    <div className="w-16 h-16 rounded bg-muted flex items-center justify-center text-2xl flex-shrink-0">
-                                      📦
-                                    </div>
-                                  )}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-sm line-clamp-2 mb-1">
-                                      {product.product_name_hebrew || product.product_name}
-                                    </div>
-                                    {product.out_of_stock && (
+                                                <img 
+                                                    src={product.image_url} 
+                                                    alt={product.name}
+                                                    className="w-16 h-16 rounded object-cover flex-shrink-0"
+                                                  />
+                                                ) : (
+                                                  <div className="w-16 h-16 rounded bg-muted flex items-center justify-center text-2xl flex-shrink-0">
+                                                    📦
+                                                  </div>
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                  <div className="font-medium text-sm line-clamp-2 mb-1">
+                                                    {product.name}
+                                                  </div>
+                                                  {product.out_of_stock && (
                                       <span className="inline-block text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded mb-1">
                                         אזל במלאי
                                       </span>
@@ -286,12 +346,12 @@ export const IsraelCategories = () => {
                                         </span>
                                       )}
                                     </div>
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                      {product.rating && <span>⭐ {product.rating.toFixed(1)}</span>}
-                                      {product.sales_30d && product.sales_30d > 0 && (
-                                        <span>🔥 {product.sales_30d.toLocaleString()} נמכרו</span>
-                                      )}
-                                    </div>
+                                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                                    {product.rating && <span>⭐ {product.rating.toFixed(1)}</span>}
+                                                    {product.sales_count && product.sales_count > 0 && (
+                                                      <span>🔥 {product.sales_count.toLocaleString()} נמכרו</span>
+                                                    )}
+                                                  </div>
                                   </div>
                                   <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                 </div>
