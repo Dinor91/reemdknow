@@ -68,8 +68,9 @@ export const IsraelCategories = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const hasShownRef = useRef(false);
 
-  // Fetch editor products from israel_editor_products (PRIMARY source for manually added)
-  const { data: editorProducts = [], isLoading: editorLoading } = useQuery({
+  // Fetch ONLY editor products from israel_editor_products
+  // Featured feed products are displayed separately in FeaturedProductsIsrael
+  const { data: editorProducts = [], isLoading: loading } = useQuery({
     queryKey: ['israel-editor-products-public'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -85,67 +86,23 @@ export const IsraelCategories = () => {
     staleTime: 1000 * 60 * 10,
   });
 
-  // Fetch featured products from aliexpress_feed_products (SECONDARY source for feed products)
-  const { data: feedProducts = [], isLoading: feedLoading } = useQuery({
-    queryKey: ['aliexpress-featured-products'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('aliexpress_feed_products')
-        .select('*')
-        .eq('is_featured', true)
-        .eq('out_of_stock', false)
-        .order('sales_30d', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 10,
-  });
-
-  const loading = editorLoading || feedLoading;
-
-  // Combine products from both sources into unified format
+  // Transform editor products to unified format (NO feed products here!)
   const products: DisplayProduct[] = useMemo(() => {
-    const unified: DisplayProduct[] = [];
-
-    // Add editor products first (they take priority)
-    editorProducts.forEach(p => {
-      unified.push({
-        id: p.id,
-        name: p.product_name_hebrew,
-        image_url: p.image_url,
-        price_usd: p.price_usd,
-        original_price_usd: p.original_price_usd,
-        discount_percentage: p.discount_percentage,
-        rating: p.rating,
-        sales_count: p.sales_count,
-        tracking_link: p.tracking_link,
-        category: p.category_name_hebrew,
-        out_of_stock: p.out_of_stock || false,
-        source: 'editor',
-      });
-    });
-
-    // Add featured feed products
-    feedProducts.forEach(p => {
-      unified.push({
-        id: p.id,
-        name: p.product_name_hebrew || p.product_name,
-        image_url: p.image_url,
-        price_usd: p.price_usd,
-        original_price_usd: p.original_price_usd,
-        discount_percentage: p.discount_percentage,
-        rating: p.rating,
-        sales_count: p.sales_30d,
-        tracking_link: p.tracking_link,
-        category: p.category_name_hebrew || "כללי",
-        out_of_stock: p.out_of_stock || false,
-        source: 'feed',
-      });
-    });
-
-    return unified;
-  }, [editorProducts, feedProducts]);
+    return editorProducts.map(p => ({
+      id: p.id,
+      name: p.product_name_hebrew,
+      image_url: p.image_url,
+      price_usd: p.price_usd,
+      original_price_usd: p.original_price_usd,
+      discount_percentage: p.discount_percentage,
+      rating: p.rating,
+      sales_count: p.sales_count,
+      tracking_link: p.tracking_link,
+      category: p.category_name_hebrew,
+      out_of_stock: p.out_of_stock || false,
+      source: 'editor' as const,
+    }));
+  }, [editorProducts]);
 
   // Group products by category
   const productsByCategory = useMemo(() => {
