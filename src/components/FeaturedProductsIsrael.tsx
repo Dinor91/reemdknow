@@ -181,6 +181,7 @@ export const FeaturedProductsIsrael = () => {
   };
 
   // Use database products if available, otherwise fallback to static
+  // Only use fallback if no products from DB
   const displayProducts = products && products.length > 0 ? products : fallbackProducts;
 
   if (error) {
@@ -237,9 +238,9 @@ export const FeaturedProductsIsrael = () => {
                 </p>
               </div>
             ) : (
-              /* Desktop: Grid */
+              /* Desktop: Grid - 4 products like Thailand */
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {displayProducts.slice(0, 8).map((product, index) => (
+                {displayProducts.slice(0, 4).map((product, index) => (
                   <ProductCard key={product.id || index} product={product as AliExpressProduct} onProductClick={handleProductClick} />
                 ))}
               </div>
