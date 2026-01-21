@@ -183,12 +183,38 @@ serve(async (req) => {
       }
     }
 
+    // Auto-translate new products to Hebrew
+    console.log('Starting auto-translation of new products...')
+    let translatedCount = 0
+    try {
+      const translateResponse = await fetch(
+        `${SUPABASE_URL}/functions/v1/translate-products`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+          },
+          body: JSON.stringify({ platform: 'lazada' })
+        }
+      )
+      
+      if (translateResponse.ok) {
+        const translateResult = await translateResponse.json()
+        translatedCount = translateResult?.results?.lazada?.translated || 0
+        console.log(`Auto-translated ${translatedCount} products to Hebrew`)
+      }
+    } catch (translateError) {
+      console.error('Auto-translation error:', translateError)
+    }
+
     return new Response(
       JSON.stringify({ 
         message: 'Sync complete',
         totalFetched: allProducts.length,
         validProducts: validProducts.length,
         upserted,
+        translated: translatedCount,
         categories: categories?.length || 0
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
