@@ -63,7 +63,7 @@ const chartConfig = {
   },
 };
 
-const CATEGORIES = [
+const CATEGORIES_THAILAND = [
   "מוצרי חשמל",
   "ריהוט ונוחות", 
   "מוצרי מזון ישראליים",
@@ -73,6 +73,15 @@ const CATEGORIES = [
   "חצר וגינה",
   "הדברה",
   "DIY",
+  "כללי"
+];
+
+const CATEGORIES_ISRAEL = [
+  "טכנולוגיה",
+  "אלקטרוניקה",
+  "לבית",
+  "אופנה ואקססוריז",
+  "ספורט וטיולים",
   "כללי"
 ];
 
@@ -106,6 +115,8 @@ const ProductsTab = () => {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<CategoryProduct> & { category?: string }>({});
+  const [aliEditingId, setAliEditingId] = useState<string | null>(null);
+  const [aliEditData, setAliEditData] = useState<Partial<AliExpressFeedProduct> & { category_name_hebrew?: string }>({});
   const [filter, setFilter] = useState("");
   const [updatingFromApi, setUpdatingFromApi] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -113,11 +124,21 @@ const ProductsTab = () => {
   const [newProduct, setNewProduct] = useState({
     name_hebrew: "",
     affiliate_link: "",
-    category: CATEGORIES[0],
+    category: CATEGORIES_THAILAND[0],
     image_url: "",
     price_thb: "",
     rating: "",
     sales_count: "",
+  });
+  const [newAliProduct, setNewAliProduct] = useState({
+    product_name_hebrew: "",
+    tracking_link: "",
+    category_name_hebrew: CATEGORIES_ISRAEL[0],
+    image_url: "",
+    price_usd: "",
+    original_price_usd: "",
+    rating: "",
+    sales_30d: "",
   });
 
   const fetchLazadaProducts = async () => {
@@ -283,7 +304,7 @@ const ProductsTab = () => {
       setNewProduct({
         name_hebrew: "",
         affiliate_link: "",
-        category: CATEGORIES[0],
+        category: CATEGORIES_THAILAND[0],
         image_url: "",
         price_thb: "",
         rating: "",
@@ -309,6 +330,147 @@ const ProductsTab = () => {
     }
   };
 
+  // AliExpress CRUD functions
+  const startAliEdit = (product: AliExpressFeedProduct) => {
+    setAliEditingId(product.id);
+    setAliEditData({
+      product_name_hebrew: product.product_name_hebrew || "",
+      tracking_link: product.tracking_link || "",
+      image_url: product.image_url || "",
+      price_usd: product.price_usd || undefined,
+      original_price_usd: product.original_price_usd || undefined,
+      rating: product.rating || undefined,
+      sales_30d: product.sales_30d || undefined,
+      out_of_stock: product.out_of_stock || false,
+      category_name_hebrew: product.category_name_hebrew || CATEGORIES_ISRAEL[0],
+    });
+  };
+
+  const cancelAliEdit = () => {
+    setAliEditingId(null);
+    setAliEditData({});
+  };
+
+  const saveAliEdit = async (id: string) => {
+    const discountPct = aliEditData.original_price_usd && aliEditData.price_usd
+      ? Math.round((1 - aliEditData.price_usd / aliEditData.original_price_usd) * 100)
+      : null;
+
+    const { error } = await supabase
+      .from("aliexpress_feed_products")
+      .update({
+        product_name_hebrew: aliEditData.product_name_hebrew,
+        tracking_link: aliEditData.tracking_link || null,
+        image_url: aliEditData.image_url || null,
+        price_usd: aliEditData.price_usd || null,
+        original_price_usd: aliEditData.original_price_usd || null,
+        discount_percentage: discountPct,
+        rating: aliEditData.rating || null,
+        sales_30d: aliEditData.sales_30d || null,
+        out_of_stock: aliEditData.out_of_stock || false,
+        category_name_hebrew: aliEditData.category_name_hebrew,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error saving:", error);
+      toast.error("שגיאה בשמירה");
+    } else {
+      toast.success("נשמר בהצלחה!");
+      setAliEditingId(null);
+      fetchProducts();
+    }
+  };
+
+  const toggleAliOutOfStock = async (product: AliExpressFeedProduct) => {
+    const newValue = !product.out_of_stock;
+    const { error } = await supabase
+      .from("aliexpress_feed_products")
+      .update({ out_of_stock: newValue, updated_at: new Date().toISOString() })
+      .eq("id", product.id);
+
+    if (error) {
+      toast.error("שגיאה בעדכון");
+    } else {
+      setAliexpressProducts(aliexpressProducts.map(p => 
+        p.id === product.id ? { ...p, out_of_stock: newValue } : p
+      ));
+      toast.success(newValue ? "סומן כאזל במלאי" : "סומן כזמין");
+    }
+  };
+
+  const addNewAliProduct = async () => {
+    if (!newAliProduct.product_name_hebrew || !newAliProduct.tracking_link) {
+      toast.error("נא למלא שם מוצר וקישור");
+      return;
+    }
+
+    const priceUsd = newAliProduct.price_usd ? parseFloat(newAliProduct.price_usd) : null;
+    const originalPriceUsd = newAliProduct.original_price_usd ? parseFloat(newAliProduct.original_price_usd) : null;
+    const discountPct = originalPriceUsd && priceUsd
+      ? Math.round((1 - priceUsd / originalPriceUsd) * 100)
+      : null;
+
+    const { error } = await supabase
+      .from("aliexpress_feed_products")
+      .insert({
+        aliexpress_product_id: `manual-${Date.now()}`,
+        product_name: newAliProduct.product_name_hebrew,
+        product_name_hebrew: newAliProduct.product_name_hebrew,
+        tracking_link: newAliProduct.tracking_link,
+        category_name_hebrew: newAliProduct.category_name_hebrew,
+        image_url: newAliProduct.image_url || null,
+        price_usd: priceUsd,
+        original_price_usd: originalPriceUsd,
+        discount_percentage: discountPct,
+        rating: newAliProduct.rating ? parseFloat(newAliProduct.rating) : null,
+        sales_30d: newAliProduct.sales_30d ? parseInt(newAliProduct.sales_30d) : null,
+        is_featured: true,
+        out_of_stock: false,
+      });
+
+    if (error) {
+      console.error("Error adding product:", error);
+      toast.error("שגיאה בהוספת מוצר");
+    } else {
+      toast.success("המוצר נוסף בהצלחה!");
+      setShowAddProduct(false);
+      setNewAliProduct({
+        product_name_hebrew: "",
+        tracking_link: "",
+        category_name_hebrew: CATEGORIES_ISRAEL[0],
+        image_url: "",
+        price_usd: "",
+        original_price_usd: "",
+        rating: "",
+        sales_30d: "",
+      });
+      fetchProducts();
+    }
+  };
+
+  const deleteAliProduct = async (id: string, name: string) => {
+    if (!confirm(`למחוק את "${name}"?`)) return;
+    
+    const { error } = await supabase
+      .from("aliexpress_feed_products")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      toast.error("שגיאה במחיקה");
+    } else {
+      toast.success("המוצר נמחק");
+      fetchProducts();
+    }
+  };
+
+  const expandAllAli = () => {
+    const allCategories = new Set(Object.keys(groupedAliProducts));
+    setExpandedCategories(allCategories);
+  };
+
   useEffect(() => {
     fetchProducts();
   }, [platform]);
@@ -327,6 +489,23 @@ const ProductsTab = () => {
     acc[product.category].push(product);
     return acc;
   }, {} as Record<string, CategoryProduct[]>);
+
+  // Filter and group AliExpress products
+  const filteredAliProducts = aliexpressProducts.filter(
+    (p) =>
+      p.product_name.toLowerCase().includes(filter.toLowerCase()) ||
+      (p.product_name_hebrew && p.product_name_hebrew.includes(filter)) ||
+      (p.category_name_hebrew && p.category_name_hebrew.includes(filter))
+  );
+
+  const groupedAliProducts = filteredAliProducts.reduce((acc, product) => {
+    const category = product.category_name_hebrew || "כללי";
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(product);
+    return acc;
+  }, {} as Record<string, AliExpressFeedProduct[]>);
 
   return (
     <div className="space-y-4">
@@ -415,7 +594,7 @@ const ProductsTab = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map(cat => (
+                      {CATEGORIES_THAILAND.map(cat => (
                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                       ))}
                     </SelectContent>
@@ -543,7 +722,7 @@ const ProductsTab = () => {
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {CATEGORIES.map(cat => (
+                                      {CATEGORIES_THAILAND.map(cat => (
                                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                                       ))}
                                     </SelectContent>
@@ -681,7 +860,7 @@ const ProductsTab = () => {
           )}
         </>
       ) : (
-        /* AliExpress Products - Editor's picks from featured */
+        /* AliExpress Products - Full management like Lazada */
         <>
           <div className="flex flex-wrap gap-4 items-center justify-between">
             <Input
@@ -690,69 +869,355 @@ const ProductsTab = () => {
               onChange={(e) => setFilter(e.target.value)}
               className="max-w-xs"
             />
-            <Button onClick={fetchProducts} variant="outline" disabled={loading}>
-              <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
-              רענן
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowAddProduct(true)} variant="default" className="bg-green-600 hover:bg-green-700">
+                <Package className="h-4 w-4 ml-2" />
+                הוסף מוצר
+              </Button>
+              <Button onClick={expandAllAli} variant="ghost" size="sm">
+                פתח הכל
+              </Button>
+              <Button onClick={collapseAll} variant="ghost" size="sm">
+                סגור הכל
+              </Button>
+              <Button onClick={fetchProducts} variant="outline" disabled={loading}>
+                <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
+                רענן
+              </Button>
+            </div>
           </div>
 
+          {/* Add New AliExpress Product Form */}
+          {showAddProduct && (
+            <Card className="p-4 border-green-300 bg-green-50/50">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                הוספת מוצר חדש (ישראל)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">שם המוצר בעברית *</label>
+                  <Input
+                    value={newAliProduct.product_name_hebrew}
+                    onChange={(e) => setNewAliProduct({ ...newAliProduct, product_name_hebrew: e.target.value })}
+                    placeholder="שם המוצר"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">קישור affiliate *</label>
+                  <Input
+                    value={newAliProduct.tracking_link}
+                    onChange={(e) => setNewAliProduct({ ...newAliProduct, tracking_link: e.target.value })}
+                    placeholder="https://s.click.aliexpress.com/..."
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">קטגוריה</label>
+                  <Select value={newAliProduct.category_name_hebrew} onValueChange={(val) => setNewAliProduct({ ...newAliProduct, category_name_hebrew: val })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES_ISRAEL.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">תמונה URL</label>
+                  <Input
+                    value={newAliProduct.image_url}
+                    onChange={(e) => setNewAliProduct({ ...newAliProduct, image_url: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">מחיר ($)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={newAliProduct.price_usd}
+                    onChange={(e) => setNewAliProduct({ ...newAliProduct, price_usd: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">מחיר מקורי ($)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={newAliProduct.original_price_usd}
+                    onChange={(e) => setNewAliProduct({ ...newAliProduct, original_price_usd: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">דירוג</label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    max="5"
+                    value={newAliProduct.rating}
+                    onChange={(e) => setNewAliProduct({ ...newAliProduct, rating: e.target.value })}
+                    placeholder="4.5"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">נמכרו (30 יום)</label>
+                  <Input
+                    type="number"
+                    value={newAliProduct.sales_30d}
+                    onChange={(e) => setNewAliProduct({ ...newAliProduct, sales_30d: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={addNewAliProduct} className="bg-green-600 hover:bg-green-700">
+                  <Save className="h-4 w-4 ml-1" />
+                  הוסף מוצר
+                </Button>
+                <Button variant="outline" onClick={() => setShowAddProduct(false)}>
+                  <X className="h-4 w-4 ml-1" />
+                  ביטול
+                </Button>
+              </div>
+            </Card>
+          )}
+
           <div className="text-sm text-muted-foreground">
-            סה"כ {aliexpressProducts.length} מוצרים מועדפים (המלצות עורך)
+            סה"כ {aliexpressProducts.length} מוצרים מועדפים | {aliexpressProducts.filter(p => p.out_of_stock).length} אזלו במלאי
           </div>
 
           {loading ? (
             <p className="text-muted-foreground">טוען...</p>
-          ) : aliexpressProducts.length === 0 ? (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground mb-4">אין מוצרים מועדפים עדיין</p>
-              <p className="text-sm text-muted-foreground">
-                לכו לטאב "מוצרים פופולריים" &gt; AliExpress וסמנו מוצרים כמועדפים (⭐)
-              </p>
-            </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {aliexpressProducts
-                .filter(p => 
-                  p.product_name.toLowerCase().includes(filter.toLowerCase()) ||
-                  (p.product_name_hebrew && p.product_name_hebrew.includes(filter))
-                )
-                .map((product) => (
-                  <Card key={product.id} className="p-4">
-                    <div className="flex gap-3">
-                      {product.image_url ? (
-                        <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover flex-shrink-0" />
-                      ) : (
-                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center text-2xl flex-shrink-0">📦</div>
+            <div className="space-y-2">
+              {Object.entries(groupedAliProducts).map(([category, categoryProducts]) => (
+                <Card key={category} className="overflow-hidden">
+                  <button
+                    onClick={() => toggleCategory(category)}
+                    className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold">{category}</h3>
+                      <span className="text-sm text-muted-foreground">({categoryProducts.length})</span>
+                      {categoryProducts.some(p => p.out_of_stock) && (
+                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                          {categoryProducts.filter(p => p.out_of_stock).length} אזלו
+                        </span>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm line-clamp-2 mb-1">
-                          {product.product_name_hebrew || product.product_name}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium text-blue-600">${product.price_usd?.toFixed(2)}</span>
-                          {product.discount_percentage && product.discount_percentage > 0 && (
-                            <span className="text-xs text-green-600">-{product.discount_percentage}%</span>
+                    </div>
+                    {expandedCategories.has(category) ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  
+                  {expandedCategories.has(category) && (
+                    <div className="border-t p-4 space-y-2">
+                      {categoryProducts.map((product) => (
+                        <div
+                          key={product.id}
+                          className={`p-3 rounded-lg border ${
+                            product.out_of_stock 
+                              ? "border-red-300 bg-red-50/50" 
+                              : aliEditingId === product.id 
+                                ? "border-blue-400 bg-blue-50" 
+                                : "bg-muted/30"
+                          }`}
+                        >
+                          {aliEditingId === product.id ? (
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                  <label className="text-xs text-muted-foreground">שם המוצר בעברית</label>
+                                  <Input
+                                    value={aliEditData.product_name_hebrew || ""}
+                                    onChange={(e) => setAliEditData({ ...aliEditData, product_name_hebrew: e.target.value })}
+                                    placeholder="שם המוצר"
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">קישור AliExpress</label>
+                                  <Input
+                                    value={aliEditData.tracking_link || ""}
+                                    onChange={(e) => setAliEditData({ ...aliEditData, tracking_link: e.target.value })}
+                                    placeholder="https://..."
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">קטגוריה</label>
+                                  <Select value={aliEditData.category_name_hebrew || ""} onValueChange={(val) => setAliEditData({ ...aliEditData, category_name_hebrew: val })}>
+                                    <SelectTrigger className="text-sm">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {CATEGORIES_ISRAEL.map(cat => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                                <div>
+                                  <label className="text-xs text-muted-foreground">תמונה URL</label>
+                                  <Input
+                                    value={aliEditData.image_url || ""}
+                                    onChange={(e) => setAliEditData({ ...aliEditData, image_url: e.target.value })}
+                                    placeholder="https://..."
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">מחיר ($)</label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={aliEditData.price_usd || ""}
+                                    onChange={(e) => setAliEditData({ ...aliEditData, price_usd: parseFloat(e.target.value) || undefined })}
+                                    placeholder="0"
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">מחיר מקורי ($)</label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={aliEditData.original_price_usd || ""}
+                                    onChange={(e) => setAliEditData({ ...aliEditData, original_price_usd: parseFloat(e.target.value) || undefined })}
+                                    placeholder="0"
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">דירוג</label>
+                                  <Input
+                                    type="number"
+                                    step="0.1"
+                                    max="5"
+                                    value={aliEditData.rating || ""}
+                                    onChange={(e) => setAliEditData({ ...aliEditData, rating: parseFloat(e.target.value) || undefined })}
+                                    placeholder="4.5"
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">נמכרו (30 יום)</label>
+                                  <Input
+                                    type="number"
+                                    value={aliEditData.sales_30d || ""}
+                                    onChange={(e) => setAliEditData({ ...aliEditData, sales_30d: parseInt(e.target.value) || undefined })}
+                                    placeholder="0"
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div className="flex items-end gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <Switch
+                                      checked={aliEditData.out_of_stock || false}
+                                      onCheckedChange={(checked) => setAliEditData({ ...aliEditData, out_of_stock: checked })}
+                                    />
+                                    <label className="text-xs text-muted-foreground">אזל במלאי</label>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={() => saveAliEdit(product.id)}>
+                                  <Save className="h-3 w-3 ml-1" />
+                                  שמור
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={cancelAliEdit}>
+                                  <X className="h-3 w-3 ml-1" />
+                                  ביטול
+                                </Button>
+                                <Button size="sm" variant="destructive" onClick={() => deleteAliProduct(product.id, product.product_name_hebrew || product.product_name)}>
+                                  <X className="h-3 w-3 ml-1" />
+                                  מחק
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                {product.image_url ? (
+                                  <img src={product.image_url} alt="" className="w-10 h-10 rounded object-cover" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs">📦</div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <div className="font-medium truncate">{product.product_name_hebrew || product.product_name}</div>
+                                    {product.out_of_stock && (
+                                      <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded flex items-center gap-1">
+                                        <PackageX className="h-3 w-3" />
+                                        אזל
+                                      </span>
+                                    )}
+                                  </div>
+                                  {product.product_name_hebrew && product.product_name !== product.product_name_hebrew && (
+                                    <div className="text-xs text-muted-foreground truncate">{product.product_name}</div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 text-sm">
+                                {product.price_usd ? (
+                                  <span className="font-medium text-blue-600">${product.price_usd.toFixed(2)}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                                {product.discount_percentage && product.discount_percentage > 0 && (
+                                  <span className="text-xs text-green-600">-{product.discount_percentage}%</span>
+                                )}
+                                {product.rating ? (
+                                  <span>⭐ {product.rating.toFixed(1)}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                                <div className="flex items-center gap-1">
+                                  <Switch
+                                    checked={product.out_of_stock || false}
+                                    onCheckedChange={() => toggleAliOutOfStock(product)}
+                                  />
+                                </div>
+                                {product.tracking_link && (
+                                  <a
+                                    href={product.tracking_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </a>
+                                )}
+                                <Button size="sm" variant="ghost" onClick={() => startAliEdit(product)}>
+                                  ערוך
+                                </Button>
+                              </div>
+                            </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                          {product.rating && <span>⭐ {product.rating.toFixed(1)}</span>}
-                          {product.sales_30d && <span>🔥 {product.sales_30d.toLocaleString()}</span>}
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                    {product.tracking_link && (
-                      <a
-                        href={product.tracking_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 block text-center text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        <ExternalLink className="h-3 w-3 inline mr-1" />
-                        צפה ב-AliExpress
-                      </a>
-                    )}
-                  </Card>
-                ))}
+                  )}
+                </Card>
+              ))}
+              {Object.keys(groupedAliProducts).length === 0 && (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground mb-4">אין מוצרים עדיין</p>
+                  <p className="text-sm text-muted-foreground">
+                    לחצו על "הוסף מוצר" כדי להתחיל להוסיף מוצרים
+                  </p>
+                </Card>
+              )}
             </div>
           )}
         </>
