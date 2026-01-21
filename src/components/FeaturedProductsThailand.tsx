@@ -59,6 +59,8 @@ const toUnifiedProduct = (product: FeedProduct): UnifiedProduct => ({
   imageUrl: product.image_url,
   priceUsd: convertThbToUsd(product.price_thb),
   originalPriceUsd: convertThbToUsd(product.original_price_thb),
+  priceThb: product.price_thb,
+  originalPriceThb: product.original_price_thb,
   discountPercentage: product.discount_percentage,
   rating: product.rating,
   salesCount: product.sales_7d,

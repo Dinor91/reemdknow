@@ -9,6 +9,8 @@ export interface UnifiedProduct {
   imageUrl: string | null;
   priceUsd: number | null;
   originalPriceUsd: number | null;
+  priceThb?: number | null;  // Original THB price for Lazada
+  originalPriceThb?: number | null;
   discountPercentage: number | null;
   rating: number | null;
   salesCount: number | null;
@@ -27,10 +29,22 @@ export const formatPriceUsd = (price: number | null): string => {
   return `$${price.toFixed(2)}`;
 };
 
+export const formatPriceThb = (price: number | null): string => {
+  if (!price) return '';
+  return `฿${Math.round(price).toLocaleString()}`;
+};
+
 export const convertToILS = (usdPrice: number | null): string => {
   if (!usdPrice) return '';
   const ilsPrice = usdPrice * USD_TO_ILS_RATE;
   return `~₪${ilsPrice.toFixed(0)}`;
+};
+
+export const convertThbToILS = (thbPrice: number | null): string => {
+  if (!thbPrice) return '';
+  // THB to ILS (via USD): THB * 0.028 * 3.7 ≈ THB * 0.104
+  const ilsPrice = thbPrice * THB_TO_USD_RATE * USD_TO_ILS_RATE;
+  return `~₪${Math.round(ilsPrice)}`;
 };
 
 export const convertThbToUsd = (thbPrice: number | null): number | null => {
@@ -100,22 +114,40 @@ export const ProductCard = ({
         {displayName}
       </h3>
 
-      {/* 2. Price in USD */}
+      {/* 2. Price - THB for Lazada, USD for AliExpress */}
       <div className="flex flex-col items-center gap-1 mb-3">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-xl text-foreground">
-            {formatPriceUsd(product.priceUsd)}
-          </span>
-          {product.originalPriceUsd && product.originalPriceUsd > (product.priceUsd || 0) && (
-            <span className="text-muted-foreground line-through text-sm">
-              {formatPriceUsd(product.originalPriceUsd)}
-            </span>
+          {product.platform === 'lazada' && product.priceThb ? (
+            <>
+              <span className="font-bold text-xl text-foreground">
+                {formatPriceThb(product.priceThb)}
+              </span>
+              {product.originalPriceThb && product.originalPriceThb > (product.priceThb || 0) && (
+                <span className="text-muted-foreground line-through text-sm">
+                  {formatPriceThb(product.originalPriceThb)}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="font-bold text-xl text-foreground">
+                {formatPriceUsd(product.priceUsd)}
+              </span>
+              {product.originalPriceUsd && product.originalPriceUsd > (product.priceUsd || 0) && (
+                <span className="text-muted-foreground line-through text-sm">
+                  {formatPriceUsd(product.originalPriceUsd)}
+                </span>
+              )}
+            </>
           )}
         </div>
 
         {/* 3. Estimated price in ILS */}
         <span className="text-muted-foreground text-xs">
-          {convertToILS(product.priceUsd)}
+          {product.platform === 'lazada' && product.priceThb
+            ? convertThbToILS(product.priceThb)
+            : convertToILS(product.priceUsd)
+          }
         </span>
 
         {/* 4. Discount */}
