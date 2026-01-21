@@ -53,40 +53,51 @@ const Landing = () => {
                   מה תמצאו באתר?
                 </h2>
                 <div className="flex items-start justify-center gap-6 md:gap-10 text-foreground">
-                  <Link to="/join" className="flex flex-col items-center gap-2 hover:text-primary transition-colors group max-w-[70px] md:max-w-[90px]">
+                  <button 
+                    onClick={() => document.getElementById('country-selection')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="flex flex-col items-center gap-2 hover:text-primary transition-colors group max-w-[70px] md:max-w-[90px]"
+                  >
                     <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                       <Users className="w-6 h-6 md:w-7 md:h-7 text-primary" />
                     </div>
-                    <span className="text-xs md:text-sm font-medium text-center leading-tight">הקהילה שלי</span>
-                  </Link>
-                  <Link to="/israel" className="flex flex-col items-center gap-2 hover:text-primary transition-colors group max-w-[70px] md:max-w-[90px]">
+                    <span className="text-xs md:text-sm font-medium text-center leading-tight">הצטרפות לקהילה</span>
+                  </button>
+                  <button 
+                    onClick={() => document.getElementById('country-selection')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="flex flex-col items-center gap-2 hover:text-primary transition-colors group max-w-[70px] md:max-w-[90px]"
+                  >
                     <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                       <Star className="w-6 h-6 md:w-7 md:h-7 text-primary" />
                     </div>
                     <span className="text-xs md:text-sm font-medium text-center leading-tight">המלצות העורך</span>
-                  </Link>
-                  <Link to="/thailand" className="flex flex-col items-center gap-2 hover:text-primary transition-colors group max-w-[70px] md:max-w-[90px]">
+                  </button>
+                  <button 
+                    onClick={() => document.getElementById('country-selection')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="flex flex-col items-center gap-2 hover:text-primary transition-colors group max-w-[70px] md:max-w-[90px]"
+                  >
                     <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                       <Flame className="w-6 h-6 md:w-7 md:h-7 text-primary" />
                     </div>
                     <span className="text-xs md:text-sm font-medium text-center leading-tight">הכי נמכרים</span>
-                  </Link>
+                  </button>
                   <Link to="/requests" className="flex flex-col items-center gap-2 hover:text-primary transition-colors group max-w-[70px] md:max-w-[90px]">
                     <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                       <Send className="w-6 h-6 md:w-7 md:h-7 text-primary" />
                     </div>
-                    <span className="text-xs md:text-sm font-medium text-center leading-tight">מצאו לי מוצר</span>
+                    <span className="text-xs md:text-sm font-medium text-center leading-tight">מצא לי מוצר</span>
                   </Link>
                 </div>
               </div>
 
               {/* CTA Question */}
-              <h2 className="text-[24px] md:text-[32px] lg:text-[36px] font-bold text-foreground mb-4">
-                איפה אתם בעולם?
-              </h2>
-              <p className="text-[20px] md:text-[24px] font-semibold text-[#333333] mb-8">
-                בחרו את היעד שלכם, הצטרפו לווטסאפ/ טלגרם וקבלו המלצות על בסיס יומי
-              </p>
+              <div id="country-selection">
+                <h2 className="text-[24px] md:text-[32px] lg:text-[36px] font-bold text-foreground mb-4">
+                  איפה אתם בעולם?
+                </h2>
+                <p className="text-[20px] md:text-[24px] font-semibold text-[#333333] mb-8">
+                  בחרו את היעד שלכם, הצטרפו לווטסאפ/ טלגרם וקבלו המלצות על בסיס יומי
+                </p>
+              </div>
 
               {/* Country Selection Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-3xl mx-auto">
