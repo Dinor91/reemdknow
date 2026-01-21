@@ -76,8 +76,33 @@ const CATEGORIES = [
   "כללי"
 ];
 
+// AliExpress Feed Product interface (moved up for ProductsTab)
+interface AliExpressFeedProduct {
+  id: string;
+  aliexpress_product_id: string;
+  product_name: string;
+  product_name_hebrew: string | null;
+  image_url: string | null;
+  price_usd: number | null;
+  original_price_usd: number | null;
+  discount_percentage: number | null;
+  commission_rate: number | null;
+  sales_30d: number | null;
+  rating: number | null;
+  reviews_count: number | null;
+  category_id: string | null;
+  category_name_hebrew: string | null;
+  tracking_link: string | null;
+  is_featured: boolean | null;
+  out_of_stock: boolean | null;
+}
+
+type ProductsPlatform = "lazada" | "aliexpress";
+
 const ProductsTab = () => {
+  const [platform, setPlatform] = useState<ProductsPlatform>("lazada");
   const [products, setProducts] = useState<CategoryProduct[]>([]);
+  const [aliexpressProducts, setAliexpressProducts] = useState<AliExpressFeedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<CategoryProduct> & { category?: string }>({});
@@ -95,18 +120,41 @@ const ProductsTab = () => {
     sales_count: "",
   });
 
-  const fetchProducts = async () => {
-    setLoading(true);
+  const fetchLazadaProducts = async () => {
     const { data, error } = await supabase
       .from("category_products")
       .select("*")
       .order("category", { ascending: true });
 
     if (error) {
-      console.error("Error fetching products:", error);
-      toast.error("שגיאה בטעינת מוצרים");
+      console.error("Error fetching Lazada products:", error);
+      toast.error("שגיאה בטעינת מוצרי Lazada");
     } else {
       setProducts(data || []);
+    }
+  };
+
+  const fetchAliexpressEditorProducts = async () => {
+    const { data, error } = await supabase
+      .from("aliexpress_feed_products")
+      .select("*")
+      .eq("is_featured", true)
+      .order("sales_30d", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching AliExpress products:", error);
+      toast.error("שגיאה בטעינת מוצרי AliExpress");
+    } else {
+      setAliexpressProducts(data || []);
+    }
+  };
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    if (platform === "lazada") {
+      await fetchLazadaProducts();
+    } else {
+      await fetchAliexpressEditorProducts();
     }
     setLoading(false);
   };
@@ -263,7 +311,7 @@ const ProductsTab = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [platform]);
 
   const filteredProducts = products.filter(
     (p) =>
@@ -282,331 +330,432 @@ const ProductsTab = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <Input
-          placeholder="חיפוש מוצר..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="max-w-xs"
-        />
-        <div className="flex gap-2">
-          <Button onClick={() => setShowAddProduct(true)} variant="default" className="bg-green-600 hover:bg-green-700">
-            <Package className="h-4 w-4 ml-2" />
-            הוסף מוצר
-          </Button>
-          <Button onClick={expandAll} variant="ghost" size="sm">
-            פתח הכל
-          </Button>
-          <Button onClick={collapseAll} variant="ghost" size="sm">
-            סגור הכל
-          </Button>
-          <Button onClick={fetchProducts} variant="outline" disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
-            רענן
-          </Button>
-          <Button onClick={updateFromApi} disabled={updatingFromApi}>
-            <Package className={`h-4 w-4 ml-2 ${updatingFromApi ? "animate-pulse" : ""}`} />
-            עדכון מ-API
-          </Button>
-        </div>
+      {/* Platform Selector */}
+      <div className="flex items-center gap-2 border-b pb-3">
+        <Button
+          variant={platform === "lazada" ? "default" : "outline"}
+          onClick={() => setPlatform("lazada")}
+          className={platform === "lazada" ? "bg-orange-500 hover:bg-orange-600" : ""}
+        >
+          <Store className="h-4 w-4 ml-2" />
+          Lazada (תאילנד)
+        </Button>
+        <Button
+          variant={platform === "aliexpress" ? "default" : "outline"}
+          onClick={() => setPlatform("aliexpress")}
+          className={platform === "aliexpress" ? "bg-blue-500 hover:bg-blue-600" : ""}
+        >
+          <Package className="h-4 w-4 ml-2" />
+          AliExpress (ישראל)
+        </Button>
       </div>
 
-      {/* Add New Product Form */}
-      {showAddProduct && (
-        <Card className="p-4 border-green-300 bg-green-50/50">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            הוספת מוצר חדש
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-            <div>
-              <label className="text-xs text-muted-foreground">שם המוצר בעברית *</label>
-              <Input
-                value={newProduct.name_hebrew}
-                onChange={(e) => setNewProduct({ ...newProduct, name_hebrew: e.target.value })}
-                placeholder="שם המוצר"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">קישור affiliate *</label>
-              <Input
-                value={newProduct.affiliate_link}
-                onChange={(e) => setNewProduct({ ...newProduct, affiliate_link: e.target.value })}
-                placeholder="https://c.lazada.co.th/..."
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
-            <div>
-              <label className="text-xs text-muted-foreground">קטגוריה</label>
-              <Select value={newProduct.category} onValueChange={(val) => setNewProduct({ ...newProduct, category: val })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map(cat => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">תמונה URL</label>
-              <Input
-                value={newProduct.image_url}
-                onChange={(e) => setNewProduct({ ...newProduct, image_url: e.target.value })}
-                placeholder="https://..."
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">מחיר (฿)</label>
-              <Input
-                type="number"
-                value={newProduct.price_thb}
-                onChange={(e) => setNewProduct({ ...newProduct, price_thb: e.target.value })}
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">דירוג</label>
-              <Input
-                type="number"
-                step="0.1"
-                max="5"
-                value={newProduct.rating}
-                onChange={(e) => setNewProduct({ ...newProduct, rating: e.target.value })}
-                placeholder="4.5"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">נמכרו</label>
-              <Input
-                type="number"
-                value={newProduct.sales_count}
-                onChange={(e) => setNewProduct({ ...newProduct, sales_count: e.target.value })}
-                placeholder="0"
-              />
+      {platform === "lazada" ? (
+        /* Lazada Products - Existing UI */
+        <>
+          <div className="flex flex-wrap gap-4 items-center justify-between">
+            <Input
+              placeholder="חיפוש מוצר..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="max-w-xs"
+            />
+            <div className="flex gap-2">
+              <Button onClick={() => setShowAddProduct(true)} variant="default" className="bg-green-600 hover:bg-green-700">
+                <Package className="h-4 w-4 ml-2" />
+                הוסף מוצר
+              </Button>
+              <Button onClick={expandAll} variant="ghost" size="sm">
+                פתח הכל
+              </Button>
+              <Button onClick={collapseAll} variant="ghost" size="sm">
+                סגור הכל
+              </Button>
+              <Button onClick={fetchProducts} variant="outline" disabled={loading}>
+                <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
+                רענן
+              </Button>
+              <Button onClick={updateFromApi} disabled={updatingFromApi}>
+                <Package className={`h-4 w-4 ml-2 ${updatingFromApi ? "animate-pulse" : ""}`} />
+                עדכון מ-API
+              </Button>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={addNewProduct} className="bg-green-600 hover:bg-green-700">
-              <Save className="h-4 w-4 ml-1" />
-              הוסף מוצר
-            </Button>
-            <Button variant="outline" onClick={() => setShowAddProduct(false)}>
-              <X className="h-4 w-4 ml-1" />
-              ביטול
-            </Button>
-          </div>
-        </Card>
-      )}
 
-      <div className="text-sm text-muted-foreground">
-        סה"כ {products.length} מוצרים | {products.filter(p => p.price_thb).length} עם מחיר | {products.filter(p => p.out_of_stock).length} אזלו במלאי
-      </div>
-
-      {loading ? (
-        <p className="text-muted-foreground">טוען...</p>
-      ) : (
-        <div className="space-y-2">
-          {Object.entries(groupedProducts).map(([category, categoryProducts]) => (
-            <Card key={category} className="overflow-hidden">
-              <button
-                onClick={() => toggleCategory(category)}
-                className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold">{category}</h3>
-                  <span className="text-sm text-muted-foreground">({categoryProducts.length})</span>
-                  {categoryProducts.some(p => p.out_of_stock) && (
-                    <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
-                      {categoryProducts.filter(p => p.out_of_stock).length} אזלו
-                    </span>
-                  )}
+          {/* Add New Product Form */}
+          {showAddProduct && (
+            <Card className="p-4 border-green-300 bg-green-50/50">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                הוספת מוצר חדש
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">שם המוצר בעברית *</label>
+                  <Input
+                    value={newProduct.name_hebrew}
+                    onChange={(e) => setNewProduct({ ...newProduct, name_hebrew: e.target.value })}
+                    placeholder="שם המוצר"
+                  />
                 </div>
-                {expandedCategories.has(category) ? (
-                  <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                )}
-              </button>
-              
-              {expandedCategories.has(category) && (
-                <div className="border-t p-4 space-y-2">
-                  {categoryProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className={`p-3 rounded-lg border ${
-                        product.out_of_stock 
-                          ? "border-red-300 bg-red-50/50" 
-                          : editingId === product.id 
-                            ? "border-orange-400 bg-orange-50" 
-                            : "bg-muted/30"
-                      }`}
-                    >
-                      {editingId === product.id ? (
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div>
-                              <label className="text-xs text-muted-foreground">שם המוצר</label>
-                              <Input
-                                value={editData.name_hebrew || ""}
-                                onChange={(e) => setEditData({ ...editData, name_hebrew: e.target.value })}
-                                placeholder="שם המוצר"
-                                className="text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">קישור לאזדה</label>
-                              <Input
-                                value={editData.affiliate_link || ""}
-                                onChange={(e) => setEditData({ ...editData, affiliate_link: e.target.value })}
-                                placeholder="https://..."
-                                className="text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">קטגוריה</label>
-                              <Select value={editData.category || ""} onValueChange={(val) => setEditData({ ...editData, category: val })}>
-                                <SelectTrigger className="text-sm">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {CATEGORIES.map(cat => (
-                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                            <div>
-                              <label className="text-xs text-muted-foreground">תמונה URL</label>
-                              <Input
-                                value={editData.image_url || ""}
-                                onChange={(e) => setEditData({ ...editData, image_url: e.target.value })}
-                                placeholder="https://..."
-                                className="text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">מחיר (฿)</label>
-                              <Input
-                                type="number"
-                                value={editData.price_thb || ""}
-                                onChange={(e) => setEditData({ ...editData, price_thb: parseFloat(e.target.value) || undefined })}
-                                placeholder="0"
-                                className="text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">דירוג</label>
-                              <Input
-                                type="number"
-                                step="0.1"
-                                max="5"
-                                value={editData.rating || ""}
-                                onChange={(e) => setEditData({ ...editData, rating: parseFloat(e.target.value) || undefined })}
-                                placeholder="4.5"
-                                className="text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground">נמכרו</label>
-                              <Input
-                                type="number"
-                                value={editData.sales_count || ""}
-                                onChange={(e) => setEditData({ ...editData, sales_count: parseInt(e.target.value) || undefined })}
-                                placeholder="0"
-                                className="text-sm"
-                              />
-                            </div>
-                            <div className="flex items-end gap-2">
-                              <div className="flex items-center gap-2">
-                                <Switch
-                                  checked={editData.out_of_stock || false}
-                                  onCheckedChange={(checked) => setEditData({ ...editData, out_of_stock: checked })}
-                                />
-                                <label className="text-xs text-muted-foreground">אזל במלאי</label>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={() => saveEdit(product.id)}>
-                              <Save className="h-3 w-3 ml-1" />
-                              שמור
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={cancelEdit}>
-                              <X className="h-3 w-3 ml-1" />
-                              ביטול
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => deleteProduct(product.id, product.name_hebrew)}>
-                              <X className="h-3 w-3 ml-1" />
-                              מחק
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            {product.image_url ? (
-                              <img src={product.image_url} alt="" className="w-10 h-10 rounded object-cover" />
-                            ) : (
-                              <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs">📦</div>
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <div className="font-medium truncate">{product.name_hebrew}</div>
-                                {product.out_of_stock && (
-                                  <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded flex items-center gap-1">
-                                    <PackageX className="h-3 w-3" />
-                                    אזל
-                                  </span>
-                                )}
-                              </div>
-                              {product.name_english && (
-                                <div className="text-xs text-muted-foreground truncate">{product.name_english}</div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm">
-                            {product.price_thb ? (
-                              <span className="font-medium text-orange-600">฿{product.price_thb.toLocaleString()}</span>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                            {product.rating ? (
-                              <span>⭐ {product.rating}</span>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                            <div className="flex items-center gap-1">
-                              <Switch
-                                checked={product.out_of_stock || false}
-                                onCheckedChange={() => toggleOutOfStock(product)}
-                              />
-                            </div>
-                            <a
-                              href={product.affiliate_link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                            <Button size="sm" variant="ghost" onClick={() => startEdit(product)}>
-                              ערוך
-                            </Button>
-                          </div>
-                        </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">קישור affiliate *</label>
+                  <Input
+                    value={newProduct.affiliate_link}
+                    onChange={(e) => setNewProduct({ ...newProduct, affiliate_link: e.target.value })}
+                    placeholder="https://c.lazada.co.th/..."
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">קטגוריה</label>
+                  <Select value={newProduct.category} onValueChange={(val) => setNewProduct({ ...newProduct, category: val })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">תמונה URL</label>
+                  <Input
+                    value={newProduct.image_url}
+                    onChange={(e) => setNewProduct({ ...newProduct, image_url: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">מחיר (฿)</label>
+                  <Input
+                    type="number"
+                    value={newProduct.price_thb}
+                    onChange={(e) => setNewProduct({ ...newProduct, price_thb: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">דירוג</label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    max="5"
+                    value={newProduct.rating}
+                    onChange={(e) => setNewProduct({ ...newProduct, rating: e.target.value })}
+                    placeholder="4.5"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">נמכרו</label>
+                  <Input
+                    type="number"
+                    value={newProduct.sales_count}
+                    onChange={(e) => setNewProduct({ ...newProduct, sales_count: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={addNewProduct} className="bg-green-600 hover:bg-green-700">
+                  <Save className="h-4 w-4 ml-1" />
+                  הוסף מוצר
+                </Button>
+                <Button variant="outline" onClick={() => setShowAddProduct(false)}>
+                  <X className="h-4 w-4 ml-1" />
+                  ביטול
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          <div className="text-sm text-muted-foreground">
+            סה"כ {products.length} מוצרים | {products.filter(p => p.price_thb).length} עם מחיר | {products.filter(p => p.out_of_stock).length} אזלו במלאי
+          </div>
+
+          {loading ? (
+            <p className="text-muted-foreground">טוען...</p>
+          ) : (
+            <div className="space-y-2">
+              {Object.entries(groupedProducts).map(([category, categoryProducts]) => (
+                <Card key={category} className="overflow-hidden">
+                  <button
+                    onClick={() => toggleCategory(category)}
+                    className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold">{category}</h3>
+                      <span className="text-sm text-muted-foreground">({categoryProducts.length})</span>
+                      {categoryProducts.some(p => p.out_of_stock) && (
+                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                          {categoryProducts.filter(p => p.out_of_stock).length} אזלו
+                        </span>
                       )}
                     </div>
-                  ))}
-                </div>
-              )}
+                    {expandedCategories.has(category) ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  
+                  {expandedCategories.has(category) && (
+                    <div className="border-t p-4 space-y-2">
+                      {categoryProducts.map((product) => (
+                        <div
+                          key={product.id}
+                          className={`p-3 rounded-lg border ${
+                            product.out_of_stock 
+                              ? "border-red-300 bg-red-50/50" 
+                              : editingId === product.id 
+                                ? "border-orange-400 bg-orange-50" 
+                                : "bg-muted/30"
+                          }`}
+                        >
+                          {editingId === product.id ? (
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                  <label className="text-xs text-muted-foreground">שם המוצר</label>
+                                  <Input
+                                    value={editData.name_hebrew || ""}
+                                    onChange={(e) => setEditData({ ...editData, name_hebrew: e.target.value })}
+                                    placeholder="שם המוצר"
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">קישור לאזדה</label>
+                                  <Input
+                                    value={editData.affiliate_link || ""}
+                                    onChange={(e) => setEditData({ ...editData, affiliate_link: e.target.value })}
+                                    placeholder="https://..."
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">קטגוריה</label>
+                                  <Select value={editData.category || ""} onValueChange={(val) => setEditData({ ...editData, category: val })}>
+                                    <SelectTrigger className="text-sm">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {CATEGORIES.map(cat => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                <div>
+                                  <label className="text-xs text-muted-foreground">תמונה URL</label>
+                                  <Input
+                                    value={editData.image_url || ""}
+                                    onChange={(e) => setEditData({ ...editData, image_url: e.target.value })}
+                                    placeholder="https://..."
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">מחיר (฿)</label>
+                                  <Input
+                                    type="number"
+                                    value={editData.price_thb || ""}
+                                    onChange={(e) => setEditData({ ...editData, price_thb: parseFloat(e.target.value) || undefined })}
+                                    placeholder="0"
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">דירוג</label>
+                                  <Input
+                                    type="number"
+                                    step="0.1"
+                                    max="5"
+                                    value={editData.rating || ""}
+                                    onChange={(e) => setEditData({ ...editData, rating: parseFloat(e.target.value) || undefined })}
+                                    placeholder="4.5"
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-muted-foreground">נמכרו</label>
+                                  <Input
+                                    type="number"
+                                    value={editData.sales_count || ""}
+                                    onChange={(e) => setEditData({ ...editData, sales_count: parseInt(e.target.value) || undefined })}
+                                    placeholder="0"
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div className="flex items-end gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <Switch
+                                      checked={editData.out_of_stock || false}
+                                      onCheckedChange={(checked) => setEditData({ ...editData, out_of_stock: checked })}
+                                    />
+                                    <label className="text-xs text-muted-foreground">אזל במלאי</label>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={() => saveEdit(product.id)}>
+                                  <Save className="h-3 w-3 ml-1" />
+                                  שמור
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={cancelEdit}>
+                                  <X className="h-3 w-3 ml-1" />
+                                  ביטול
+                                </Button>
+                                <Button size="sm" variant="destructive" onClick={() => deleteProduct(product.id, product.name_hebrew)}>
+                                  <X className="h-3 w-3 ml-1" />
+                                  מחק
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                {product.image_url ? (
+                                  <img src={product.image_url} alt="" className="w-10 h-10 rounded object-cover" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs">📦</div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <div className="font-medium truncate">{product.name_hebrew}</div>
+                                    {product.out_of_stock && (
+                                      <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded flex items-center gap-1">
+                                        <PackageX className="h-3 w-3" />
+                                        אזל
+                                      </span>
+                                    )}
+                                  </div>
+                                  {product.name_english && (
+                                    <div className="text-xs text-muted-foreground truncate">{product.name_english}</div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 text-sm">
+                                {product.price_thb ? (
+                                  <span className="font-medium text-orange-600">฿{product.price_thb.toLocaleString()}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                                {product.rating ? (
+                                  <span>⭐ {product.rating}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                                <div className="flex items-center gap-1">
+                                  <Switch
+                                    checked={product.out_of_stock || false}
+                                    onCheckedChange={() => toggleOutOfStock(product)}
+                                  />
+                                </div>
+                                <a
+                                  href={product.affiliate_link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                                <Button size="sm" variant="ghost" onClick={() => startEdit(product)}>
+                                  ערוך
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        /* AliExpress Products - Editor's picks from featured */
+        <>
+          <div className="flex flex-wrap gap-4 items-center justify-between">
+            <Input
+              placeholder="חיפוש מוצר..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="max-w-xs"
+            />
+            <Button onClick={fetchProducts} variant="outline" disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
+              רענן
+            </Button>
+          </div>
+
+          <div className="text-sm text-muted-foreground">
+            סה"כ {aliexpressProducts.length} מוצרים מועדפים (המלצות עורך)
+          </div>
+
+          {loading ? (
+            <p className="text-muted-foreground">טוען...</p>
+          ) : aliexpressProducts.length === 0 ? (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground mb-4">אין מוצרים מועדפים עדיין</p>
+              <p className="text-sm text-muted-foreground">
+                לכו לטאב "מוצרים פופולריים" &gt; AliExpress וסמנו מוצרים כמועדפים (⭐)
+              </p>
             </Card>
-          ))}
-        </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {aliexpressProducts
+                .filter(p => 
+                  p.product_name.toLowerCase().includes(filter.toLowerCase()) ||
+                  (p.product_name_hebrew && p.product_name_hebrew.includes(filter))
+                )
+                .map((product) => (
+                  <Card key={product.id} className="p-4">
+                    <div className="flex gap-3">
+                      {product.image_url ? (
+                        <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center text-2xl flex-shrink-0">📦</div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm line-clamp-2 mb-1">
+                          {product.product_name_hebrew || product.product_name}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-blue-600">${product.price_usd?.toFixed(2)}</span>
+                          {product.discount_percentage && product.discount_percentage > 0 && (
+                            <span className="text-xs text-green-600">-{product.discount_percentage}%</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                          {product.rating && <span>⭐ {product.rating.toFixed(1)}</span>}
+                          {product.sales_30d && <span>🔥 {product.sales_30d.toLocaleString()}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    {product.tracking_link && (
+                      <a
+                        href={product.tracking_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 block text-center text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        <ExternalLink className="h-3 w-3 inline mr-1" />
+                        צפה ב-AliExpress
+                      </a>
+                    )}
+                  </Card>
+                ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -629,26 +778,6 @@ interface LazadaFeedProduct {
   out_of_stock: boolean | null;
 }
 
-// AliExpress Feed Product interface
-interface AliExpressFeedProduct {
-  id: string;
-  aliexpress_product_id: string;
-  product_name: string;
-  product_name_hebrew: string | null;
-  image_url: string | null;
-  price_usd: number | null;
-  original_price_usd: number | null;
-  discount_percentage: number | null;
-  commission_rate: number | null;
-  sales_30d: number | null;
-  rating: number | null;
-  reviews_count: number | null;
-  category_id: string | null;
-  category_name_hebrew: string | null;
-  tracking_link: string | null;
-  is_featured: boolean | null;
-  out_of_stock: boolean | null;
-}
 
 type FeedPlatform = "lazada" | "aliexpress";
 
@@ -1523,7 +1652,7 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              מוצרים
+              המלצות העורך
             </TabsTrigger>
             <TabsTrigger value="feed" className="flex items-center gap-2">
               <Store className="h-4 w-4" />
