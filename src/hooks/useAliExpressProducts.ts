@@ -37,8 +37,26 @@ export const useAliExpressProducts = (options?: {
         .eq('out_of_stock', false)
         .order('sales_30d', { ascending: false, nullsFirst: false });
 
+      // If featured is requested, first try to get featured products
+      // If none exist, fall back to all products sorted by sales
       if (options?.featured) {
-        query = query.eq('is_featured', true);
+        const featuredQuery = supabase
+          .from('aliexpress_feed_products')
+          .select('*')
+          .eq('out_of_stock', false)
+          .eq('is_featured', true)
+          .order('sales_30d', { ascending: false, nullsFirst: false });
+
+        if (options?.limit) {
+          featuredQuery.limit(options.limit);
+        }
+
+        const { data: featuredData, error: featuredError } = await featuredQuery;
+
+        if (!featuredError && featuredData && featuredData.length > 0) {
+          return featuredData as AliExpressProduct[];
+        }
+        // If no featured products, continue with all products query
       }
 
       if (options?.category) {
