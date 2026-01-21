@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import dknowLogo from "@/assets/dknow-logo.png";
 import {
   ChartContainer,
   ChartTooltip,
@@ -844,7 +845,7 @@ const FeedTab = () => {
         <Button
           variant={platform === "aliexpress" ? "default" : "outline"}
           onClick={() => setPlatform("aliexpress")}
-          className={platform === "aliexpress" ? "bg-red-500 hover:bg-red-600" : ""}
+          className={platform === "aliexpress" ? "bg-blue-500 hover:bg-blue-600" : ""}
         >
           <Package className="h-4 w-4 ml-2" />
           AliExpress (ישראל)
@@ -863,7 +864,7 @@ const FeedTab = () => {
             <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
             רענן
           </Button>
-          <Button onClick={syncProducts} disabled={syncing}>
+          <Button onClick={syncProducts} disabled={syncing} className="bg-green-600 hover:bg-green-700">
             <Store className={`h-4 w-4 ml-2 ${syncing ? "animate-pulse" : ""}`} />
             סנכרן מ-{platform === "lazada" ? "Lazada" : "AliExpress"}
           </Button>
@@ -1496,6 +1497,13 @@ const Admin = () => {
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
+            <Link to="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
+              <img 
+                src={dknowLogo} 
+                alt="(D)Know Logo" 
+                className="h-10 w-10 rounded-lg object-cover"
+              />
+            </Link>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">פאנל ניהול</h1>
             {user && (
               <span className="text-sm text-muted-foreground hidden md:inline">({user.email})</span>
@@ -1519,7 +1527,7 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="feed" className="flex items-center gap-2">
               <Store className="h-4 w-4" />
-              פיד Lazada
+              מוצרים פופולריים
             </TabsTrigger>
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
