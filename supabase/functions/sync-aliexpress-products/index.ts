@@ -82,7 +82,34 @@ async function callAliExpressAPI(method: string, additionalParams: Record<string
   return data
 }
 
-// Get hot products from AliExpress
+// Get featured promos (campaigns with high commissions) - Available in Standard API!
+async function getFeaturedPromos() {
+  return await callAliExpressAPI('aliexpress.affiliate.featuredpromo.get', {})
+}
+
+// Get products from a specific promo/campaign
+async function getPromoProducts(
+  promoUrl: string,
+  pageNo: number = 1,
+  pageSize: number = 50
+) {
+  const params: Record<string, string> = {
+    promotion_link_type: '0',
+    page_no: pageNo.toString(),
+    page_size: pageSize.toString(),
+    target_currency: 'USD',
+    target_language: 'EN'
+  }
+
+  // Try using featuredpromo.products.get for promo-specific products
+  return await callAliExpressAPI('aliexpress.affiliate.featuredpromo.products.get', {
+    ...params,
+    promotion_start_time: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    promotion_end_time: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  })
+}
+
+// Get hot products from AliExpress (requires Advanced API)
 async function getHotProducts(
   pageNo: number = 1,
   pageSize: number = 50,
@@ -186,37 +213,76 @@ serve(async (req) => {
 
     const allProducts: any[] = []
 
-    // Try Hot Products API first (higher commission rates)
-    console.log('Attempting to fetch Hot Products (high commission)...')
-    let useHotProducts = false
+    // Strategy 1: Try Featured Promos API first (high commission campaigns - Standard API)
+    console.log('=== Strategy 1: Fetching Featured Promos (high commission campaigns) ===')
+    let promoProducts: any[] = []
+    
+    try {
+      const promosResult = await getFeaturedPromos()
+      console.log('Featured Promos response:', JSON.stringify(promosResult).substring(0, 1000))
+      
+      const promos = promosResult?.aliexpress_affiliate_featuredpromo_get_response?.resp_result?.result?.promos?.promo || []
+      console.log(`Found ${promos.length} active promotional campaigns`)
+      
+      if (promos.length > 0) {
+        // Log available promos with their commission rates
+        for (const promo of promos) {
+          console.log(`📢 Campaign: ${promo.promo_name || 'Unknown'} | Commission: ${promo.promo_desc || 'N/A'}`)
+        }
+        
+        // Try to get products from featured promos
+        const promoProductsResult = await getPromoProducts('', 1, 50)
+        console.log('Promo Products response:', JSON.stringify(promoProductsResult).substring(0, 1000))
+        
+        const fetchedPromoProducts = promoProductsResult?.aliexpress_affiliate_featuredpromo_products_get_response?.resp_result?.result?.products?.product || []
+        if (fetchedPromoProducts.length > 0) {
+          promoProducts = fetchedPromoProducts
+          console.log(`✅ Fetched ${promoProducts.length} products from promotional campaigns!`)
+        }
+      }
+    } catch (promoError) {
+      console.log('Featured Promo API error:', promoError)
+    }
+
+    // Strategy 2: Try Hot Products API (requires Advanced API - might be pending)
+    console.log('=== Strategy 2: Trying Hot Products API (Advanced) ===')
+    let hotProducts: any[] = []
     
     try {
       for (let page = 1; page <= 3; page++) {
-        if (allProducts.length >= maxProducts) break
+        if (hotProducts.length + promoProducts.length >= maxProducts) break
         
         const result = await getHotProducts(page, 50, categoryIds, 'LAST_VOLUME_DESC')
         const products = result?.aliexpress_affiliate_hotproduct_query_response?.resp_result?.result?.products?.product || []
         
         if (products.length === 0) {
           if (page === 1) {
-            console.log('Hot Products API returned no results - may need Advanced API access')
+            console.log('⏳ Hot Products API returned no results - Advanced API may be pending approval')
           }
           break
         }
         
-        useHotProducts = true
-        allProducts.push(...products)
-        console.log(`[HOT] Fetched page ${page}: ${products.length} products, total: ${allProducts.length}`)
+        hotProducts.push(...products)
+        console.log(`[HOT] Fetched page ${page}: ${products.length} products, total: ${hotProducts.length}`)
         
         await new Promise(resolve => setTimeout(resolve, 500))
+      }
+      
+      if (hotProducts.length > 0) {
+        console.log(`✅ Successfully fetched ${hotProducts.length} Hot Products!`)
       }
     } catch (hotError) {
       console.log('Hot Products API error:', hotError)
     }
 
-    // If Hot Products didn't work, fall back to regular search
-    if (allProducts.length === 0) {
-      console.log('Falling back to regular product search...')
+    // Combine promo products (priority) with hot products
+    allProducts.push(...promoProducts)
+    allProducts.push(...hotProducts)
+    console.log(`After promo + hot: ${allProducts.length} products (${promoProducts.length} promo, ${hotProducts.length} hot)`)
+
+    // Strategy 3: Fall back to regular search if still not enough products
+    if (allProducts.length < maxProducts) {
+      console.log('=== Strategy 3: Regular product search (Standard API) ===')
       
       // Default search keywords if none provided (popular product categories)
       const searchKeywords = keywords || 'electronics,phone accessories,bluetooth earphones,smart watch,USB charger'
@@ -245,8 +311,6 @@ serve(async (req) => {
           await new Promise(resolve => setTimeout(resolve, 500))
         }
       }
-    } else {
-      console.log(`Successfully fetched ${allProducts.length} Hot Products with high commissions!`)
     }
 
     console.log(`Total products from AliExpress: ${allProducts.length}`)
