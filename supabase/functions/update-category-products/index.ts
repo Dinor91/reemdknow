@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { verifyAdminAuth, createUnauthorizedResponse, createForbiddenResponse } from '../_shared/auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -136,6 +137,18 @@ serve(async (req) => {
   }
 
   try {
+    // Verify admin authentication
+    const authHeader = req.headers.get('Authorization')
+    const authResult = await verifyAdminAuth(authHeader)
+    
+    if (authResult.error === 'Missing authorization header' || authResult.error === 'Invalid auth token') {
+      return createUnauthorizedResponse(authResult.error, corsHeaders)
+    }
+    
+    if (!authResult.isAdmin) {
+      return createForbiddenResponse('Admin access required', corsHeaders)
+    }
+
     if (!LAZADA_APP_KEY || !LAZADA_APP_SECRET || !LAZADA_USER_TOKEN) {
       return new Response(
         JSON.stringify({ error: 'Lazada API credentials not configured' }),
