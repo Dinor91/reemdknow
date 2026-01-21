@@ -277,13 +277,17 @@ export type Database = {
           commission_rate: number | null
           created_at: string
           currency: string | null
+          discount_percentage: number | null
           id: string
           image_url: string | null
           is_featured: boolean | null
           lazada_product_id: string
+          original_price_thb: number | null
           out_of_stock: boolean | null
           price_thb: number | null
           product_name: string
+          rating: number | null
+          reviews_count: number | null
           sales_7d: number | null
           tracking_link: string | null
           updated_at: string
@@ -295,13 +299,17 @@ export type Database = {
           commission_rate?: number | null
           created_at?: string
           currency?: string | null
+          discount_percentage?: number | null
           id?: string
           image_url?: string | null
           is_featured?: boolean | null
           lazada_product_id: string
+          original_price_thb?: number | null
           out_of_stock?: boolean | null
           price_thb?: number | null
           product_name: string
+          rating?: number | null
+          reviews_count?: number | null
           sales_7d?: number | null
           tracking_link?: string | null
           updated_at?: string
@@ -313,13 +321,17 @@ export type Database = {
           commission_rate?: number | null
           created_at?: string
           currency?: string | null
+          discount_percentage?: number | null
           id?: string
           image_url?: string | null
           is_featured?: boolean | null
           lazada_product_id?: string
+          original_price_thb?: number | null
           out_of_stock?: boolean | null
           price_thb?: number | null
           product_name?: string
+          rating?: number | null
+          reviews_count?: number | null
           sales_7d?: number | null
           tracking_link?: string | null
           updated_at?: string
