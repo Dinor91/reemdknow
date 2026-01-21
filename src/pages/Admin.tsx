@@ -85,7 +85,25 @@ const CATEGORIES_ISRAEL = [
   "כללי"
 ];
 
-// AliExpress Feed Product interface (moved up for ProductsTab)
+// Israel Editor Product interface (separate table from feed)
+interface IsraelEditorProduct {
+  id: string;
+  aliexpress_product_id: string | null;
+  product_name_hebrew: string;
+  product_name_english: string | null;
+  image_url: string | null;
+  price_usd: number | null;
+  original_price_usd: number | null;
+  discount_percentage: number | null;
+  rating: number | null;
+  sales_count: number | null;
+  tracking_link: string;
+  category_name_hebrew: string;
+  is_active: boolean | null;
+  out_of_stock: boolean | null;
+}
+
+// AliExpress Feed Product interface (for FeedTab only)
 interface AliExpressFeedProduct {
   id: string;
   aliexpress_product_id: string;
@@ -111,12 +129,12 @@ type ProductsPlatform = "lazada" | "aliexpress";
 const ProductsTab = () => {
   const [platform, setPlatform] = useState<ProductsPlatform>("lazada");
   const [products, setProducts] = useState<CategoryProduct[]>([]);
-  const [aliexpressProducts, setAliexpressProducts] = useState<AliExpressFeedProduct[]>([]);
+  const [aliexpressProducts, setAliexpressProducts] = useState<IsraelEditorProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<CategoryProduct> & { category?: string }>({});
   const [aliEditingId, setAliEditingId] = useState<string | null>(null);
-  const [aliEditData, setAliEditData] = useState<Partial<AliExpressFeedProduct> & { category_name_hebrew?: string }>({});
+  const [aliEditData, setAliEditData] = useState<Partial<IsraelEditorProduct> & { category_name_hebrew?: string }>({});
   const [filter, setFilter] = useState("");
   const [updatingFromApi, setUpdatingFromApi] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -138,7 +156,7 @@ const ProductsTab = () => {
     price_usd: "",
     original_price_usd: "",
     rating: "",
-    sales_30d: "",
+    sales_count: "",
   });
 
   const fetchLazadaProducts = async () => {
@@ -157,14 +175,14 @@ const ProductsTab = () => {
 
   const fetchAliexpressEditorProducts = async () => {
     const { data, error } = await supabase
-      .from("aliexpress_feed_products")
+      .from("israel_editor_products")
       .select("*")
-      .eq("is_featured", true)
-      .order("sales_30d", { ascending: false });
+      .order("category_name_hebrew", { ascending: true })
+      .order("sales_count", { ascending: false, nullsFirst: false });
 
     if (error) {
-      console.error("Error fetching AliExpress products:", error);
-      toast.error("שגיאה בטעינת מוצרי AliExpress");
+      console.error("Error fetching Israel editor products:", error);
+      toast.error("שגיאה בטעינת מוצרי ישראל");
     } else {
       setAliexpressProducts(data || []);
     }
@@ -330,8 +348,8 @@ const ProductsTab = () => {
     }
   };
 
-  // AliExpress CRUD functions
-  const startAliEdit = (product: AliExpressFeedProduct) => {
+  // Israel Editor CRUD functions
+  const startAliEdit = (product: IsraelEditorProduct) => {
     setAliEditingId(product.id);
     setAliEditData({
       product_name_hebrew: product.product_name_hebrew || "",
@@ -340,7 +358,7 @@ const ProductsTab = () => {
       price_usd: product.price_usd || undefined,
       original_price_usd: product.original_price_usd || undefined,
       rating: product.rating || undefined,
-      sales_30d: product.sales_30d || undefined,
+      sales_count: product.sales_count || undefined,
       out_of_stock: product.out_of_stock || false,
       category_name_hebrew: product.category_name_hebrew || CATEGORIES_ISRAEL[0],
     });
@@ -357,7 +375,7 @@ const ProductsTab = () => {
       : null;
 
     const { error } = await supabase
-      .from("aliexpress_feed_products")
+      .from("israel_editor_products")
       .update({
         product_name_hebrew: aliEditData.product_name_hebrew,
         tracking_link: aliEditData.tracking_link || null,
@@ -366,7 +384,7 @@ const ProductsTab = () => {
         original_price_usd: aliEditData.original_price_usd || null,
         discount_percentage: discountPct,
         rating: aliEditData.rating || null,
-        sales_30d: aliEditData.sales_30d || null,
+        sales_count: aliEditData.sales_count || null,
         out_of_stock: aliEditData.out_of_stock || false,
         category_name_hebrew: aliEditData.category_name_hebrew,
         updated_at: new Date().toISOString(),
@@ -383,10 +401,10 @@ const ProductsTab = () => {
     }
   };
 
-  const toggleAliOutOfStock = async (product: AliExpressFeedProduct) => {
+  const toggleAliOutOfStock = async (product: IsraelEditorProduct) => {
     const newValue = !product.out_of_stock;
     const { error } = await supabase
-      .from("aliexpress_feed_products")
+      .from("israel_editor_products")
       .update({ out_of_stock: newValue, updated_at: new Date().toISOString() })
       .eq("id", product.id);
 
@@ -413,10 +431,9 @@ const ProductsTab = () => {
       : null;
 
     const { error } = await supabase
-      .from("aliexpress_feed_products")
+      .from("israel_editor_products")
       .insert({
         aliexpress_product_id: `manual-${Date.now()}`,
-        product_name: newAliProduct.product_name_hebrew,
         product_name_hebrew: newAliProduct.product_name_hebrew,
         tracking_link: newAliProduct.tracking_link,
         category_name_hebrew: newAliProduct.category_name_hebrew,
@@ -425,8 +442,8 @@ const ProductsTab = () => {
         original_price_usd: originalPriceUsd,
         discount_percentage: discountPct,
         rating: newAliProduct.rating ? parseFloat(newAliProduct.rating) : null,
-        sales_30d: newAliProduct.sales_30d ? parseInt(newAliProduct.sales_30d) : null,
-        is_featured: true,
+        sales_count: newAliProduct.sales_count ? parseInt(newAliProduct.sales_count) : null,
+        is_active: true,
         out_of_stock: false,
       });
 
@@ -444,7 +461,7 @@ const ProductsTab = () => {
         price_usd: "",
         original_price_usd: "",
         rating: "",
-        sales_30d: "",
+        sales_count: "",
       });
       fetchProducts();
     }
@@ -454,7 +471,7 @@ const ProductsTab = () => {
     if (!confirm(`למחוק את "${name}"?`)) return;
     
     const { error } = await supabase
-      .from("aliexpress_feed_products")
+      .from("israel_editor_products")
       .delete()
       .eq("id", id);
 
@@ -490,11 +507,10 @@ const ProductsTab = () => {
     return acc;
   }, {} as Record<string, CategoryProduct[]>);
 
-  // Filter and group AliExpress products
+  // Filter and group Israel editor products
   const filteredAliProducts = aliexpressProducts.filter(
     (p) =>
-      p.product_name.toLowerCase().includes(filter.toLowerCase()) ||
-      (p.product_name_hebrew && p.product_name_hebrew.includes(filter)) ||
+      p.product_name_hebrew.toLowerCase().includes(filter.toLowerCase()) ||
       (p.category_name_hebrew && p.category_name_hebrew.includes(filter))
   );
 
@@ -505,7 +521,7 @@ const ProductsTab = () => {
     }
     acc[category].push(product);
     return acc;
-  }, {} as Record<string, AliExpressFeedProduct[]>);
+  }, {} as Record<string, IsraelEditorProduct[]>);
 
   return (
     <div className="space-y-4">
@@ -966,11 +982,11 @@ const ProductsTab = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">נמכרו (30 יום)</label>
+                  <label className="text-xs text-muted-foreground">נמכרו</label>
                   <Input
                     type="number"
-                    value={newAliProduct.sales_30d}
-                    onChange={(e) => setNewAliProduct({ ...newAliProduct, sales_30d: e.target.value })}
+                    value={newAliProduct.sales_count}
+                    onChange={(e) => setNewAliProduct({ ...newAliProduct, sales_count: e.target.value })}
                     placeholder="0"
                   />
                 </div>
@@ -1111,11 +1127,11 @@ const ProductsTab = () => {
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-muted-foreground">נמכרו (30 יום)</label>
+                                  <label className="text-xs text-muted-foreground">נמכרו</label>
                                   <Input
                                     type="number"
-                                    value={aliEditData.sales_30d || ""}
-                                    onChange={(e) => setAliEditData({ ...aliEditData, sales_30d: parseInt(e.target.value) || undefined })}
+                                    value={aliEditData.sales_count || ""}
+                                    onChange={(e) => setAliEditData({ ...aliEditData, sales_count: parseInt(e.target.value) || undefined })}
                                     placeholder="0"
                                     className="text-sm"
                                   />
@@ -1139,7 +1155,7 @@ const ProductsTab = () => {
                                   <X className="h-3 w-3 ml-1" />
                                   ביטול
                                 </Button>
-                                <Button size="sm" variant="destructive" onClick={() => deleteAliProduct(product.id, product.product_name_hebrew || product.product_name)}>
+                                <Button size="sm" variant="destructive" onClick={() => deleteAliProduct(product.id, product.product_name_hebrew)}>
                                   <X className="h-3 w-3 ml-1" />
                                   מחק
                                 </Button>
@@ -1155,7 +1171,7 @@ const ProductsTab = () => {
                                 )}
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2">
-                                    <div className="font-medium truncate">{product.product_name_hebrew || product.product_name}</div>
+                                    <div className="font-medium truncate">{product.product_name_hebrew}</div>
                                     {product.out_of_stock && (
                                       <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded flex items-center gap-1">
                                         <PackageX className="h-3 w-3" />
@@ -1163,9 +1179,6 @@ const ProductsTab = () => {
                                       </span>
                                     )}
                                   </div>
-                                  {product.product_name_hebrew && product.product_name !== product.product_name_hebrew && (
-                                    <div className="text-xs text-muted-foreground truncate">{product.product_name}</div>
-                                  )}
                                 </div>
                               </div>
                               <div className="flex items-center gap-3 text-sm">
