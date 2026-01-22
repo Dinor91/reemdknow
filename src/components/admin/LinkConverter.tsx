@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { RefreshCw, Link2, Download, Check, Copy, ExternalLink } from "lucide-react";
+import { RefreshCw, Link2, Download, Check, Copy, ExternalLink, Globe, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ConvertedLink {
   originalUrl: string;
@@ -54,11 +55,48 @@ function extractProductId(url: string): string | null {
 
 export const LinkConverter = () => {
   const [inputLinks, setInputLinks] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [convertedLinks, setConvertedLinks] = useState<ConvertedLink[]>([]);
   const [isConverting, setIsConverting] = useState(false);
+  const [isScraping, setIsScraping] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("כללי");
   const [selectedForImport, setSelectedForImport] = useState<Set<string>>(new Set());
+
+  // Scrape external website for AliExpress links
+  const handleScrapeWebsite = async () => {
+    if (!websiteUrl.trim()) {
+      toast.error("הכנס כתובת אתר");
+      return;
+    }
+
+    setIsScraping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('scrape-external-links', {
+        body: { url: websiteUrl.trim() }
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'שגיאה בסריקת האתר');
+      }
+
+      if (data.links && data.links.length > 0) {
+        // Add scraped links to the input textarea
+        const linkUrls = data.links.map((l: any) => l.originalUrl).join('\n');
+        setInputLinks(prev => prev ? prev + '\n' + linkUrls : linkUrls);
+        toast.success(`נמצאו ${data.validProductLinks} קישורי AliExpress!`);
+      } else {
+        toast.warning("לא נמצאו קישורי AliExpress באתר");
+      }
+    } catch (err: any) {
+      console.error('Scrape error:', err);
+      toast.error(err.message || "שגיאה בסריקת האתר");
+    } finally {
+      setIsScraping(false);
+    }
+  };
 
   const handleConvert = async () => {
     const links = inputLinks
@@ -225,41 +263,97 @@ export const LinkConverter = () => {
         <div>
           <h2 className="text-xl font-bold mb-2">🔄 המרת קישורי AliExpress</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            הדבק קישורי AliExpress מאתר חיצוני - הכלי יחלץ את מזהה המוצר ויצור קישורי אפיליאציה חדשים עם ה-Tracking ID שלך
+            סרוק אתר חיצוני או הדבק קישורים - הכלי יחלץ את מזהה המוצר ויצור קישורי אפיליאציה חדשים עם ה-Tracking ID שלך
           </p>
         </div>
 
-        {/* Input Section */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium">הדבק קישורים (קישור אחד בכל שורה):</label>
-          <Textarea
-            value={inputLinks}
-            onChange={(e) => setInputLinks(e.target.value)}
-            placeholder={`https://www.aliexpress.com/item/1234567890.html
+        <Tabs defaultValue="scrape" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="scrape" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              סריקת אתר
+            </TabsTrigger>
+            <TabsTrigger value="paste" className="flex items-center gap-2">
+              <Link2 className="h-4 w-4" />
+              הדבקת קישורים
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="scrape" className="space-y-3">
+            <label className="text-sm font-medium">כתובת האתר לסריקה:</label>
+            <div className="flex gap-2">
+              <Input
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                placeholder="https://beacons.ai/aliexpressfinds_israel"
+                className="font-mono text-sm flex-1"
+                dir="ltr"
+              />
+              <Button 
+                onClick={handleScrapeWebsite} 
+                disabled={isScraping || !websiteUrl.trim()}
+              >
+                {isScraping ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
+                    סורק...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 ml-2" />
+                    סרוק אתר
+                  </>
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              הכלי יסרוק את האתר ויחלץ את כל קישורי AliExpress שנמצאים בו
+            </p>
+          </TabsContent>
+
+          <TabsContent value="paste" className="space-y-3">
+            <label className="text-sm font-medium">הדבק קישורים (קישור אחד בכל שורה):</label>
+            <Textarea
+              value={inputLinks}
+              onChange={(e) => setInputLinks(e.target.value)}
+              placeholder={`https://www.aliexpress.com/item/1234567890.html
 https://s.click.aliexpress.com/e/_ABC123
 https://he.aliexpress.com/item/9876543210.html`}
-            className="min-h-[150px] font-mono text-sm"
-            dir="ltr"
-          />
-          <Button 
-            onClick={handleConvert} 
-            disabled={isConverting || !inputLinks.trim()}
-            className="w-full"
-          >
-            {isConverting ? (
-              <>
-                <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
-                ממיר קישורים...
-              </>
-            ) : (
-              <>
-                <Link2 className="h-4 w-4 ml-2" />
-                המר לקישורים שלי
-              </>
-            )}
-          </Button>
-        </div>
+              className="min-h-[120px] font-mono text-sm"
+              dir="ltr"
+            />
+          </TabsContent>
+        </Tabs>
 
+        {/* Links found indicator */}
+        {inputLinks.trim() && (
+          <div className="bg-muted p-3 rounded-lg">
+            <p className="text-sm">
+              <span className="font-medium">קישורים שנמצאו: </span>
+              {inputLinks.split('\n').filter(l => l.includes('aliexpress') || l.includes('s.click')).length}
+            </p>
+          </div>
+        )}
+
+        {/* Convert Button */}
+        <Button 
+          onClick={handleConvert} 
+          disabled={isConverting || !inputLinks.trim()}
+          className="w-full"
+          size="lg"
+        >
+          {isConverting ? (
+            <>
+              <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
+              ממיר קישורים...
+            </>
+          ) : (
+            <>
+              <Link2 className="h-4 w-4 ml-2" />
+              המר לקישורים שלי
+            </>
+          )}
+        </Button>
         {/* Results Section */}
         {convertedLinks.length > 0 && (
           <div className="space-y-4">
