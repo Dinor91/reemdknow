@@ -78,10 +78,11 @@ Deno.serve(async (req) => {
       // Default to both platforms
     }
 
-    const results: { aliexpress: any; lazada: any; categoryProducts: any } = {
+    const results: { aliexpress: any; lazada: any; categoryProducts: any; israelProducts: any } = {
       aliexpress: null,
       lazada: null,
-      categoryProducts: null
+      categoryProducts: null,
+      israelProducts: null
     };
 
     // Translate AliExpress products
@@ -196,6 +197,51 @@ Deno.serve(async (req) => {
         };
       } else {
         results.categoryProducts = { found: 0, translated: 0, message: "All products already translated" };
+      }
+    }
+
+    // Translate israel_editor_products
+    if (platform === "both" || platform === "israel") {
+      const { data: israelProducts, error: israelError } = await supabase
+        .from("israel_editor_products")
+        .select("id, product_name_hebrew, product_name_english")
+        .limit(50);
+
+      if (israelError) throw israelError;
+
+      // Filter products that need translation (Hebrew name looks English)
+      const productsNeedingTranslation = (israelProducts || []).filter(p => 
+        needsTranslation(p.product_name_hebrew)
+      );
+
+      if (productsNeedingTranslation.length > 0) {
+        const translated = await translateProducts(
+          productsNeedingTranslation.map(p => ({ 
+            id: p.id, 
+            name: p.product_name_english || p.product_name_hebrew 
+          })),
+          lovableApiKey
+        );
+
+        let updatedCount = 0;
+        for (const item of translated) {
+          const { error } = await supabase
+            .from("israel_editor_products")
+            .update({ 
+              product_name_hebrew: item.translation,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", item.id);
+
+          if (!error) updatedCount++;
+        }
+
+        results.israelProducts = { 
+          found: productsNeedingTranslation.length, 
+          translated: updatedCount 
+        };
+      } else {
+        results.israelProducts = { found: 0, translated: 0, message: "All products already translated" };
       }
     }
 

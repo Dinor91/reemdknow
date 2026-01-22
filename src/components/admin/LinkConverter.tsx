@@ -458,7 +458,20 @@ export const LinkConverter = () => {
         .map(([cat, count]) => `${cat}: ${count}`)
         .join(', ');
 
-      toast.success(`✅ יובאו ${linksToImport.length} מוצרים אוטומטית! (${categoryList})`);
+      toast.success(`✅ יובאו ${linksToImport.length} מוצרים! מתרגם לעברית...`);
+      
+      // Trigger translation for Israel products
+      try {
+        const { data: translateResult } = await supabase.functions.invoke('translate-products', {
+          body: { platform: 'israel' }
+        });
+        
+        if (translateResult?.results?.israelProducts?.translated > 0) {
+          toast.success(`🌐 תורגמו ${translateResult.results.israelProducts.translated} מוצרים לעברית!`);
+        }
+      } catch (e) {
+        console.log('Translation triggered:', e);
+      }
       
       // Trigger image scraping for new products
       try {
