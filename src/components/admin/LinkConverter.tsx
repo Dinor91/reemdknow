@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { RefreshCw, Link2, Download, Check, Copy, ExternalLink, Globe, Search } from "lucide-react";
+import { RefreshCw, Link2, Download, Check, Copy, ExternalLink, Globe, Search, Sparkles } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -413,6 +413,71 @@ export const LinkConverter = () => {
     }
   };
 
+  // Auto-import all successful conversions with detected categories
+  const handleAutoImportAll = async () => {
+    const linksToImport = convertedLinks.filter(l => l.newTrackingLink);
+
+    if (linksToImport.length === 0) {
+      toast.error("אין מוצרים לייבוא");
+      return;
+    }
+
+    setIsImporting(true);
+
+    try {
+      const productsToInsert = linksToImport.map(link => ({
+        aliexpress_product_id: link.productId,
+        product_name_hebrew: link.productName || `מוצר ${link.productId}`,
+        product_name_english: link.productName || null,
+        tracking_link: link.newTrackingLink!,
+        category_name_hebrew: link.detectedCategory || 'כללי',
+        price_usd: link.priceUsd || null,
+        original_price_usd: link.originalPriceUsd || null,
+        image_url: link.imageUrl || null,
+        is_active: true,
+        out_of_stock: link.inStock === false
+      }));
+
+      const { error } = await supabase
+        .from('israel_editor_products')
+        .upsert(productsToInsert, { 
+          onConflict: 'aliexpress_product_id',
+          ignoreDuplicates: false 
+        });
+
+      if (error) throw error;
+
+      // Count categories for summary
+      const categoryCounts: Record<string, number> = {};
+      linksToImport.forEach(l => {
+        const cat = l.detectedCategory || 'כללי';
+        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+      });
+
+      const categoryList = Object.entries(categoryCounts)
+        .map(([cat, count]) => `${cat}: ${count}`)
+        .join(', ');
+
+      toast.success(`✅ יובאו ${linksToImport.length} מוצרים אוטומטית! (${categoryList})`);
+      
+      // Trigger image scraping for new products
+      try {
+        await supabase.functions.invoke('scrape-product-images');
+      } catch (e) {
+        console.log('Image scraping triggered');
+      }
+
+      // Clear the converted links after successful auto-import
+      setConvertedLinks([]);
+      setInputLinks('');
+    } catch (err) {
+      console.error('Error auto-importing:', err);
+      toast.error("שגיאה בייבוא אוטומטי");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const toggleSelectAll = () => {
     const validIds = convertedLinks
       .filter(l => l.newTrackingLink)
@@ -603,6 +668,41 @@ https://he.aliexpress.com/item/9876543210.html`}
         {/* Results Section */}
         {convertedLinks.length > 0 && (
           <div className="space-y-4">
+            {/* Auto Import Banner */}
+            {convertedLinks.some(l => l.newTrackingLink) && (
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h4 className="font-semibold text-green-800 dark:text-green-200 flex items-center gap-2">
+                      <Sparkles className="h-5 w-5" />
+                      ייבוא אוטומטי לקטגוריות
+                    </h4>
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                      הכלי יזהה את הקטגוריות אוטומטית ויייבא את כל {convertedLinks.filter(l => l.newTrackingLink).length} המוצרים
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleAutoImportAll}
+                    disabled={isImporting}
+                    className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+                    size="lg"
+                  >
+                    {isImporting ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
+                        מייבא...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 ml-2" />
+                        ייבא הכל אוטומטית
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">תוצאות ({convertedLinks.filter(l => l.newTrackingLink).length} הצליחו)</h3>
               <div className="flex gap-2">
