@@ -373,7 +373,17 @@ export const LinkConverter = () => {
     setIsImporting(true);
 
     try {
-      const productsToInsert = linksToImport.map(link => ({
+      // Deduplicate by productId - keep first occurrence
+      const uniqueProducts = new Map<string, typeof linksToImport[0]>();
+      linksToImport.forEach(link => {
+        if (!uniqueProducts.has(link.productId)) {
+          uniqueProducts.set(link.productId, link);
+        }
+      });
+      
+      const duplicatesCount = linksToImport.length - uniqueProducts.size;
+      
+      const productsToInsert = Array.from(uniqueProducts.values()).map(link => ({
         aliexpress_product_id: link.productId,
         product_name_hebrew: link.productName || `מוצר ${link.productId}`,
         product_name_english: link.productName || null,
@@ -395,7 +405,8 @@ export const LinkConverter = () => {
 
       if (error) throw error;
 
-      toast.success(`יובאו ${linksToImport.length} מוצרים לטבלה`);
+      const duplicateMsg = duplicatesCount > 0 ? ` (${duplicatesCount} כפילויות סוננו)` : '';
+      toast.success(`יובאו ${uniqueProducts.size} מוצרים לטבלה${duplicateMsg}`);
       
       // Trigger image scraping for new products
       try {
