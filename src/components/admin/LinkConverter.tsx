@@ -42,35 +42,44 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   "רכב": [
     "car", "auto", "vehicle", "tire", "wheel", "motor", "engine", "dashboard", 
     "gps", "driving", "parking", "seat cover", "steering", "headlight", "brake",
-    "motorcycle", "bike holder", "trunk", "windshield", "charger car"
+    "motorcycle", "bike holder", "trunk", "windshield", "charger car", "obd",
+    "fuel", "rearview", "mirror car", "bumper", "wiper", "car seat"
   ],
   "גאדג׳טים": [
     "gadget", "electronic", "usb", "bluetooth", "wireless", "speaker", "headphone",
     "earphone", "power bank", "cable", "charger", "adapter", "mouse", "keyboard",
     "webcam", "microphone", "led", "light strip", "drone", "camera", "tripod",
-    "phone holder", "tablet", "smart watch", "fitness tracker", "vr", "gaming"
+    "phone holder", "tablet", "smart watch", "fitness tracker", "vr", "gaming",
+    "earbuds", "tws", "headset", "portable", "hub", "dock", "stand phone"
   ],
   "ילדים": [
     "kid", "child", "baby", "toy", "game", "puzzle", "doll", "lego", "educational",
     "stroller", "diaper", "bottle", "pacifier", "infant", "toddler", "children",
-    "school", "backpack kid", "lunch box", "playmat"
+    "school", "backpack kid", "lunch box", "playmat", "breast pump", "breastfeeding",
+    "nursing", "newborn", "balloon", "party kids", "birthday"
   ],
   "בית": [
     "home", "kitchen", "bathroom", "bedroom", "living room", "furniture", "decor",
     "storage", "organizer", "shelf", "hook", "hanger", "towel", "curtain", "rug",
     "mat", "pillow", "blanket", "bedding", "lamp", "vase", "plant", "garden",
-    "cleaning", "trash", "laundry", "iron", "vacuum"
+    "cleaning", "trash", "laundry", "iron", "vacuum", "pot", "pan", "bowl", 
+    "container", "lid", "utensil", "knife", "cutting board", "spoon", "fork",
+    "plate", "cup", "mug", "glass", "blender", "mixer", "oven", "microwave",
+    "coffee", "tea", "bbq", "grill", "cover pot", "silicone", "strap", "fixing",
+    "ice cream", "creami", "ninja", "opener", "can opener", "beverage"
   ],
   "בית חכם": [
     "smart home", "wifi", "alexa", "google home", "automation", "sensor", "switch",
     "socket", "plug smart", "bulb smart", "camera security", "doorbell", "lock smart",
-    "thermostat", "remote control", "hub", "zigbee", "tuya"
+    "thermostat", "remote control", "zigbee", "tuya", "robot vacuum", "dreame",
+    "xiaomi robot", "roborock", "roomba", "ecovacs"
   ],
   "אופנה": [
     "fashion", "clothing", "shirt", "dress", "pants", "jeans", "jacket", "coat",
     "shoes", "sneakers", "boots", "sandals", "bag", "handbag", "wallet", "belt",
     "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "sunglasses",
-    "hat", "scarf", "gloves", "underwear", "socks", "swimwear", "bikini"
+    "hat", "scarf", "gloves", "underwear", "socks", "swimwear", "bikini",
+    "shorts", "cotton", "men", "women", "summer", "winter", "t-shirt"
   ],
   "נסיעות": [
     "travel", "luggage", "suitcase", "backpack", "passport", "neck pillow", 
@@ -80,12 +89,14 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   "בריאות": [
     "health", "medical", "massage", "fitness", "exercise", "yoga", "gym", "weight",
     "scale", "blood pressure", "thermometer", "first aid", "vitamin", "supplement",
-    "posture", "back support", "knee", "wrist", "ankle", "pain relief", "sleep"
+    "posture", "back support", "knee", "wrist", "ankle", "pain relief", "sleep",
+    "trimmer", "clipper", "shaver", "beard", "hair cut", "barber", "razor",
+    "essential oil", "aromatherapy", "fragrance oil", "diffuser"
   ],
   "כלי עבודה": [
     "tool", "drill", "screwdriver", "wrench", "hammer", "plier", "saw", "measure",
     "tape", "level", "multimeter", "soldering", "welding", "cutting", "grinding",
-    "toolbox", "work light", "gloves work", "safety", "ladder"
+    "toolbox", "work light", "gloves work", "safety", "ladder", "pump inflat"
   ]
 };
 
