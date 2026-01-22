@@ -165,6 +165,21 @@ export const LinkConverter = () => {
           console.log('Could not fetch product details:', e);
         }
 
+        const commissionRate = productDetails?.commission_rate ? parseFloat(productDetails.commission_rate) : 0;
+        
+        // Filter: Only include products with commission rate >= 7%
+        if (commissionRate < 7) {
+          results.push({
+            originalUrl: url,
+            productId,
+            newTrackingLink: null,
+            productName: productDetails?.product_title || undefined,
+            commissionRate: commissionRate,
+            error: `עמלה נמוכה מ-7% (${commissionRate}%)`
+          });
+          continue;
+        }
+
         results.push({
           originalUrl: url,
           productId,
@@ -172,7 +187,7 @@ export const LinkConverter = () => {
           productName: productDetails?.product_title || undefined,
           priceUsd: productDetails?.target_sale_price ? parseFloat(productDetails.target_sale_price) : undefined,
           originalPriceUsd: productDetails?.target_original_price ? parseFloat(productDetails.target_original_price) : undefined,
-          commissionRate: productDetails?.commission_rate ? parseFloat(productDetails.commission_rate) : undefined,
+          commissionRate: commissionRate,
           inStock: productDetails ? productDetails.product_main_image_url !== undefined : undefined,
           imageUrl: productDetails?.product_main_image_url || undefined,
           error: newLink ? undefined : "לא הצלחנו ליצור קישור חדש"
@@ -196,7 +211,13 @@ export const LinkConverter = () => {
     setIsConverting(false);
 
     const successCount = results.filter(r => r.newTrackingLink).length;
-    toast.success(`הומרו ${successCount} מתוך ${results.length} קישורים`);
+    const filteredCount = results.filter(r => r.error?.includes('עמלה נמוכה')).length;
+    
+    if (filteredCount > 0) {
+      toast.success(`הומרו ${successCount} מתוך ${results.length} קישורים (${filteredCount} סוננו - עמלה מתחת ל-7%)`);
+    } else {
+      toast.success(`הומרו ${successCount} מתוך ${results.length} קישורים`);
+    }
   };
 
   const handleImport = async () => {
