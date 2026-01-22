@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { RefreshCw, Link2, Download, Check, Copy, ExternalLink, Globe, Search } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -138,6 +139,10 @@ export const LinkConverter = () => {
   const [isRecategorizing, setIsRecategorizing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("כללי");
   const [selectedForImport, setSelectedForImport] = useState<Set<string>>(new Set());
+  
+  // Progress tracking
+  const [conversionProgress, setConversionProgress] = useState({ current: 0, total: 0 });
+  const [scrapeProgress, setScrapeProgress] = useState<string | null>(null);
 
   // Re-categorize existing "כללי" products
   const handleRecategorize = async () => {
@@ -188,7 +193,9 @@ export const LinkConverter = () => {
     }
 
     setIsScraping(true);
+    setScrapeProgress("מתחבר לאתר...");
     try {
+      setScrapeProgress("סורק דף וחילוץ קישורים...");
       const { data, error } = await supabase.functions.invoke('scrape-external-links', {
         body: { url: websiteUrl.trim() }
       });
@@ -198,6 +205,8 @@ export const LinkConverter = () => {
       if (!data.success) {
         throw new Error(data.error || 'שגיאה בסריקת האתר');
       }
+
+      setScrapeProgress("מעבד תוצאות...");
 
       if (data.links && data.links.length > 0) {
         // Add scraped links to the input textarea
@@ -212,6 +221,7 @@ export const LinkConverter = () => {
       toast.error(err.message || "שגיאה בסריקת האתר");
     } finally {
       setIsScraping(false);
+      setScrapeProgress(null);
     }
   };
 
@@ -228,10 +238,14 @@ export const LinkConverter = () => {
 
     setIsConverting(true);
     setConvertedLinks([]);
+    setConversionProgress({ current: 0, total: links.length });
 
     const results: ConvertedLink[] = [];
 
-    for (const url of links) {
+    for (let i = 0; i < links.length; i++) {
+      const url = links[i];
+      setConversionProgress({ current: i + 1, total: links.length });
+      
       const productId = extractProductId(url);
       
       if (!productId) {
@@ -325,6 +339,7 @@ export const LinkConverter = () => {
 
     setConvertedLinks(results);
     setIsConverting(false);
+    setConversionProgress({ current: 0, total: 0 });
 
     const successCount = results.filter(r => r.newTrackingLink).length;
     const filteredCount = results.filter(r => r.error?.includes('עמלה נמוכה')).length;
@@ -494,6 +509,18 @@ export const LinkConverter = () => {
                 )}
               </Button>
             </div>
+            
+            {/* Scrape Progress */}
+            {isScraping && scrapeProgress && (
+              <div className="space-y-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{scrapeProgress}</span>
+                </div>
+                <Progress value={undefined} className="h-2" />
+              </div>
+            )}
+            
             <p className="text-xs text-muted-foreground">
               הכלי יסרוק את האתר ויחלץ את כל קישורי AliExpress שנמצאים בו
             </p>
@@ -542,6 +569,28 @@ https://he.aliexpress.com/item/9876543210.html`}
             </>
           )}
         </Button>
+        
+        {/* Conversion Progress */}
+        {isConverting && conversionProgress.total > 0 && (
+          <div className="space-y-2 p-4 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                ממיר מוצר {conversionProgress.current} מתוך {conversionProgress.total}
+              </span>
+              <span className="text-lg font-bold text-orange-600">
+                {Math.round((conversionProgress.current / conversionProgress.total) * 100)}%
+              </span>
+            </div>
+            <Progress 
+              value={(conversionProgress.current / conversionProgress.total) * 100} 
+              className="h-3"
+            />
+            <p className="text-xs text-orange-600 dark:text-orange-400">
+              זמן משוער: ~{Math.ceil((conversionProgress.total - conversionProgress.current) * 0.8 / 60)} דקות
+            </p>
+          </div>
+        )}
+        
         {/* Results Section */}
         {convertedLinks.length > 0 && (
           <div className="space-y-4">
