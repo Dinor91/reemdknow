@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter, Link2 } from "lucide-react";
+import { LinkConverter } from "@/components/admin/LinkConverter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import dknowLogo from "@/assets/dknow-logo.png";
@@ -2177,7 +2178,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="stats" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="stats" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               סטטיסטיקות
@@ -2189,6 +2190,10 @@ const Admin = () => {
             <TabsTrigger value="feed" className="flex items-center gap-2">
               <Store className="h-4 w-4" />
               מוצרים פופולריים
+            </TabsTrigger>
+            <TabsTrigger value="converter" className="flex items-center gap-2">
+              <Link2 className="h-4 w-4" />
+              המרת קישורים
             </TabsTrigger>
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
@@ -2203,6 +2208,9 @@ const Admin = () => {
           </TabsContent>
           <TabsContent value="feed">
             <FeedTab />
+          </TabsContent>
+          <TabsContent value="converter">
+            <LinkConverter />
           </TabsContent>
           <TabsContent value="requests">
             <RequestsTab />
