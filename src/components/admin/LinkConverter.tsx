@@ -373,10 +373,11 @@ export const LinkConverter = () => {
     setIsImporting(true);
 
     try {
-      // Deduplicate by productId - keep first occurrence
+      // Deduplicate by productId - keep the one with higher commission rate
       const uniqueProducts = new Map<string, typeof linksToImport[0]>();
       linksToImport.forEach(link => {
-        if (!uniqueProducts.has(link.productId)) {
+        const existing = uniqueProducts.get(link.productId);
+        if (!existing || (link.commissionRate || 0) > (existing.commissionRate || 0)) {
           uniqueProducts.set(link.productId, link);
         }
       });
@@ -436,10 +437,11 @@ export const LinkConverter = () => {
     setIsImporting(true);
 
     try {
-      // Deduplicate by productId - keep first occurrence
+      // Deduplicate by productId - keep the one with higher commission rate
       const uniqueProducts = new Map<string, typeof linksToImport[0]>();
       linksToImport.forEach(link => {
-        if (!uniqueProducts.has(link.productId)) {
+        const existing = uniqueProducts.get(link.productId);
+        if (!existing || (link.commissionRate || 0) > (existing.commissionRate || 0)) {
           uniqueProducts.set(link.productId, link);
         }
       });
