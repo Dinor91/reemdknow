@@ -293,15 +293,24 @@ export const LinkConverter = () => {
 
         const commissionRate = productDetails?.commission_rate ? parseFloat(productDetails.commission_rate) : 0;
         
-        // Filter: Only include products with commission rate >= 7%
-        if (commissionRate < 7) {
+        // Parse rating from evaluate_rate (comes as percentage string like "95.2%")
+        const evaluateRate = productDetails?.evaluate_rate;
+        let rating = 0;
+        if (evaluateRate) {
+          // Convert percentage to 5-star scale (e.g., 95% = 4.75 stars)
+          const percentage = parseFloat(evaluateRate.replace('%', ''));
+          rating = (percentage / 100) * 5;
+        }
+        
+        // Filter: Only include products with rating >= 4 stars
+        if (rating < 4 && rating > 0) {
           results.push({
             originalUrl: url,
             productId,
             newTrackingLink: null,
             productName: productDetails?.product_title || undefined,
             commissionRate: commissionRate,
-            error: `עמלה נמוכה מ-7% (${commissionRate}%)`
+            error: `דירוג נמוך מ-4 כוכבים (${rating.toFixed(1)}⭐)`
           });
           continue;
         }
@@ -342,10 +351,10 @@ export const LinkConverter = () => {
     setConversionProgress({ current: 0, total: 0 });
 
     const successCount = results.filter(r => r.newTrackingLink).length;
-    const filteredCount = results.filter(r => r.error?.includes('עמלה נמוכה')).length;
+    const filteredCount = results.filter(r => r.error?.includes('דירוג נמוך')).length;
     
     if (filteredCount > 0) {
-      toast.success(`הומרו ${successCount} מתוך ${results.length} קישורים (${filteredCount} סוננו - עמלה מתחת ל-7%)`);
+      toast.success(`הומרו ${successCount} מתוך ${results.length} קישורים (${filteredCount} סוננו - דירוג מתחת ל-4⭐)`);
     } else {
       toast.success(`הומרו ${successCount} מתוך ${results.length} קישורים`);
     }
