@@ -93,7 +93,7 @@ async function getHotProducts(
   keywords?: string,
   pageNo: number = 1,
   pageSize: number = 20,
-  targetCurrency: string = 'ILS',
+  targetCurrency: string = 'USD',
   targetLanguage: string = 'EN',
   sort?: string
 ) {
@@ -131,7 +131,7 @@ async function generateAffiliateLink(
 // Get product details
 async function getProductDetails(
   productIds: string,
-  targetCurrency: string = 'ILS',
+  targetCurrency: string = 'USD',
   targetLanguage: string = 'EN'
 ) {
   console.log(`Getting product details for: ${productIds}`)
@@ -151,7 +151,7 @@ async function searchProducts(
   categoryIds?: string,
   pageNo: number = 1,
   pageSize: number = 20,
-  targetCurrency: string = 'ILS',
+  targetCurrency: string = 'USD',
   targetLanguage: string = 'EN',
   sort?: string,
   minPrice?: number,
@@ -236,7 +236,7 @@ serve(async (req) => {
           keywords,
           pageNo || 1,
           pageSize || 20,
-          targetCurrency || 'ILS',
+          targetCurrency || 'USD',
           targetLanguage || 'EN',
           sort
         )
@@ -255,7 +255,7 @@ serve(async (req) => {
           categoryIds,
           pageNo || 1,
           pageSize || 20,
-          targetCurrency || 'ILS',
+          targetCurrency || 'USD',
           targetLanguage || 'EN',
           sort,
           minPrice,
@@ -273,7 +273,7 @@ serve(async (req) => {
         }
         result = await getProductDetails(
           productIds,
-          targetCurrency || 'ILS',
+          targetCurrency || 'USD',
           targetLanguage || 'EN'
         )
         break
