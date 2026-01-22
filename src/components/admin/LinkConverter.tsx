@@ -14,6 +14,11 @@ interface ConvertedLink {
   productId: string;
   newTrackingLink: string | null;
   productName?: string;
+  priceUsd?: number;
+  originalPriceUsd?: number;
+  commissionRate?: number;
+  inStock?: boolean;
+  imageUrl?: string;
   error?: string;
 }
 
@@ -129,24 +134,47 @@ export const LinkConverter = () => {
 
       try {
         // Generate new affiliate link using the API
-        const { data, error } = await supabase.functions.invoke('aliexpress-api', {
+        const { data: linkData, error: linkError } = await supabase.functions.invoke('aliexpress-api', {
           body: {
             action: 'generate-link',
             sourceValues: `https://www.aliexpress.com/item/${productId}.html`
           }
         });
 
-        if (error) throw error;
+        if (linkError) throw linkError;
 
-        // Parse the API response
-        const responseData = data?.data?.aliexpress_affiliate_link_generate_response?.resp_result?.result;
+        // Parse the API response for link
+        const responseData = linkData?.data?.aliexpress_affiliate_link_generate_response?.resp_result?.result;
         const promotionLinks = responseData?.promotion_links?.promotion_link;
         const newLink = promotionLinks?.[0]?.promotion_link || null;
+
+        // Now fetch product details (commission, stock, price)
+        let productDetails: any = null;
+        try {
+          const { data: detailsData } = await supabase.functions.invoke('aliexpress-api', {
+            body: {
+              action: 'product-details',
+              productIds: productId
+            }
+          });
+          
+          const detailsResult = detailsData?.data?.aliexpress_affiliate_productdetail_get_response?.resp_result?.result;
+          const products = detailsResult?.products?.product;
+          productDetails = products?.[0] || null;
+        } catch (e) {
+          console.log('Could not fetch product details:', e);
+        }
 
         results.push({
           originalUrl: url,
           productId,
           newTrackingLink: newLink,
+          productName: productDetails?.product_title || undefined,
+          priceUsd: productDetails?.target_sale_price ? parseFloat(productDetails.target_sale_price) : undefined,
+          originalPriceUsd: productDetails?.target_original_price ? parseFloat(productDetails.target_original_price) : undefined,
+          commissionRate: productDetails?.commission_rate ? parseFloat(productDetails.commission_rate) : undefined,
+          inStock: productDetails ? productDetails.product_main_image_url !== undefined : undefined,
+          imageUrl: productDetails?.product_main_image_url || undefined,
           error: newLink ? undefined : "לא הצלחנו ליצור קישור חדש"
         });
 
@@ -161,7 +189,7 @@ export const LinkConverter = () => {
       }
 
       // Small delay between requests to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
     }
 
     setConvertedLinks(results);
@@ -186,12 +214,16 @@ export const LinkConverter = () => {
     try {
       const productsToInsert = linksToImport.map(link => ({
         aliexpress_product_id: link.productId,
-        product_name_hebrew: `מוצר ${link.productId}`, // Will need manual editing
+        product_name_hebrew: link.productName || `מוצר ${link.productId}`,
+        product_name_english: link.productName || null,
         tracking_link: link.newTrackingLink!,
         category: selectedCategory,
-        category_name_hebrew: selectedCategory, // Required field
+        category_name_hebrew: selectedCategory,
+        price_usd: link.priceUsd || null,
+        original_price_usd: link.originalPriceUsd || null,
+        image_url: link.imageUrl || null,
         is_active: true,
-        out_of_stock: false
+        out_of_stock: link.inStock === false
       }));
 
       const { error } = await supabase
@@ -371,11 +403,11 @@ https://he.aliexpress.com/item/9876543210.html`}
               </div>
             </div>
 
-            <div className="max-h-[400px] overflow-y-auto space-y-2 border rounded-lg p-3">
+            <div className="max-h-[500px] overflow-y-auto space-y-3 border rounded-lg p-3">
               {convertedLinks.map((link, idx) => (
                 <div 
                   key={idx} 
-                  className={`p-3 rounded-lg border ${
+                  className={`p-4 rounded-lg border ${
                     link.newTrackingLink 
                       ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' 
                       : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
@@ -390,10 +422,62 @@ https://he.aliexpress.com/item/9876543210.html`}
                         className="mt-1"
                       />
                     )}
+                    
+                    {/* Product Image */}
+                    {link.imageUrl && (
+                      <img 
+                        src={link.imageUrl} 
+                        alt="" 
+                        className="w-16 h-16 object-cover rounded border"
+                      />
+                    )}
+                    
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-muted-foreground mb-1 truncate" dir="ltr">
-                        {link.originalUrl}
+                      {/* Product Name */}
+                      {link.productName && (
+                        <p className="text-sm font-medium mb-1 line-clamp-2">{link.productName}</p>
+                      )}
+                      
+                      {/* Product Details Row */}
+                      <div className="flex flex-wrap gap-3 mb-2">
+                        {/* Commission Rate */}
+                        {link.commissionRate !== undefined && (
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            link.commissionRate >= 10 
+                              ? 'bg-green-200 text-green-800' 
+                              : link.commissionRate >= 5 
+                                ? 'bg-yellow-200 text-yellow-800' 
+                                : 'bg-gray-200 text-gray-700'
+                          }`}>
+                            💰 {link.commissionRate}% עמלה
+                          </span>
+                        )}
+                        
+                        {/* Price */}
+                        {link.priceUsd !== undefined && (
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                            💵 ${link.priceUsd.toFixed(2)}
+                            {link.originalPriceUsd && link.originalPriceUsd > link.priceUsd && (
+                              <span className="line-through mr-1 text-gray-500">
+                                ${link.originalPriceUsd.toFixed(2)}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                        
+                        {/* Stock Status */}
+                        {link.inStock !== undefined && (
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            link.inStock 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {link.inStock ? '✅ במלאי' : '❌ אזל'}
+                          </span>
+                        )}
                       </div>
+                      
+                      {/* Tracking Link */}
                       {link.newTrackingLink ? (
                         <div className="flex items-center gap-2">
                           <code className="text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded flex-1 truncate" dir="ltr">
@@ -419,6 +503,7 @@ https://he.aliexpress.com/item/9876543210.html`}
                       ) : (
                         <span className="text-sm text-red-600">{link.error}</span>
                       )}
+                      
                       <div className="text-xs text-muted-foreground mt-1">
                         Product ID: {link.productId || 'לא זוהה'}
                       </div>
