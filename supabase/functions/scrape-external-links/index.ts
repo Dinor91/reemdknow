@@ -7,15 +7,10 @@ const corsHeaders = {
 
 // Extract AliExpress product IDs from various URL formats
 function extractProductId(url: string): string | null {
-  // Pattern 1: /item/1234567890.html
   const pattern1 = /\/item\/(\d+)\.html/i;
-  // Pattern 2: /i/1234567890.html
   const pattern2 = /\/i\/(\d+)\.html/i;
-  // Pattern 3: productId=1234567890
   const pattern3 = /productId[=:](\d+)/i;
-  // Pattern 4: /1234567890.html (just the ID)
   const pattern4 = /\/(\d{10,})\.html/i;
-  // Pattern 5: item/1234567890 without .html
   const pattern5 = /item\/(\d+)/i;
   
   let match = url.match(pattern1) || 
@@ -27,31 +22,58 @@ function extractProductId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-// Find all AliExpress links in text/html
-function findAliExpressLinks(content: string): string[] {
-  const urlPatterns = [
-    // Direct AliExpress links
-    /https?:\/\/(?:www\.|he\.|[\w]+\.)?aliexpress\.com\/item\/\d+\.html[^\s"'<>]*/gi,
-    // Short links
-    /https?:\/\/s\.click\.aliexpress\.com\/e\/[^\s"'<>]+/gi,
-    // Alternative formats
-    /https?:\/\/(?:www\.)?aliexpress\.(?:com|ru)\/[^\s"'<>]*item[^\s"'<>]*/gi,
+// Find all links (any links) in text/html
+function findAllLinks(content: string): string[] {
+  const urlPattern = /https?:\/\/[^\s"'<>\]]+/gi;
+  const matches = content.match(urlPattern) || [];
+  return [...new Set(matches.map(m => m.replace(/['">\]\)]+$/, '')))];
+}
+
+// Check if URL is a short link that needs following
+function isShortLink(url: string): boolean {
+  const shortLinkDomains = [
+    'beacons.ai',
+    's.click.aliexpress.com',
+    'bit.ly',
+    'tinyurl.com',
+    'linktr.ee',
+    'stan.store',
   ];
+  return shortLinkDomains.some(domain => url.includes(domain));
+}
 
-  const links = new Set<string>();
-  
-  for (const pattern of urlPatterns) {
-    const matches = content.match(pattern);
-    if (matches) {
-      for (const match of matches) {
-        // Clean up the URL
-        const cleanUrl = match.replace(/['">\]\)]+$/, '');
-        links.add(cleanUrl);
+// Follow a redirect to get the final URL
+async function followRedirect(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'manual',
+    });
+    
+    // Check for redirect
+    const location = response.headers.get('location');
+    if (location) {
+      // If it's another short link, follow it
+      if (isShortLink(location) || location.includes('aliexpress')) {
+        if (location.includes('aliexpress')) {
+          return location;
+        }
+        // Follow one more level
+        return await followRedirect(location);
       }
+      return location;
     }
+    
+    // Try GET if HEAD didn't work
+    const getResponse = await fetch(url, {
+      redirect: 'manual',
+    });
+    const getLocation = getResponse.headers.get('location');
+    return getLocation || null;
+  } catch (e) {
+    console.log('Error following redirect:', url, e);
+    return null;
   }
-
-  return Array.from(links);
 }
 
 serve(async (req) => {
@@ -89,8 +111,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         url,
-        formats: ['html', 'links'],
-        waitFor: 5000, // Wait for JS to load
+        formats: ['html', 'links', 'markdown'],
+        waitFor: 5000,
       }),
     })
 
@@ -106,49 +128,89 @@ serve(async (req) => {
     const scrapeData = await scrapeResponse.json()
     console.log('Firecrawl response received')
 
-    // Collect all AliExpress links from various sources
+    // Collect ALL links from the page
     const allLinks = new Set<string>()
 
     // 1. From extracted links array
     const linksArray = scrapeData.data?.links || scrapeData.links || []
     for (const link of linksArray) {
-      if (link.includes('aliexpress') || link.includes('s.click')) {
-        allLinks.add(link)
-      }
+      allLinks.add(link)
     }
 
     // 2. From HTML content
     const html = scrapeData.data?.html || scrapeData.html || ''
-    const htmlLinks = findAliExpressLinks(html)
-    for (const link of htmlLinks) {
+    for (const link of findAllLinks(html)) {
       allLinks.add(link)
     }
 
-    // 3. From markdown content if available
+    // 3. From markdown content
     const markdown = scrapeData.data?.markdown || scrapeData.markdown || ''
-    const markdownLinks = findAliExpressLinks(markdown)
-    for (const link of markdownLinks) {
+    for (const link of findAllLinks(markdown)) {
       allLinks.add(link)
     }
 
-    // Convert to array and extract product IDs
-    const uniqueLinks = Array.from(allLinks)
-    const results = uniqueLinks.map(link => ({
+    console.log(`Found ${allLinks.size} total links on page`)
+
+    // Categorize links
+    const directAliExpressLinks: string[] = []
+    const shortLinksToFollow: string[] = []
+
+    for (const link of allLinks) {
+      if (link.includes('aliexpress.com') && extractProductId(link)) {
+        directAliExpressLinks.push(link)
+      } else if (link.includes('s.click.aliexpress.com')) {
+        shortLinksToFollow.push(link)
+      } else if (link.includes('beacons.ai/link/')) {
+        shortLinksToFollow.push(link)
+      }
+    }
+
+    console.log(`Direct AliExpress: ${directAliExpressLinks.length}, Short links to follow: ${shortLinksToFollow.length}`)
+
+    // Follow short links to get AliExpress URLs
+    const resolvedLinks: string[] = []
+    
+    // Process short links in batches
+    const batchSize = 5
+    for (let i = 0; i < shortLinksToFollow.length; i += batchSize) {
+      const batch = shortLinksToFollow.slice(i, i + batchSize)
+      const results = await Promise.all(batch.map(async (shortLink) => {
+        const resolved = await followRedirect(shortLink)
+        if (resolved && resolved.includes('aliexpress')) {
+          console.log(`Resolved: ${shortLink} -> ${resolved}`)
+          return resolved
+        }
+        return null
+      }))
+      
+      for (const result of results) {
+        if (result) resolvedLinks.push(result)
+      }
+      
+      // Small delay between batches
+      if (i + batchSize < shortLinksToFollow.length) {
+        await new Promise(r => setTimeout(r, 500))
+      }
+    }
+
+    // Combine all found AliExpress links
+    const allAliExpressLinks = [...new Set([...directAliExpressLinks, ...resolvedLinks])]
+    
+    // Extract product IDs
+    const results = allAliExpressLinks.map(link => ({
       originalUrl: link,
       productId: extractProductId(link),
-    }))
+    })).filter(r => r.productId !== null)
 
-    // Filter to only those with valid product IDs
-    const validResults = results.filter(r => r.productId !== null)
-
-    console.log(`Found ${validResults.length} valid AliExpress product links`)
+    console.log(`Found ${results.length} valid AliExpress product links`)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        totalLinksFound: uniqueLinks.length,
-        validProductLinks: validResults.length,
-        links: validResults
+        totalLinksFound: allLinks.size,
+        shortLinksFollowed: shortLinksToFollow.length,
+        validProductLinks: results.length,
+        links: results
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
