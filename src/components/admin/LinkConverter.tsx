@@ -20,6 +20,7 @@ interface ConvertedLink {
   inStock?: boolean;
   imageUrl?: string;
   error?: string;
+  detectedCategory?: string;
 }
 
 const CATEGORIES_ISRAEL = [
@@ -34,6 +35,75 @@ const CATEGORIES_ISRAEL = [
   "כלי עבודה",
   "כללי"
 ];
+
+// Auto-detect category from product name using keywords
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  "רכב": [
+    "car", "auto", "vehicle", "tire", "wheel", "motor", "engine", "dashboard", 
+    "gps", "driving", "parking", "seat cover", "steering", "headlight", "brake",
+    "motorcycle", "bike holder", "trunk", "windshield", "charger car"
+  ],
+  "גאדג׳טים": [
+    "gadget", "electronic", "usb", "bluetooth", "wireless", "speaker", "headphone",
+    "earphone", "power bank", "cable", "charger", "adapter", "mouse", "keyboard",
+    "webcam", "microphone", "led", "light strip", "drone", "camera", "tripod",
+    "phone holder", "tablet", "smart watch", "fitness tracker", "vr", "gaming"
+  ],
+  "ילדים": [
+    "kid", "child", "baby", "toy", "game", "puzzle", "doll", "lego", "educational",
+    "stroller", "diaper", "bottle", "pacifier", "infant", "toddler", "children",
+    "school", "backpack kid", "lunch box", "playmat"
+  ],
+  "בית": [
+    "home", "kitchen", "bathroom", "bedroom", "living room", "furniture", "decor",
+    "storage", "organizer", "shelf", "hook", "hanger", "towel", "curtain", "rug",
+    "mat", "pillow", "blanket", "bedding", "lamp", "vase", "plant", "garden",
+    "cleaning", "trash", "laundry", "iron", "vacuum"
+  ],
+  "בית חכם": [
+    "smart home", "wifi", "alexa", "google home", "automation", "sensor", "switch",
+    "socket", "plug smart", "bulb smart", "camera security", "doorbell", "lock smart",
+    "thermostat", "remote control", "hub", "zigbee", "tuya"
+  ],
+  "אופנה": [
+    "fashion", "clothing", "shirt", "dress", "pants", "jeans", "jacket", "coat",
+    "shoes", "sneakers", "boots", "sandals", "bag", "handbag", "wallet", "belt",
+    "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "sunglasses",
+    "hat", "scarf", "gloves", "underwear", "socks", "swimwear", "bikini"
+  ],
+  "נסיעות": [
+    "travel", "luggage", "suitcase", "backpack", "passport", "neck pillow", 
+    "travel adapter", "packing", "organizer bag", "camping", "hiking", "outdoor",
+    "tent", "sleeping bag", "flashlight", "compass", "water bottle travel"
+  ],
+  "בריאות": [
+    "health", "medical", "massage", "fitness", "exercise", "yoga", "gym", "weight",
+    "scale", "blood pressure", "thermometer", "first aid", "vitamin", "supplement",
+    "posture", "back support", "knee", "wrist", "ankle", "pain relief", "sleep"
+  ],
+  "כלי עבודה": [
+    "tool", "drill", "screwdriver", "wrench", "hammer", "plier", "saw", "measure",
+    "tape", "level", "multimeter", "soldering", "welding", "cutting", "grinding",
+    "toolbox", "work light", "gloves work", "safety", "ladder"
+  ]
+};
+
+// Detect category from product name
+function detectCategory(productName: string): string {
+  if (!productName) return "כללי";
+  
+  const lowerName = productName.toLowerCase();
+  
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    for (const keyword of keywords) {
+      if (lowerName.includes(keyword.toLowerCase())) {
+        return category;
+      }
+    }
+  }
+  
+  return "כללי";
+}
 
 // Extract product ID from various AliExpress URL formats
 function extractProductId(url: string): string | null {
@@ -65,8 +135,50 @@ export const LinkConverter = () => {
   const [isConverting, setIsConverting] = useState(false);
   const [isScraping, setIsScraping] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isRecategorizing, setIsRecategorizing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("כללי");
   const [selectedForImport, setSelectedForImport] = useState<Set<string>>(new Set());
+
+  // Re-categorize existing "כללי" products
+  const handleRecategorize = async () => {
+    setIsRecategorizing(true);
+    try {
+      // Fetch products with "כללי" category
+      const { data: products, error } = await supabase
+        .from('israel_editor_products')
+        .select('id, product_name_hebrew, product_name_english, category_name_hebrew')
+        .eq('category_name_hebrew', 'כללי');
+
+      if (error) throw error;
+
+      if (!products || products.length === 0) {
+        toast.info("אין מוצרים בקטגוריית 'כללי' לסיווג");
+        return;
+      }
+
+      let updated = 0;
+      for (const product of products) {
+        const productName = product.product_name_english || product.product_name_hebrew;
+        const newCategory = detectCategory(productName);
+        
+        if (newCategory !== 'כללי') {
+          const { error: updateError } = await supabase
+            .from('israel_editor_products')
+            .update({ category_name_hebrew: newCategory })
+            .eq('id', product.id);
+          
+          if (!updateError) updated++;
+        }
+      }
+
+      toast.success(`סווגו מחדש ${updated} מתוך ${products.length} מוצרים`);
+    } catch (err) {
+      console.error('Error recategorizing:', err);
+      toast.error("שגיאה בסיווג מחדש");
+    } finally {
+      setIsRecategorizing(false);
+    }
+  };
 
   // Scrape external website for AliExpress links
   const handleScrapeWebsite = async () => {
@@ -180,16 +292,20 @@ export const LinkConverter = () => {
           continue;
         }
 
+        const productTitle = productDetails?.product_title || undefined;
+        const detectedCategory = detectCategory(productTitle || '');
+
         results.push({
           originalUrl: url,
           productId,
           newTrackingLink: newLink,
-          productName: productDetails?.product_title || undefined,
+          productName: productTitle,
           priceUsd: productDetails?.target_sale_price ? parseFloat(productDetails.target_sale_price) : undefined,
           originalPriceUsd: productDetails?.target_original_price ? parseFloat(productDetails.target_original_price) : undefined,
           commissionRate: commissionRate,
           inStock: productDetails ? productDetails.product_main_image_url !== undefined : undefined,
           imageUrl: productDetails?.product_main_image_url || undefined,
+          detectedCategory: detectedCategory,
           error: newLink ? undefined : "לא הצלחנו ליצור קישור חדש"
         });
 
@@ -238,8 +354,7 @@ export const LinkConverter = () => {
         product_name_hebrew: link.productName || `מוצר ${link.productId}`,
         product_name_english: link.productName || null,
         tracking_link: link.newTrackingLink!,
-        category: selectedCategory,
-        category_name_hebrew: selectedCategory,
+        category_name_hebrew: link.detectedCategory || selectedCategory,
         price_usd: link.priceUsd || null,
         original_price_usd: link.originalPriceUsd || null,
         image_url: link.imageUrl || null,
@@ -313,11 +428,31 @@ export const LinkConverter = () => {
   return (
     <Card className="p-6">
       <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-bold mb-2">🔄 המרת קישורי AliExpress</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            סרוק אתר חיצוני או הדבק קישורים - הכלי יחלץ את מזהה המוצר ויצור קישורי אפיליאציה חדשים עם ה-Tracking ID שלך
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-bold mb-2">🔄 המרת קישורי AliExpress</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              סרוק אתר חיצוני או הדבק קישורים - הכלי יחלץ את מזהה המוצר ויצור קישורי אפיליאציה חדשים עם ה-Tracking ID שלך
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={handleRecategorize}
+            disabled={isRecategorizing}
+            className="shrink-0"
+          >
+            {isRecategorizing ? (
+              <>
+                <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
+                מסווג...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 ml-2" />
+                סווג מחדש "כללי"
+              </>
+            )}
+          </Button>
         </div>
 
         <Tabs defaultValue="scrape" className="w-full">
@@ -494,6 +629,17 @@ https://he.aliexpress.com/item/9876543210.html`}
                               : 'bg-red-100 text-red-700'
                           }`}>
                             {link.inStock ? '✅ במלאי' : '❌ אזל'}
+                          </span>
+                        )}
+                        
+                        {/* Detected Category */}
+                        {link.detectedCategory && (
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            link.detectedCategory === 'כללי'
+                              ? 'bg-gray-200 text-gray-700'
+                              : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            📁 {link.detectedCategory}
                           </span>
                         )}
                       </div>
