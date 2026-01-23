@@ -160,10 +160,10 @@ export const ProductCard = ({
 
       {/* 5. Rating + Sales */}
       <div className="flex justify-center items-center gap-3 mb-4 text-xs">
-        {product.rating && product.rating > 0 && (
+        {product.rating != null && product.rating > 0 && (
           <span className="text-muted-foreground">⭐ {product.rating.toFixed(1)}</span>
         )}
-        {product.salesCount && product.salesCount > 0 && (
+        {product.salesCount != null && product.salesCount > 0 && (
           <span className={`px-2 py-0.5 rounded-full font-medium ${colors.sales}`}>
             🔥 {product.salesCount.toLocaleString()} נמכרו
           </span>
