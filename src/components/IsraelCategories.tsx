@@ -281,10 +281,10 @@ export const IsraelCategories = () => {
                                         )}
                                       </div>
                                     )}
-                                    {((product.rating && product.rating > 0) || (product.sales_count && product.sales_count > 0)) && (
+                                    {((product.rating != null && product.rating > 0) || (product.sales_count != null && product.sales_count > 0)) && (
                                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                        {product.rating && product.rating > 0 && <span>⭐ {product.rating.toFixed(1)}</span>}
-                                        {product.sales_count && product.sales_count > 0 && (
+                                        {product.rating != null && product.rating > 0 && <span>⭐ {product.rating.toFixed(1)}</span>}
+                                        {product.sales_count != null && product.sales_count > 0 && (
                                           <span>🔥 {product.sales_count.toLocaleString()} נמכרו</span>
                                         )}
                                       </div>
