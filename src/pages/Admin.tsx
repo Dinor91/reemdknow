@@ -537,53 +537,59 @@ const ProductsTab = () => {
   return (
     <div className="space-y-4">
       {/* Platform Selector */}
-      <div className="flex items-center gap-2 border-b pb-3">
+      <div className="flex flex-wrap items-center gap-2 border-b pb-3">
         <Button
           variant={platform === "lazada" ? "default" : "outline"}
           onClick={() => setPlatform("lazada")}
-          className={platform === "lazada" ? "bg-orange-500 hover:bg-orange-600" : ""}
+          className={`text-xs md:text-sm ${platform === "lazada" ? "bg-orange-500 hover:bg-orange-600" : ""}`}
+          size="sm"
         >
-          <Store className="h-4 w-4 ml-2" />
-          Lazada (תאילנד)
+          <Store className="h-3 w-3 md:h-4 md:w-4 ml-1 md:ml-2" />
+          <span className="hidden sm:inline">Lazada (תאילנד)</span>
+          <span className="sm:hidden">Lazada</span>
         </Button>
         <Button
           variant={platform === "aliexpress" ? "default" : "outline"}
           onClick={() => setPlatform("aliexpress")}
-          className={platform === "aliexpress" ? "bg-blue-500 hover:bg-blue-600" : ""}
+          className={`text-xs md:text-sm ${platform === "aliexpress" ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          size="sm"
         >
-          <Package className="h-4 w-4 ml-2" />
-          AliExpress (ישראל)
+          <Package className="h-3 w-3 md:h-4 md:w-4 ml-1 md:ml-2" />
+          <span className="hidden sm:inline">AliExpress (ישראל)</span>
+          <span className="sm:hidden">AliExpress</span>
         </Button>
       </div>
 
       {platform === "lazada" ? (
         /* Lazada Products - Existing UI */
         <>
-          <div className="flex flex-wrap gap-4 items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
             <Input
               placeholder="חיפוש מוצר..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="max-w-xs"
+              className="w-full sm:max-w-xs"
             />
-            <div className="flex gap-2">
-              <Button onClick={() => setShowAddProduct(true)} variant="default" className="bg-green-600 hover:bg-green-700">
-                <Package className="h-4 w-4 ml-2" />
-                הוסף מוצר
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => setShowAddProduct(true)} variant="default" className="bg-green-600 hover:bg-green-700 text-xs md:text-sm" size="sm">
+                <Package className="h-3 w-3 md:h-4 md:w-4 ml-1" />
+                <span className="hidden sm:inline">הוסף מוצר</span>
+                <span className="sm:hidden">הוסף</span>
               </Button>
-              <Button onClick={expandAll} variant="ghost" size="sm">
+              <Button onClick={expandAll} variant="ghost" size="sm" className="text-xs md:text-sm">
                 פתח הכל
               </Button>
-              <Button onClick={collapseAll} variant="ghost" size="sm">
+              <Button onClick={collapseAll} variant="ghost" size="sm" className="text-xs md:text-sm">
                 סגור הכל
               </Button>
-              <Button onClick={fetchProducts} variant="outline" disabled={loading}>
-                <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
+              <Button onClick={fetchProducts} variant="outline" disabled={loading} size="sm" className="text-xs md:text-sm">
+                <RefreshCw className={`h-3 w-3 md:h-4 md:w-4 ml-1 ${loading ? "animate-spin" : ""}`} />
                 רענן
               </Button>
-              <Button onClick={updateFromApi} disabled={updatingFromApi}>
-                <Package className={`h-4 w-4 ml-2 ${updatingFromApi ? "animate-pulse" : ""}`} />
-                עדכון מ-API
+              <Button onClick={updateFromApi} disabled={updatingFromApi} size="sm" className="text-xs md:text-sm">
+                <Package className={`h-3 w-3 md:h-4 md:w-4 ml-1 ${updatingFromApi ? "animate-pulse" : ""}`} />
+                <span className="hidden sm:inline">עדכון מ-API</span>
+                <span className="sm:hidden">API</span>
               </Button>
             </div>
           </div>
@@ -824,18 +830,18 @@ const ProductsTab = () => {
                               </div>
                             </div>
                           ) : (
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                                 {product.image_url ? (
-                                  <img src={product.image_url} alt="" className="w-10 h-10 rounded object-cover" />
+                                  <img src={product.image_url} alt="" className="w-8 h-8 sm:w-10 sm:h-10 rounded object-cover flex-shrink-0" />
                                 ) : (
-                                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs">📦</div>
+                                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-muted flex items-center justify-center text-xs flex-shrink-0">📦</div>
                                 )}
                                 <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <div className="font-medium truncate">{product.name_hebrew}</div>
+                                  <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                                    <div className="font-medium text-sm sm:text-base truncate">{product.name_hebrew}</div>
                                     {product.out_of_stock && (
-                                      <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded flex items-center gap-1">
+                                      <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded flex items-center gap-1">
                                         <PackageX className="h-3 w-3" />
                                         אזל
                                       </span>
@@ -846,7 +852,7 @@ const ProductsTab = () => {
                                   )}
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3 text-sm">
+                              <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm mr-10 sm:mr-0">
                                 {product.price_thb ? (
                                   <span className="font-medium text-orange-600">฿{product.price_thb.toLocaleString()}</span>
                                 ) : (
@@ -1173,18 +1179,18 @@ const ProductsTab = () => {
                               </div>
                             </div>
                           ) : (
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                                 {product.image_url ? (
-                                  <img src={product.image_url} alt="" className="w-10 h-10 rounded object-cover" />
+                                  <img src={product.image_url} alt="" className="w-8 h-8 sm:w-10 sm:h-10 rounded object-cover flex-shrink-0" />
                                 ) : (
-                                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs">📦</div>
+                                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-muted flex items-center justify-center text-xs flex-shrink-0">📦</div>
                                 )}
                                 <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <div className="font-medium truncate">{product.product_name_hebrew}</div>
+                                  <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                                    <div className="font-medium text-sm sm:text-base truncate">{product.product_name_hebrew}</div>
                                     {product.out_of_stock && (
-                                      <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded flex items-center gap-1">
+                                      <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded flex items-center gap-1">
                                         <PackageX className="h-3 w-3" />
                                         אזל
                                       </span>
@@ -1192,7 +1198,7 @@ const ProductsTab = () => {
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3 text-sm">
+                              <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm mr-10 sm:mr-0">
                                 {product.price_usd ? (
                                   <span className="font-medium text-blue-600">${product.price_usd.toFixed(2)}</span>
                                 ) : (
@@ -1451,53 +1457,58 @@ const FeedTab = () => {
   return (
     <div className="space-y-4">
       {/* Platform Selector */}
-      <div className="flex items-center gap-2 border-b pb-3">
+      <div className="flex flex-wrap items-center gap-2 border-b pb-3">
         <Button
           variant={platform === "lazada" ? "default" : "outline"}
           onClick={() => setPlatform("lazada")}
-          className={platform === "lazada" ? "bg-orange-500 hover:bg-orange-600" : ""}
+          className={`text-xs md:text-sm ${platform === "lazada" ? "bg-orange-500 hover:bg-orange-600" : ""}`}
+          size="sm"
         >
-          <Store className="h-4 w-4 ml-2" />
-          Lazada (תאילנד)
+          <Store className="h-3 w-3 md:h-4 md:w-4 ml-1 md:ml-2" />
+          <span className="hidden sm:inline">Lazada (תאילנד)</span>
+          <span className="sm:hidden">Lazada</span>
         </Button>
         <Button
           variant={platform === "aliexpress" ? "default" : "outline"}
           onClick={() => setPlatform("aliexpress")}
-          className={platform === "aliexpress" ? "bg-blue-500 hover:bg-blue-600" : ""}
+          className={`text-xs md:text-sm ${platform === "aliexpress" ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          size="sm"
         >
-          <Package className="h-4 w-4 ml-2" />
-          AliExpress (ישראל)
+          <Package className="h-3 w-3 md:h-4 md:w-4 ml-1 md:ml-2" />
+          <span className="hidden sm:inline">AliExpress (ישראל)</span>
+          <span className="sm:hidden">AliExpress</span>
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-4 items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         <Input
           placeholder="חיפוש מוצר..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="max-w-xs"
+          className="w-full sm:max-w-xs"
         />
-        <div className="flex gap-2">
-          <Button onClick={fetchFeedProducts} variant="outline" disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={fetchFeedProducts} variant="outline" disabled={loading} size="sm" className="text-xs md:text-sm">
+            <RefreshCw className={`h-3 w-3 md:h-4 md:w-4 ml-1 ${loading ? "animate-spin" : ""}`} />
             רענן
           </Button>
-          <Button onClick={syncProducts} disabled={syncing} className="bg-green-600 hover:bg-green-700">
-            <Store className={`h-4 w-4 ml-2 ${syncing ? "animate-pulse" : ""}`} />
-            סנכרן מ-{platform === "lazada" ? "Lazada" : "AliExpress"}
+          <Button onClick={syncProducts} disabled={syncing} className="bg-green-600 hover:bg-green-700 text-xs md:text-sm" size="sm">
+            <Store className={`h-3 w-3 md:h-4 md:w-4 ml-1 ${syncing ? "animate-pulse" : ""}`} />
+            <span className="hidden sm:inline">סנכרן מ-{platform === "lazada" ? "Lazada" : "AliExpress"}</span>
+            <span className="sm:hidden">סנכרן</span>
           </Button>
         </div>
       </div>
 
       {/* Filtering options */}
-      <Card className="p-3">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">מיון:</span>
+      <Card className="p-2 sm:p-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Filter className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+            <span className="text-xs sm:text-sm font-medium">מיון:</span>
           </div>
           <Select value={sortBy} onValueChange={(val) => setSortBy(val as "sales" | "commission" | "price")}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-24 sm:w-32 h-8 text-xs sm:text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1507,7 +1518,7 @@ const FeedTab = () => {
             </SelectContent>
           </Select>
           <Select value={sortOrder} onValueChange={(val) => setSortOrder(val as "asc" | "desc")}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-24 sm:w-32 h-8 text-xs sm:text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1530,8 +1541,8 @@ const FeedTab = () => {
             {platform === "lazada" ? (
               // Lazada Products
               (paginatedProducts as LazadaFeedProduct[]).map((product) => (
-                <Card key={product.id} className={`p-3 ${product.is_featured ? 'border-orange-400 bg-orange-50/50' : ''}`}>
-                  <div className="flex items-center gap-4">
+                <Card key={product.id} className={`p-2 sm:p-3 ${product.is_featured ? 'border-orange-400 bg-orange-50/50' : ''}`}>
+                  <div className="flex items-start sm:items-center gap-2 sm:gap-4">
                     <a 
                       href={product.tracking_link || `https://www.lazada.co.th/products/-i${product.lazada_product_id}.html`}
                       target="_blank"
@@ -1539,9 +1550,9 @@ const FeedTab = () => {
                       className="flex-shrink-0 hover:opacity-80 transition-opacity"
                     >
                       {product.image_url ? (
-                        <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover" />
+                        <img src={product.image_url} alt="" className="w-12 h-12 sm:w-16 sm:h-16 rounded object-cover" />
                       ) : (
-                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">📦</div>
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded bg-muted flex items-center justify-center text-xs">📦</div>
                       )}
                     </a>
                     <div className="flex-1 min-w-0">
@@ -1549,47 +1560,51 @@ const FeedTab = () => {
                         href={product.tracking_link || `https://www.lazada.co.th/products/-i${product.lazada_product_id}.html`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-medium text-sm line-clamp-2 hover:text-orange-600 transition-colors cursor-pointer"
+                        className="font-medium text-xs sm:text-sm line-clamp-2 hover:text-orange-600 transition-colors cursor-pointer"
                       >
                         {product.product_name}
                       </a>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
-                        {product.brand_name && <span>{product.brand_name}</span>}
+                      <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                        {product.brand_name && <span className="hidden sm:inline">{product.brand_name}</span>}
                         {product.sales_7d && product.sales_7d > 0 && (
-                          <span className="text-orange-600">🔥 {product.sales_7d} נמכרו</span>
+                          <span className="text-orange-600">🔥 {product.sales_7d}</span>
                         )}
                         {product.commission_rate && product.commission_rate > 0 && (
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
                             product.commission_rate >= 0.10 
                               ? 'bg-green-100 text-green-800' 
                               : product.commission_rate >= 0.05 
                                 ? 'bg-yellow-100 text-yellow-800' 
                                 : 'bg-gray-100 text-gray-800'
                           }`}>
-                            💰 {(product.commission_rate * 100).toFixed(1)}%
+                            {(product.commission_rate * 100).toFixed(0)}%
                           </span>
+                        )}
+                        {product.price_thb && (
+                          <span className="font-bold text-orange-600 sm:hidden">฿{product.price_thb.toLocaleString()}</span>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
                       {product.price_thb && (
-                        <span className="font-bold text-orange-600">฿{product.price_thb.toLocaleString()}</span>
+                        <span className="font-bold text-orange-600 hidden sm:inline">฿{product.price_thb.toLocaleString()}</span>
                       )}
                       <a
                         href={product.tracking_link || `https://www.lazada.co.th/products/-i${product.lazada_product_id}.html`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 hover:bg-muted rounded transition-colors"
+                        className="p-1.5 sm:p-2 hover:bg-muted rounded transition-colors"
                         title="פתח מוצר"
                       >
-                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       </a>
                       <Button
                         size="sm"
                         variant={product.is_featured ? "default" : "outline"}
                         onClick={() => toggleLazadaFeatured(product)}
+                        className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                       >
-                        {product.is_featured ? <Star className="h-4 w-4" /> : <StarOff className="h-4 w-4" />}
+                        {product.is_featured ? <Star className="h-3 w-3 sm:h-4 sm:w-4" /> : <StarOff className="h-3 w-3 sm:h-4 sm:w-4" />}
                       </Button>
                     </div>
                   </div>
@@ -1598,8 +1613,8 @@ const FeedTab = () => {
             ) : (
               // AliExpress Products
               (paginatedProducts as AliExpressFeedProduct[]).map((product) => (
-                <Card key={product.id} className={`p-3 ${product.is_featured ? 'border-red-400 bg-red-50/50' : ''}`}>
-                  <div className="flex items-center gap-4">
+                <Card key={product.id} className={`p-2 sm:p-3 ${product.is_featured ? 'border-red-400 bg-red-50/50' : ''}`}>
+                  <div className="flex items-start sm:items-center gap-2 sm:gap-4">
                     <a 
                       href={product.tracking_link || `https://www.aliexpress.com/item/${product.aliexpress_product_id}.html`}
                       target="_blank"
@@ -1607,9 +1622,9 @@ const FeedTab = () => {
                       className="flex-shrink-0 hover:opacity-80 transition-opacity"
                     >
                       {product.image_url ? (
-                        <img src={product.image_url} alt="" className="w-16 h-16 rounded object-cover" />
+                        <img src={product.image_url} alt="" className="w-12 h-12 sm:w-16 sm:h-16 rounded object-cover" />
                       ) : (
-                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">📦</div>
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded bg-muted flex items-center justify-center text-xs">📦</div>
                       )}
                     </a>
                     <div className="flex-1 min-w-0">
@@ -1617,44 +1632,45 @@ const FeedTab = () => {
                         href={product.tracking_link || `https://www.aliexpress.com/item/${product.aliexpress_product_id}.html`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-medium text-sm line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer"
+                        className="font-medium text-xs sm:text-sm line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer"
                       >
                         {product.product_name_hebrew || product.product_name}
                       </a>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                         {product.sales_30d && product.sales_30d > 0 && (
-                          <span className="text-red-600">🔥 {product.sales_30d} נמכרו</span>
+                          <span className="text-red-600">🔥 {product.sales_30d}</span>
                         )}
                         {product.commission_rate && (
-                          <span className="text-green-600">{(product.commission_rate * 100).toFixed(1)}% עמלה</span>
+                          <span className="text-green-600">{(product.commission_rate * 100).toFixed(0)}%</span>
                         )}
                         {product.discount_percentage && product.discount_percentage > 0 && (
                           <span className="text-purple-600">-{product.discount_percentage}%</span>
                         )}
-                        {product.rating && (
-                          <span className="text-amber-500">⭐ {product.rating.toFixed(1)}</span>
+                        {product.price_usd && (
+                          <span className="font-bold text-red-600 sm:hidden">${product.price_usd.toFixed(2)}</span>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
                       {product.price_usd && (
-                        <span className="font-bold text-red-600">${product.price_usd.toFixed(2)}</span>
+                        <span className="font-bold text-red-600 hidden sm:inline">${product.price_usd.toFixed(2)}</span>
                       )}
                       <a
                         href={product.tracking_link || `https://www.aliexpress.com/item/${product.aliexpress_product_id}.html`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 hover:bg-muted rounded transition-colors"
+                        className="p-1.5 sm:p-2 hover:bg-muted rounded transition-colors"
                         title="פתח מוצר"
                       >
-                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       </a>
                       <Button
                         size="sm"
                         variant={product.is_featured ? "default" : "outline"}
                         onClick={() => toggleAliexpressFeatured(product)}
+                        className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                       >
-                        {product.is_featured ? <Star className="h-4 w-4" /> : <StarOff className="h-4 w-4" />}
+                        {product.is_featured ? <Star className="h-3 w-3 sm:h-4 sm:w-4" /> : <StarOff className="h-3 w-3 sm:h-4 sm:w-4" />}
                       </Button>
                     </div>
                   </div>
@@ -1835,20 +1851,21 @@ const RequestsTab = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-4 items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         <Input
           placeholder="חיפוש לפי מייל או תוכן..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="max-w-xs"
+          className="w-full sm:max-w-xs"
         />
         <div className="flex gap-2">
-          <Button onClick={exportToExcel} variant="outline" disabled={requests.length === 0}>
-            <Download className="h-4 w-4 ml-2" />
-            ייצוא לאקסל
+          <Button onClick={exportToExcel} variant="outline" disabled={requests.length === 0} size="sm" className="text-xs md:text-sm">
+            <Download className="h-3 w-3 md:h-4 md:w-4 ml-1" />
+            <span className="hidden sm:inline">ייצוא לאקסל</span>
+            <span className="sm:hidden">ייצוא</span>
           </Button>
-          <Button onClick={fetchRequests} variant="outline" disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
+          <Button onClick={fetchRequests} variant="outline" disabled={loading} size="sm" className="text-xs md:text-sm">
+            <RefreshCw className={`h-3 w-3 md:h-4 md:w-4 ml-1 ${loading ? "animate-spin" : ""}`} />
             רענן
           </Button>
         </div>
@@ -2028,14 +2045,14 @@ const StatsTab = () => {
   return (
     <div className="space-y-6">
       {/* Date Range Filter */}
-      <Card className="p-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <span className="font-medium">טווח תאריכים:</span>
-          <div className="flex items-center gap-2">
+      <Card className="p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 sm:gap-4">
+          <span className="font-medium text-sm sm:text-base">טווח תאריכים:</span>
+          <div className="flex items-center gap-2 flex-wrap">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="justify-start text-right">
-                  <Calendar className="ml-2 h-4 w-4" />
+                <Button variant="outline" className="justify-start text-right text-xs sm:text-sm h-8 sm:h-9">
+                  <Calendar className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4" />
                   {format(startDate, "dd/MM/yyyy", { locale: he })}
                 </Button>
               </PopoverTrigger>
@@ -2048,11 +2065,11 @@ const StatsTab = () => {
                 />
               </PopoverContent>
             </Popover>
-            <span>עד</span>
+            <span className="text-sm">עד</span>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="justify-start text-right">
-                  <Calendar className="ml-2 h-4 w-4" />
+                <Button variant="outline" className="justify-start text-right text-xs sm:text-sm h-8 sm:h-9">
+                  <Calendar className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4" />
                   {format(endDate, "dd/MM/yyyy", { locale: he })}
                 </Button>
               </PopoverTrigger>
@@ -2065,10 +2082,10 @@ const StatsTab = () => {
                 />
               </PopoverContent>
             </Popover>
+            <Button onClick={fetchClicks} disabled={loading} variant="outline" size="sm" className="h-8 sm:h-9">
+              <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
           </div>
-          <Button onClick={fetchClicks} disabled={loading} variant="outline" size="sm">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
         </div>
       </Card>
 
@@ -2077,18 +2094,18 @@ const StatsTab = () => {
       ) : stats ? (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Card className="p-4 text-center">
-              <p className="text-sm text-muted-foreground">סה"כ קליקים</p>
-              <p className="text-3xl font-bold text-foreground">{stats.total}</p>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <Card className="p-2 sm:p-4 text-center">
+              <p className="text-xs sm:text-sm text-muted-foreground">סה"כ</p>
+              <p className="text-xl sm:text-3xl font-bold text-foreground">{stats.total}</p>
             </Card>
-            <Card className="p-4 text-center bg-green-500/10">
-              <p className="text-sm text-muted-foreground">WhatsApp</p>
-              <p className="text-3xl font-bold text-green-600">{stats.whatsapp}</p>
+            <Card className="p-2 sm:p-4 text-center bg-green-500/10">
+              <p className="text-xs sm:text-sm text-muted-foreground">WA</p>
+              <p className="text-xl sm:text-3xl font-bold text-green-600">{stats.whatsapp}</p>
             </Card>
-            <Card className="p-4 text-center bg-blue-500/10">
-              <p className="text-sm text-muted-foreground">Telegram</p>
-              <p className="text-3xl font-bold text-blue-500">{stats.telegram}</p>
+            <Card className="p-2 sm:p-4 text-center bg-blue-500/10">
+              <p className="text-xs sm:text-sm text-muted-foreground">TG</p>
+              <p className="text-xl sm:text-3xl font-bold text-blue-500">{stats.telegram}</p>
             </Card>
           </div>
 
@@ -2186,25 +2203,29 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="stats" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
-            <TabsTrigger value="stats" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              סטטיסטיקות
+          <TabsList className="flex w-full overflow-x-auto mb-6 gap-1 h-auto flex-wrap md:flex-nowrap">
+            <TabsTrigger value="stats" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">סטטיסטיקות</span>
+              <span className="sm:hidden">סטטס</span>
             </TabsTrigger>
-            <TabsTrigger value="products" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              המלצות העורך
+            <TabsTrigger value="products" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <Package className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">המלצות העורך</span>
+              <span className="sm:hidden">המלצות</span>
             </TabsTrigger>
-            <TabsTrigger value="feed" className="flex items-center gap-2">
-              <Store className="h-4 w-4" />
-              מוצרים פופולריים
+            <TabsTrigger value="feed" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <Store className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">מוצרים פופולריים</span>
+              <span className="sm:hidden">פופולרי</span>
             </TabsTrigger>
-            <TabsTrigger value="converter" className="flex items-center gap-2">
-              <Link2 className="h-4 w-4" />
-              המרת קישורים
+            <TabsTrigger value="converter" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <Link2 className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">המרת קישורים</span>
+              <span className="sm:hidden">המרה</span>
             </TabsTrigger>
-            <TabsTrigger value="requests" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
+            <TabsTrigger value="requests" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <MessageSquare className="h-3 w-3 md:h-4 md:w-4" />
               פניות
             </TabsTrigger>
           </TabsList>
