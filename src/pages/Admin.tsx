@@ -1553,13 +1553,21 @@ const FeedTab = () => {
                       >
                         {product.product_name}
                       </a>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                         {product.brand_name && <span>{product.brand_name}</span>}
                         {product.sales_7d && product.sales_7d > 0 && (
                           <span className="text-orange-600">🔥 {product.sales_7d} נמכרו</span>
                         )}
-                        {product.commission_rate && (
-                          <span className="text-green-600">{(product.commission_rate * 100).toFixed(1)}% עמלה</span>
+                        {product.commission_rate && product.commission_rate > 0 && (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            product.commission_rate >= 0.10 
+                              ? 'bg-green-100 text-green-800' 
+                              : product.commission_rate >= 0.05 
+                                ? 'bg-yellow-100 text-yellow-800' 
+                                : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            💰 {(product.commission_rate * 100).toFixed(1)}%
+                          </span>
                         )}
                       </div>
                     </div>
