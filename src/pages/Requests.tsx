@@ -218,8 +218,8 @@ const Requests = () => {
                     <Label htmlFor="aliexpress" className="cursor-pointer">AliExpress</Label>
                   </div>
                   <div className="flex items-center space-x-2 space-x-reverse">
-                    <RadioGroupItem value="other" id="other" />
-                    <Label htmlFor="other" className="cursor-pointer">לא משנה / אחר</Label>
+                    <RadioGroupItem value="ksp" id="ksp" />
+                    <Label htmlFor="ksp" className="cursor-pointer">KSP</Label>
                   </div>
                 </RadioGroup>
               </div>
