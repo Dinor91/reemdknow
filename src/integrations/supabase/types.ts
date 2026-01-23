@@ -200,6 +200,7 @@ export type Database = {
       contact_requests: {
         Row: {
           admin_notes: string | null
+          budget: string | null
           created_at: string
           email: string
           id: string
@@ -207,11 +208,13 @@ export type Database = {
           phone: string | null
           platform: string
           request_text: string
+          requirements: string | null
           status: string
           updated_at: string
         }
         Insert: {
           admin_notes?: string | null
+          budget?: string | null
           created_at?: string
           email: string
           id?: string
@@ -219,11 +222,13 @@ export type Database = {
           phone?: string | null
           platform?: string
           request_text: string
+          requirements?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           admin_notes?: string | null
+          budget?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -231,6 +236,7 @@ export type Database = {
           phone?: string | null
           platform?: string
           request_text?: string
+          requirements?: string | null
           status?: string
           updated_at?: string
         }

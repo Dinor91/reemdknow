@@ -19,6 +19,8 @@ const Requests = () => {
     email: "",
     phone: "",
     request_text: "",
+    budget: "",
+    requirements: "",
     platform: "lazada",
     location: "thailand"
   });
@@ -26,7 +28,7 @@ const Requests = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.email || !formData.request_text) {
+    if (!formData.email || !formData.request_text || !formData.budget) {
       toast.error("נא למלא את כל השדות הנדרשים");
       return;
     }
@@ -40,6 +42,8 @@ const Requests = () => {
           email: formData.email,
           phone: formData.phone || null,
           request_text: formData.request_text,
+          budget: formData.budget,
+          requirements: formData.requirements || null,
           platform: formData.platform,
           location: formData.location
         });
@@ -59,17 +63,20 @@ const Requests = () => {
   if (isSubmitted) {
     return (
       <div className="min-h-screen flex flex-col bg-background" dir="rtl">
-      <Header />
-      <main className="flex-1 flex items-center justify-center pt-24 pb-12">
-        <div className="text-center max-w-md mx-auto px-4 relative z-0">
+        <Header />
+        <main className="flex-1 flex items-center justify-center pt-24 pb-12">
+          <div className="text-center max-w-md mx-auto px-4 relative z-0">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-4">
-              הבקשה נשלחה בהצלחה!
+              ✅ קיבלתי!
             </h1>
-            <p className="text-muted-foreground mb-6">
-              קיבלנו את הבקשה שלך ונחזור אליך בהקדם עם המלצות מותאמות אישית.
+            <p className="text-muted-foreground mb-2">
+              אחזור אליך בוואטסאפ/מייל עם 3–5 אופציות מסודרות.
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              תודה 🙂
             </p>
             <div className="flex gap-3 justify-center">
               <Button onClick={() => navigate('/thailand')} variant="outline">
@@ -156,6 +163,42 @@ const Requests = () => {
                   required
                   className="min-h-[120px] text-base"
                 />
+              </div>
+
+              {/* Budget - NEW */}
+              <div className="space-y-2">
+                <Label htmlFor="budget" className="text-base">
+                  תקציב מקסימום <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="budget"
+                  type="text"
+                  placeholder="למשל: 3000 בט / 500 ש״ח"
+                  value={formData.budget}
+                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                  required
+                  className="text-base py-5"
+                />
+                <p className="text-xs text-muted-foreground">
+                  כולל משלוח או לא כולל? ציינו בבקשה
+                </p>
+              </div>
+
+              {/* Requirements - NEW */}
+              <div className="space-y-2">
+                <Label htmlFor="requirements" className="text-base">
+                  יש לכם דרישות חובה? (עד 3)
+                </Label>
+                <Textarea
+                  id="requirements"
+                  placeholder={"למשל:\nחומר 100% טבעי (כותנה/יוטה)\nמידה עד 2x3 מטר\nמשלוח עד 7 ימים"}
+                  value={formData.requirements}
+                  onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
+                  className="min-h-[100px] text-base"
+                />
+                <p className="text-xs text-muted-foreground">
+                  זה עוזר לי למצוא בדיוק מה שאתם צריכים
+                </p>
               </div>
 
               {/* Platform */}
