@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { RefreshCw, Link2, Download, Check, Copy, ExternalLink, Globe, Search, Sparkles } from "lucide-react";
+import { RefreshCw, Link2, Download, Check, Copy, ExternalLink, Globe, Search, Sparkles, MessageSquareText } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -140,20 +140,86 @@ function extractProductId(url: string): string | null {
   return match ? match[1] : null;
 }
 
+// Extract AliExpress links from free text (messages)
+function extractLinksFromText(text: string): string[] {
+  // Regex patterns for different AliExpress URL formats
+  const patterns = [
+    /https?:\/\/(?:www\.|he\.|m\.)?aliexpress\.com\/item\/\d+\.html[^\s]*/gi,
+    /https?:\/\/(?:www\.|he\.|m\.)?aliexpress\.com\/i\/\d+\.html[^\s]*/gi,
+    /https?:\/\/s\.click\.aliexpress\.com\/e\/[^\s]+/gi,
+    /https?:\/\/a\.aliexpress\.com\/[^\s]+/gi,
+    /https?:\/\/aliexpress\.com\/[^\s]*item[^\s]*/gi,
+  ];
+  
+  const foundLinks = new Set<string>();
+  
+  for (const pattern of patterns) {
+    const matches = text.match(pattern);
+    if (matches) {
+      matches.forEach(match => {
+        // Clean up the URL (remove trailing punctuation that might have been captured)
+        const cleanUrl = match.replace(/[,.\s!?)]+$/, '');
+        foundLinks.add(cleanUrl);
+      });
+    }
+  }
+  
+  return Array.from(foundLinks);
+}
+
 export const LinkConverter = () => {
   const [inputLinks, setInputLinks] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [freeText, setFreeText] = useState("");
   const [convertedLinks, setConvertedLinks] = useState<ConvertedLink[]>([]);
   const [isConverting, setIsConverting] = useState(false);
   const [isScraping, setIsScraping] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isRecategorizing, setIsRecategorizing] = useState(false);
+  const [isExtractingLinks, setIsExtractingLinks] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("כללי");
   const [selectedForImport, setSelectedForImport] = useState<Set<string>>(new Set());
   
   // Progress tracking
   const [conversionProgress, setConversionProgress] = useState({ current: 0, total: 0 });
   const [scrapeProgress, setScrapeProgress] = useState<string | null>(null);
+  const [extractedLinksCount, setExtractedLinksCount] = useState(0);
+
+  // Extract links from pasted free text
+  const handleExtractFromText = () => {
+    if (!freeText.trim()) {
+      toast.error("הדבק טקסט עם הודעות");
+      return;
+    }
+
+    setIsExtractingLinks(true);
+    
+    try {
+      const links = extractLinksFromText(freeText);
+      
+      if (links.length === 0) {
+        toast.warning("לא נמצאו קישורי AliExpress בטקסט");
+        setIsExtractingLinks(false);
+        return;
+      }
+      
+      // Add extracted links to inputLinks
+      setInputLinks(prev => {
+        const existingLinks = prev.split('\n').filter(l => l.trim());
+        const newLinks = links.filter(l => !existingLinks.includes(l));
+        return [...existingLinks, ...newLinks].join('\n');
+      });
+      
+      setExtractedLinksCount(links.length);
+      toast.success(`נמצאו ${links.length} קישורי AliExpress!`);
+      setFreeText(''); // Clear the text area after extraction
+    } catch (err) {
+      console.error('Error extracting links:', err);
+      toast.error("שגיאה בחילוץ קישורים");
+    } finally {
+      setIsExtractingLinks(false);
+    }
+  };
 
   // Re-categorize existing "כללי" products
   const handleRecategorize = async () => {
@@ -589,17 +655,72 @@ export const LinkConverter = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="scrape" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
+        <Tabs defaultValue="freetext" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="freetext" className="flex items-center gap-2">
+              <MessageSquareText className="h-4 w-4" />
+              טקסט חופשי
+            </TabsTrigger>
             <TabsTrigger value="scrape" className="flex items-center gap-2">
               <Globe className="h-4 w-4" />
               סריקת אתר
             </TabsTrigger>
             <TabsTrigger value="paste" className="flex items-center gap-2">
               <Link2 className="h-4 w-4" />
-              הדבקת קישורים
+              קישורים ישירים
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="freetext" className="space-y-3">
+            <label className="text-sm font-medium">הדבק הודעות מהקבוצה (טקסט חופשי):</label>
+            <Textarea
+              value={freeText}
+              onChange={(e) => setFreeText(e.target.value)}
+              placeholder={`הדבק כאן את כל ההודעות מהקבוצה...
+למשל:
+
+היי! מצאתי משהו מדהים 🔥
+https://s.click.aliexpress.com/e/_ABC123
+
+עוד מוצר מעולה:
+https://aliexpress.com/item/1234567890.html
+
+הכלי יחלץ את כל הלינקים אוטומטית!`}
+              className="min-h-[200px] font-sans text-sm"
+              dir="rtl"
+            />
+            
+            <Button 
+              onClick={handleExtractFromText} 
+              disabled={isExtractingLinks || !freeText.trim()}
+              variant="secondary"
+              className="w-full"
+            >
+              {isExtractingLinks ? (
+                <>
+                  <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
+                  מחלץ קישורים...
+                </>
+              ) : (
+                <>
+                  <MessageSquareText className="h-4 w-4 ml-2" />
+                  חלץ קישורים מהטקסט
+                </>
+              )}
+            </Button>
+            
+            {extractedLinksCount > 0 && (
+              <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  ✅ נמצאו {extractedLinksCount} קישורים! לחץ על "המר לקישורים שלי" להמשיך
+                </p>
+              </div>
+            )}
+            
+            <p className="text-xs text-muted-foreground">
+              פשוט תעתיק את כל ההודעות מהקבוצה - הכלי יזהה ויחלץ את כל לינקי AliExpress אוטומטית
+            </p>
+          </TabsContent>
 
           <TabsContent value="scrape" className="space-y-3">
             <label className="text-sm font-medium">כתובת האתר לסריקה:</label>
