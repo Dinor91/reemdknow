@@ -39,11 +39,7 @@ const categories: Category[] = [
   { icon: ShieldCheck, emoji: "🦟", title: "הדברה" },
   { icon: Trees, emoji: "🌳", title: "חצר וגינה" },
   { icon: Hammer, emoji: "🛠️", title: "DIY" },
-  { icon: WashingMachine, emoji: "🧺", title: "מוצרי ניקיון וכביסה" },
-  { icon: Sofa, emoji: "🪑", title: "ריהוט ונוחות" },
-  { icon: Home, emoji: "🔌", title: "מוצרי חשמל" },
   { icon: Utensils, emoji: "🇮🇱", title: "מוצרי מזון ישראליים" },
-  { icon: Baby, emoji: "🧒", title: "לילדים" },
   { icon: Package, emoji: "📦", title: "כללי" }
 ];
 
