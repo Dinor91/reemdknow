@@ -141,8 +141,7 @@ function extractProductId(url: string): string | null {
 }
 
 // Extract AliExpress links from free text (messages)
-function extractLinksFromText(text: string): string[] {
-  // Regex patterns for different AliExpress URL formats
+function extractAliExpressLinks(text: string): string[] {
   const patterns = [
     /https?:\/\/(?:www\.|he\.|m\.)?aliexpress\.com\/item\/\d+\.html[^\s]*/gi,
     /https?:\/\/(?:www\.|he\.|m\.)?aliexpress\.com\/i\/\d+\.html[^\s]*/gi,
@@ -157,7 +156,6 @@ function extractLinksFromText(text: string): string[] {
     const matches = text.match(pattern);
     if (matches) {
       matches.forEach(match => {
-        // Clean up the URL (remove trailing punctuation that might have been captured)
         const cleanUrl = match.replace(/[,.\s!?)]+$/, '');
         foundLinks.add(cleanUrl);
       });
@@ -165,6 +163,38 @@ function extractLinksFromText(text: string): string[] {
   }
   
   return Array.from(foundLinks);
+}
+
+// Extract Lazada links from free text (messages)
+function extractLazadaLinks(text: string): string[] {
+  const patterns = [
+    /https?:\/\/(?:www\.)?lazada\.co\.th\/products\/[^\s]+/gi,
+    /https?:\/\/s\.lazada\.co\.th\/[^\s]+/gi,
+    /https?:\/\/(?:www\.)?lazada\.co\.th\/[^\s]*i\d+[^\s]*/gi,
+    /https?:\/\/c\.lazada\.co\.th\/[^\s]+/gi,
+  ];
+  
+  const foundLinks = new Set<string>();
+  
+  for (const pattern of patterns) {
+    const matches = text.match(pattern);
+    if (matches) {
+      matches.forEach(match => {
+        const cleanUrl = match.replace(/[,.\s!?)]+$/, '');
+        foundLinks.add(cleanUrl);
+      });
+    }
+  }
+  
+  return Array.from(foundLinks);
+}
+
+// Combined extraction function based on platform
+function extractLinksFromText(text: string, platform: 'israel' | 'thailand'): string[] {
+  if (platform === 'thailand') {
+    return extractLazadaLinks(text);
+  }
+  return extractAliExpressLinks(text);
 }
 
 export const LinkConverter = () => {
@@ -179,6 +209,7 @@ export const LinkConverter = () => {
   const [isExtractingLinks, setIsExtractingLinks] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("כללי");
   const [selectedForImport, setSelectedForImport] = useState<Set<string>>(new Set());
+  const [selectedPlatform, setSelectedPlatform] = useState<'israel' | 'thailand'>('israel');
   
   // Progress tracking
   const [conversionProgress, setConversionProgress] = useState({ current: 0, total: 0 });
@@ -195,10 +226,11 @@ export const LinkConverter = () => {
     setIsExtractingLinks(true);
     
     try {
-      const links = extractLinksFromText(freeText);
+      const links = extractLinksFromText(freeText, selectedPlatform);
+      const platformName = selectedPlatform === 'thailand' ? 'Lazada' : 'AliExpress';
       
       if (links.length === 0) {
-        toast.warning("לא נמצאו קישורי AliExpress בטקסט");
+        toast.warning(`לא נמצאו קישורי ${platformName} בטקסט`);
         setIsExtractingLinks(false);
         return;
       }
@@ -211,7 +243,7 @@ export const LinkConverter = () => {
       });
       
       setExtractedLinksCount(links.length);
-      toast.success(`נמצאו ${links.length} קישורי AliExpress!`);
+      toast.success(`נמצאו ${links.length} קישורי ${platformName}!`);
       setFreeText(''); // Clear the text area after extraction
     } catch (err) {
       console.error('Error extracting links:', err);
@@ -303,6 +335,12 @@ export const LinkConverter = () => {
   };
 
   const handleConvert = async () => {
+    // Check platform
+    if (selectedPlatform === 'thailand') {
+      toast.warning("המרת לינקי Lazada לאפיליאציה עדיין לא נתמכת. כרגע ניתן רק לחלץ את הלינקים.");
+      return;
+    }
+    
     const links = inputLinks
       .split('\n')
       .map(l => l.trim())
@@ -628,31 +666,44 @@ export const LinkConverter = () => {
   return (
     <Card className="p-6">
       <div className="space-y-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-xl font-bold mb-2">🔄 המרת קישורי AliExpress</h2>
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+          <div className="flex-1">
+            <h2 className="text-xl font-bold mb-2">🔄 המרת קישורים לאפיליאציה</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              סרוק אתר חיצוני או הדבק קישורים - הכלי יחלץ את מזהה המוצר ויצור קישורי אפיליאציה חדשים עם ה-Tracking ID שלך
+              סרוק אתר חיצוני או הדבק קישורים - הכלי יחלץ את מזהה המוצר ויצור קישורי אפיליאציה חדשים
             </p>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={handleRecategorize}
-            disabled={isRecategorizing}
-            className="shrink-0"
-          >
-            {isRecategorizing ? (
-              <>
-                <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
-                מסווג...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4 ml-2" />
-                סווג מחדש "כללי"
-              </>
-            )}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            {/* Platform Selector */}
+            <Select value={selectedPlatform} onValueChange={(v: 'israel' | 'thailand') => setSelectedPlatform(v)}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="israel">🇮🇱 ישראל (AliExpress)</SelectItem>
+                <SelectItem value="thailand">🇹🇭 תאילנד (Lazada)</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Button 
+              variant="outline" 
+              onClick={handleRecategorize}
+              disabled={isRecategorizing}
+              className="shrink-0"
+            >
+              {isRecategorizing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
+                  מסווג...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 ml-2" />
+                  סווג מחדש "כללי"
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="freetext" className="w-full">
@@ -672,11 +723,24 @@ export const LinkConverter = () => {
           </TabsList>
 
           <TabsContent value="freetext" className="space-y-3">
-            <label className="text-sm font-medium">הדבק הודעות מהקבוצה (טקסט חופשי):</label>
+            <label className="text-sm font-medium">
+              הדבק הודעות מהקבוצה (טקסט חופשי) - {selectedPlatform === 'thailand' ? 'Lazada' : 'AliExpress'}:
+            </label>
             <Textarea
               value={freeText}
               onChange={(e) => setFreeText(e.target.value)}
-              placeholder={`הדבק כאן את כל ההודעות מהקבוצה...
+              placeholder={selectedPlatform === 'thailand' 
+                ? `הדבק כאן את כל ההודעות מהקבוצה...
+למשל:
+
+היי! מצאתי משהו מדהים 🔥
+https://s.lazada.co.th/s.abc123
+
+עוד מוצר מעולה:
+https://www.lazada.co.th/products/product-name-i12345678.html
+
+הכלי יחלץ את כל לינקי Lazada אוטומטית!`
+                : `הדבק כאן את כל ההודעות מהקבוצה...
 למשל:
 
 היי! מצאתי משהו מדהים 🔥
@@ -685,8 +749,8 @@ https://s.click.aliexpress.com/e/_ABC123
 עוד מוצר מעולה:
 https://aliexpress.com/item/1234567890.html
 
-הכלי יחלץ את כל הלינקים אוטומטית!`}
-              className="min-h-[200px] font-sans text-sm"
+הכלי יחלץ את כל לינקי AliExpress אוטומטית!`}
+              className="min-h-[250px] font-sans text-sm resize-y"
               dir="rtl"
             />
             
@@ -718,7 +782,7 @@ https://aliexpress.com/item/1234567890.html
             )}
             
             <p className="text-xs text-muted-foreground">
-              פשוט תעתיק את כל ההודעות מהקבוצה - הכלי יזהה ויחלץ את כל לינקי AliExpress אוטומטית
+              פשוט תעתיק את כל ההודעות מהקבוצה - הכלי יזהה ויחלץ את כל לינקי {selectedPlatform === 'thailand' ? 'Lazada' : 'AliExpress'} אוטומטית
             </p>
           </TabsContent>
 
@@ -762,7 +826,7 @@ https://aliexpress.com/item/1234567890.html
             )}
             
             <p className="text-xs text-muted-foreground">
-              הכלי יסרוק את האתר ויחלץ את כל קישורי AliExpress שנמצאים בו
+              הכלי יסרוק את האתר ויחלץ את כל קישורי {selectedPlatform === 'thailand' ? 'Lazada' : 'AliExpress'} שנמצאים בו
             </p>
           </TabsContent>
 
@@ -771,7 +835,10 @@ https://aliexpress.com/item/1234567890.html
             <Textarea
               value={inputLinks}
               onChange={(e) => setInputLinks(e.target.value)}
-              placeholder={`https://www.aliexpress.com/item/1234567890.html
+              placeholder={selectedPlatform === 'thailand' 
+                ? `https://www.lazada.co.th/products/product-name-i12345678.html
+https://s.lazada.co.th/s.abc123`
+                : `https://www.aliexpress.com/item/1234567890.html
 https://s.click.aliexpress.com/e/_ABC123
 https://he.aliexpress.com/item/9876543210.html`}
               className="min-h-[120px] font-mono text-sm"
@@ -785,7 +852,11 @@ https://he.aliexpress.com/item/9876543210.html`}
           <div className="bg-muted p-3 rounded-lg">
             <p className="text-sm">
               <span className="font-medium">קישורים שנמצאו: </span>
-              {inputLinks.split('\n').filter(l => l.includes('aliexpress') || l.includes('s.click')).length}
+              {inputLinks.split('\n').filter(l => 
+                selectedPlatform === 'thailand' 
+                  ? l.includes('lazada')
+                  : (l.includes('aliexpress') || l.includes('s.click'))
+              ).length}
             </p>
           </div>
         )}
