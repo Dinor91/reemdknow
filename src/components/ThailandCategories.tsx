@@ -1,4 +1,4 @@
-import { Home, Baby, Sparkles, Hammer, Trees, Tent, Utensils, Sofa, ShieldCheck, WashingMachine, Search, X, ExternalLink, Package } from "lucide-react";
+import { Home, Baby, Sparkles, Hammer, Trees, Tent, Utensils, Sofa, ShieldCheck, WashingMachine, Search, X, ExternalLink, Package, Car, Smartphone, Heart, Plane, Wrench, Lightbulb } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,15 +27,23 @@ interface DisplayProduct {
 }
 
 const categories: Category[] = [
-  { icon: Home, emoji: "🔌", title: "מוצרי חשמל" },
-  { icon: Sofa, emoji: "🪑", title: "ריהוט ונוחות" },
-  { icon: Utensils, emoji: "🇮🇱", title: "מוצרי מזון ישראליים" },
-  { icon: Baby, emoji: "👶", title: "לילדים" },
-  { icon: ShieldCheck, emoji: "🦟", title: "הדברה" },
-  { icon: WashingMachine, emoji: "🧺", title: "מוצרי ניקיון וכביסה" },
-  { icon: Hammer, emoji: "🔧", title: "DIY" },
-  { icon: Trees, emoji: "🌳", title: "חצר וגינה" },
+  { icon: Home, emoji: "🏠", title: "בית" },
+  { icon: Baby, emoji: "👶", title: "ילדים" },
   { icon: Tent, emoji: "⛺", title: "טיולים" },
+  { icon: Heart, emoji: "💪", title: "בריאות" },
+  { icon: Smartphone, emoji: "📱", title: "גאדג׳טים" },
+  { icon: Plane, emoji: "✈️", title: "נסיעות" },
+  { icon: Car, emoji: "🚗", title: "רכב" },
+  { icon: Lightbulb, emoji: "💡", title: "בית חכם" },
+  { icon: Wrench, emoji: "🔧", title: "כלי עבודה" },
+  { icon: ShieldCheck, emoji: "🦟", title: "הדברה" },
+  { icon: Trees, emoji: "🌳", title: "חצר וגינה" },
+  { icon: Hammer, emoji: "🛠️", title: "DIY" },
+  { icon: WashingMachine, emoji: "🧺", title: "מוצרי ניקיון וכביסה" },
+  { icon: Sofa, emoji: "🪑", title: "ריהוט ונוחות" },
+  { icon: Home, emoji: "🔌", title: "מוצרי חשמל" },
+  { icon: Utensils, emoji: "🇮🇱", title: "מוצרי מזון ישראליים" },
+  { icon: Baby, emoji: "🧒", title: "לילדים" },
   { icon: Package, emoji: "📦", title: "כללי" }
 ];
 
