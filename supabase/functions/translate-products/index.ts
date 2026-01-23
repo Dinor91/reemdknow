@@ -47,10 +47,10 @@ function extractKnownBrand(productName: string): string | null {
 
 function needsTranslation(name: string | null): boolean {
   if (!name) return false;
-  // Check if the name starts with English letters or contains mostly non-Hebrew
+  // Check if the name contains ANY Hebrew characters
   const hebrewRegex = /[\u0590-\u05FF]/;
-  const englishRegex = /^[A-Za-z0-9\s\-\[\]\(\)]/;
-  return englishRegex.test(name) || !hebrewRegex.test(name.charAt(0));
+  // If there's no Hebrew at all, it needs translation
+  return !hebrewRegex.test(name);
 }
 
 Deno.serve(async (req) => {
@@ -155,19 +155,24 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Translate category_products (existing logic)
+    // Translate category_products (all products needing translation, not just כללי)
     if (platform === "both" || platform === "category") {
+      // Get ALL active products (we need to check all since we can't filter by regex in SQL)
       const { data: products, error: fetchError } = await supabase
         .from("category_products")
         .select("id, name_hebrew, name_english")
-        .eq("category", "כללי")
-        .limit(30);
+        .eq("is_active", true)
+        .limit(500);
 
       if (fetchError) throw fetchError;
 
+      // Filter products that have no Hebrew characters at all
+      const hebrewRegex = /[\u0590-\u05FF]/;
       const productsNeedingTranslation = (products || []).filter(p => 
-        needsTranslation(p.name_hebrew)
-      );
+        p.name_hebrew && !hebrewRegex.test(p.name_hebrew)
+      ).slice(0, 30); // Limit to 30 at a time to avoid timeouts
+
+      console.log(`Found ${productsNeedingTranslation.length} products needing translation out of ${products?.length || 0} total`);
 
       if (productsNeedingTranslation.length > 0) {
         const translated = await translateProducts(
