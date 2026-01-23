@@ -157,7 +157,7 @@ const Requests = () => {
                 </Label>
                 <Textarea
                   id="request"
-                  placeholder="למשל: מחפש שואב אבק רובוטי עד 3000 בט, או אוזניות בלוטות' איכותיות..."
+                  placeholder="למשל: שואב אבק רובוטי, אוזניות בלוטות' איכותיות, שטיח לסלון..."
                   value={formData.request_text}
                   onChange={(e) => setFormData({ ...formData, request_text: e.target.value })}
                   required
