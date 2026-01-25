@@ -118,7 +118,7 @@ function detectCategory(productName: string): string {
 }
 
 // Extract product ID from various AliExpress URL formats
-function extractProductId(url: string): string | null {
+function extractAliExpressProductId(url: string): string | null {
   // Try different patterns
   // Pattern 1: /item/1234567890.html
   const pattern1 = /\/item\/(\d+)\.html/i;
@@ -138,6 +138,30 @@ function extractProductId(url: string): string | null {
               url.match(pattern5);
   
   return match ? match[1] : null;
+}
+
+// Extract product ID from Lazada URL formats
+function extractLazadaProductId(url: string): string | null {
+  // Pattern 1: -i123456789-s... (common format)
+  const pattern1 = /-i(\d+)-s/i;
+  // Pattern 2: -i123456789.html
+  const pattern2 = /-i(\d+)\.html/i;
+  // Pattern 3: itemId=123456789
+  const pattern3 = /itemId[=:](\d+)/i;
+  // Pattern 4: products/product-name-i123456789
+  const pattern4 = /-i(\d+)(?:\?|$|\.)/i;
+  
+  let match = url.match(pattern1) || 
+              url.match(pattern2) || 
+              url.match(pattern3) ||
+              url.match(pattern4);
+  
+  return match ? match[1] : null;
+}
+
+// Legacy alias for backward compatibility
+function extractProductId(url: string): string | null {
+  return extractAliExpressProductId(url);
 }
 
 // Extract AliExpress links from free text (messages)
@@ -335,19 +359,23 @@ export const LinkConverter = () => {
   };
 
   const handleConvert = async () => {
-    // Check platform
-    if (selectedPlatform === 'thailand') {
-      toast.warning("המרת לינקי Lazada לאפיליאציה עדיין לא נתמכת. כרגע ניתן רק לחלץ את הלינקים.");
-      return;
-    }
+    const isThailand = selectedPlatform === 'thailand';
+    const platformName = isThailand ? 'Lazada' : 'AliExpress';
     
+    // Filter links based on platform
     const links = inputLinks
       .split('\n')
       .map(l => l.trim())
-      .filter(l => l.length > 0 && (l.includes('aliexpress') || l.includes('s.click')));
+      .filter(l => {
+        if (l.length === 0) return false;
+        if (isThailand) {
+          return l.includes('lazada');
+        }
+        return l.includes('aliexpress') || l.includes('s.click');
+      });
 
     if (links.length === 0) {
-      toast.error("לא נמצאו קישורי AliExpress");
+      toast.error(`לא נמצאו קישורי ${platformName}`);
       return;
     }
 
@@ -361,7 +389,10 @@ export const LinkConverter = () => {
       const url = links[i];
       setConversionProgress({ current: i + 1, total: links.length });
       
-      const productId = extractProductId(url);
+      // Extract product ID based on platform
+      const productId = isThailand 
+        ? extractLazadaProductId(url) 
+        : extractAliExpressProductId(url);
       
       if (!productId) {
         results.push({
@@ -374,78 +405,110 @@ export const LinkConverter = () => {
       }
 
       try {
-        // Generate new affiliate link using the API
-        const { data: linkData, error: linkError } = await supabase.functions.invoke('aliexpress-api', {
-          body: {
-            action: 'generate-link',
-            sourceValues: `https://www.aliexpress.com/item/${productId}.html`
-          }
-        });
-
-        if (linkError) throw linkError;
-
-        // Parse the API response for link
-        const responseData = linkData?.data?.aliexpress_affiliate_link_generate_response?.resp_result?.result;
-        const promotionLinks = responseData?.promotion_links?.promotion_link;
-        const newLink = promotionLinks?.[0]?.promotion_link || null;
-
-        // Now fetch product details (commission, stock, price)
-        let productDetails: any = null;
-        try {
-          const { data: detailsData } = await supabase.functions.invoke('aliexpress-api', {
+        if (isThailand) {
+          // Lazada: Use batch-links API to generate affiliate tracking link
+          const { data: linkData, error: linkError } = await supabase.functions.invoke('lazada-api', {
             body: {
-              action: 'product-details',
-              productIds: productId
+              action: 'batch-links',
+              inputType: 'productId',
+              inputValue: productId
             }
           });
-          
-          const detailsResult = detailsData?.data?.aliexpress_affiliate_productdetail_get_response?.resp_result?.result;
-          const products = detailsResult?.products?.product;
-          productDetails = products?.[0] || null;
-        } catch (e) {
-          console.log('Could not fetch product details:', e);
-        }
 
-        const commissionRate = productDetails?.commission_rate ? parseFloat(productDetails.commission_rate) : 0;
-        
-        // Parse rating from evaluate_rate (comes as percentage string like "95.2%")
-        const evaluateRate = productDetails?.evaluate_rate;
-        let rating = 0;
-        if (evaluateRate) {
-          // Convert percentage to 5-star scale (e.g., 95% = 4.75 stars)
-          const percentage = parseFloat(evaluateRate.replace('%', ''));
-          rating = (percentage / 100) * 5;
-        }
-        
-        // Filter: Only include products with rating >= 4 stars
-        if (rating < 4 && rating > 0) {
+          if (linkError) throw linkError;
+
+          // Parse the Lazada API response
+          const responseData = linkData?.data;
+          const newLink = responseData?.data?.trackingLink || responseData?.trackingLink || null;
+          const productInfo = responseData?.data || responseData;
+
           results.push({
             originalUrl: url,
             productId,
-            newTrackingLink: null,
-            productName: productDetails?.product_title || undefined,
-            commissionRate: commissionRate,
-            error: `דירוג נמוך מ-4 כוכבים (${rating.toFixed(1)}⭐)`
+            newTrackingLink: newLink,
+            productName: productInfo?.productName || undefined,
+            priceUsd: productInfo?.price ? parseFloat(productInfo.price) : undefined,
+            commissionRate: productInfo?.commissionRate ? parseFloat(productInfo.commissionRate) : undefined,
+            inStock: true,
+            imageUrl: productInfo?.imageUrl || undefined,
+            detectedCategory: detectCategory(productInfo?.productName || ''),
+            error: newLink ? undefined : "לא הצלחנו ליצור קישור חדש"
           });
-          continue;
+
+        } else {
+          // AliExpress: Generate new affiliate link using the API
+          const { data: linkData, error: linkError } = await supabase.functions.invoke('aliexpress-api', {
+            body: {
+              action: 'generate-link',
+              sourceValues: `https://www.aliexpress.com/item/${productId}.html`
+            }
+          });
+
+          if (linkError) throw linkError;
+
+          // Parse the API response for link
+          const responseData = linkData?.data?.aliexpress_affiliate_link_generate_response?.resp_result?.result;
+          const promotionLinks = responseData?.promotion_links?.promotion_link;
+          const newLink = promotionLinks?.[0]?.promotion_link || null;
+
+          // Now fetch product details (commission, stock, price)
+          let productDetails: any = null;
+          try {
+            const { data: detailsData } = await supabase.functions.invoke('aliexpress-api', {
+              body: {
+                action: 'product-details',
+                productIds: productId
+              }
+            });
+            
+            const detailsResult = detailsData?.data?.aliexpress_affiliate_productdetail_get_response?.resp_result?.result;
+            const products = detailsResult?.products?.product;
+            productDetails = products?.[0] || null;
+          } catch (e) {
+            console.log('Could not fetch product details:', e);
+          }
+
+          const commissionRate = productDetails?.commission_rate ? parseFloat(productDetails.commission_rate) : 0;
+          
+          // Parse rating from evaluate_rate (comes as percentage string like "95.2%")
+          const evaluateRate = productDetails?.evaluate_rate;
+          let rating = 0;
+          if (evaluateRate) {
+            // Convert percentage to 5-star scale (e.g., 95% = 4.75 stars)
+            const percentage = parseFloat(evaluateRate.replace('%', ''));
+            rating = (percentage / 100) * 5;
+          }
+          
+          // Filter: Only include products with rating >= 4 stars
+          if (rating < 4 && rating > 0) {
+            results.push({
+              originalUrl: url,
+              productId,
+              newTrackingLink: null,
+              productName: productDetails?.product_title || undefined,
+              commissionRate: commissionRate,
+              error: `דירוג נמוך מ-4 כוכבים (${rating.toFixed(1)}⭐)`
+            });
+            continue;
+          }
+
+          const productTitle = productDetails?.product_title || undefined;
+          const detectedCategory = detectCategory(productTitle || '');
+
+          results.push({
+            originalUrl: url,
+            productId,
+            newTrackingLink: newLink,
+            productName: productTitle,
+            priceUsd: productDetails?.target_sale_price ? parseFloat(productDetails.target_sale_price) : undefined,
+            originalPriceUsd: productDetails?.target_original_price ? parseFloat(productDetails.target_original_price) : undefined,
+            commissionRate: commissionRate,
+            inStock: productDetails ? productDetails.product_main_image_url !== undefined : undefined,
+            imageUrl: productDetails?.product_main_image_url || undefined,
+            detectedCategory: detectedCategory,
+            error: newLink ? undefined : "לא הצלחנו ליצור קישור חדש"
+          });
         }
-
-        const productTitle = productDetails?.product_title || undefined;
-        const detectedCategory = detectCategory(productTitle || '');
-
-        results.push({
-          originalUrl: url,
-          productId,
-          newTrackingLink: newLink,
-          productName: productTitle,
-          priceUsd: productDetails?.target_sale_price ? parseFloat(productDetails.target_sale_price) : undefined,
-          originalPriceUsd: productDetails?.target_original_price ? parseFloat(productDetails.target_original_price) : undefined,
-          commissionRate: commissionRate,
-          inStock: productDetails ? productDetails.product_main_image_url !== undefined : undefined,
-          imageUrl: productDetails?.product_main_image_url || undefined,
-          detectedCategory: detectedCategory,
-          error: newLink ? undefined : "לא הצלחנו ליצור קישור חדש"
-        });
 
       } catch (err) {
         console.error('Error converting link:', err);
@@ -499,37 +562,69 @@ export const LinkConverter = () => {
       
       const duplicatesCount = linksToImport.length - uniqueProducts.size;
       
-      const productsToInsert = Array.from(uniqueProducts.values()).map(link => ({
-        aliexpress_product_id: link.productId,
-        product_name_hebrew: link.productName || `מוצר ${link.productId}`,
-        product_name_english: link.productName || null,
-        tracking_link: link.newTrackingLink!,
-        category_name_hebrew: link.detectedCategory || selectedCategory,
-        price_usd: link.priceUsd || null,
-        original_price_usd: link.originalPriceUsd || null,
-        image_url: link.imageUrl || null,
-        is_active: true,
-        out_of_stock: link.inStock === false
-      }));
+      if (selectedPlatform === 'thailand') {
+        // Thailand: Insert into category_products table
+        const productsToInsert = Array.from(uniqueProducts.values()).map(link => ({
+          lazada_product_id: link.productId,
+          name_hebrew: link.productName || `מוצר ${link.productId}`,
+          name_english: link.productName || null,
+          affiliate_link: link.newTrackingLink!,
+          category: link.detectedCategory || selectedCategory,
+          price_thb: link.priceUsd || null, // Note: for Lazada this comes as THB
+          image_url: link.imageUrl || null,
+          is_active: true,
+          out_of_stock: link.inStock === false
+        }));
 
-      const { error } = await supabase
-        .from('israel_editor_products')
-        .upsert(productsToInsert, { 
-          onConflict: 'aliexpress_product_id',
-          ignoreDuplicates: false 
-        });
+        const { error } = await supabase
+          .from('category_products')
+          .upsert(productsToInsert, { 
+            onConflict: 'lazada_product_id',
+            ignoreDuplicates: false 
+          });
 
-      if (error) throw error;
+        if (error) throw error;
+
+        // Trigger Lazada image scraping
+        try {
+          await supabase.functions.invoke('scrape-lazada-images');
+        } catch (e) {
+          console.log('Lazada image scraping triggered');
+        }
+      } else {
+        // Israel: Insert into israel_editor_products table
+        const productsToInsert = Array.from(uniqueProducts.values()).map(link => ({
+          aliexpress_product_id: link.productId,
+          product_name_hebrew: link.productName || `מוצר ${link.productId}`,
+          product_name_english: link.productName || null,
+          tracking_link: link.newTrackingLink!,
+          category_name_hebrew: link.detectedCategory || selectedCategory,
+          price_usd: link.priceUsd || null,
+          original_price_usd: link.originalPriceUsd || null,
+          image_url: link.imageUrl || null,
+          is_active: true,
+          out_of_stock: link.inStock === false
+        }));
+
+        const { error } = await supabase
+          .from('israel_editor_products')
+          .upsert(productsToInsert, { 
+            onConflict: 'aliexpress_product_id',
+            ignoreDuplicates: false 
+          });
+
+        if (error) throw error;
+
+        // Trigger image scraping for new products
+        try {
+          await supabase.functions.invoke('scrape-product-images');
+        } catch (e) {
+          console.log('Image scraping triggered');
+        }
+      }
 
       const duplicateMsg = duplicatesCount > 0 ? ` (${duplicatesCount} כפילויות סוננו)` : '';
       toast.success(`יובאו ${uniqueProducts.size} מוצרים לטבלה${duplicateMsg}`);
-      
-      // Trigger image scraping for new products
-      try {
-        await supabase.functions.invoke('scrape-product-images');
-      } catch (e) {
-        console.log('Image scraping triggered');
-      }
 
       setSelectedForImport(new Set());
     } catch (err) {
@@ -561,59 +656,89 @@ export const LinkConverter = () => {
         }
       });
       
-      const productsToInsert = Array.from(uniqueProducts.values()).map(link => ({
-        aliexpress_product_id: link.productId,
-        product_name_hebrew: link.productName || `מוצר ${link.productId}`,
-        product_name_english: link.productName || null,
-        tracking_link: link.newTrackingLink!,
-        category_name_hebrew: link.detectedCategory || 'כללי',
-        price_usd: link.priceUsd || null,
-        original_price_usd: link.originalPriceUsd || null,
-        image_url: link.imageUrl || null,
-        is_active: true,
-        out_of_stock: link.inStock === false
-      }));
+      if (selectedPlatform === 'thailand') {
+        // Thailand: Insert into category_products table
+        const productsToInsert = Array.from(uniqueProducts.values()).map(link => ({
+          lazada_product_id: link.productId,
+          name_hebrew: link.productName || `מוצר ${link.productId}`,
+          name_english: link.productName || null,
+          affiliate_link: link.newTrackingLink!,
+          category: link.detectedCategory || 'כללי',
+          price_thb: link.priceUsd || null,
+          image_url: link.imageUrl || null,
+          is_active: true,
+          out_of_stock: link.inStock === false
+        }));
 
-      const { error } = await supabase
-        .from('israel_editor_products')
-        .upsert(productsToInsert, { 
-          onConflict: 'aliexpress_product_id',
-          ignoreDuplicates: false 
-        });
+        const { error } = await supabase
+          .from('category_products')
+          .upsert(productsToInsert, { 
+            onConflict: 'lazada_product_id',
+            ignoreDuplicates: false 
+          });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Count categories for summary
-      const categoryCounts: Record<string, number> = {};
-      linksToImport.forEach(l => {
-        const cat = l.detectedCategory || 'כללי';
-        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-      });
+        toast.success(`✅ יובאו ${uniqueProducts.size} מוצרים לתאילנד!`);
 
-      const categoryList = Object.entries(categoryCounts)
-        .map(([cat, count]) => `${cat}: ${count}`)
-        .join(', ');
-
-      toast.success(`✅ יובאו ${linksToImport.length} מוצרים! מתרגם לעברית...`);
-      
-      // Trigger translation for Israel products
-      try {
-        const { data: translateResult } = await supabase.functions.invoke('translate-products', {
-          body: { platform: 'israel' }
-        });
-        
-        if (translateResult?.results?.israelProducts?.translated > 0) {
-          toast.success(`🌐 תורגמו ${translateResult.results.israelProducts.translated} מוצרים לעברית!`);
+        // Trigger Lazada image scraping
+        try {
+          await supabase.functions.invoke('scrape-lazada-images');
+        } catch (e) {
+          console.log('Lazada image scraping triggered');
         }
-      } catch (e) {
-        console.log('Translation triggered:', e);
-      }
-      
-      // Trigger image scraping for new products
-      try {
-        await supabase.functions.invoke('scrape-product-images');
-      } catch (e) {
-        console.log('Image scraping triggered');
+      } else {
+        // Israel: Insert into israel_editor_products table
+        const productsToInsert = Array.from(uniqueProducts.values()).map(link => ({
+          aliexpress_product_id: link.productId,
+          product_name_hebrew: link.productName || `מוצר ${link.productId}`,
+          product_name_english: link.productName || null,
+          tracking_link: link.newTrackingLink!,
+          category_name_hebrew: link.detectedCategory || 'כללי',
+          price_usd: link.priceUsd || null,
+          original_price_usd: link.originalPriceUsd || null,
+          image_url: link.imageUrl || null,
+          is_active: true,
+          out_of_stock: link.inStock === false
+        }));
+
+        const { error } = await supabase
+          .from('israel_editor_products')
+          .upsert(productsToInsert, { 
+            onConflict: 'aliexpress_product_id',
+            ignoreDuplicates: false 
+          });
+
+        if (error) throw error;
+
+        // Count categories for summary
+        const categoryCounts: Record<string, number> = {};
+        linksToImport.forEach(l => {
+          const cat = l.detectedCategory || 'כללי';
+          categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+        });
+
+        toast.success(`✅ יובאו ${uniqueProducts.size} מוצרים! מתרגם לעברית...`);
+        
+        // Trigger translation for Israel products
+        try {
+          const { data: translateResult } = await supabase.functions.invoke('translate-products', {
+            body: { platform: 'israel' }
+          });
+          
+          if (translateResult?.results?.israelProducts?.translated > 0) {
+            toast.success(`🌐 תורגמו ${translateResult.results.israelProducts.translated} מוצרים לעברית!`);
+          }
+        } catch (e) {
+          console.log('Translation triggered:', e);
+        }
+        
+        // Trigger image scraping for new products
+        try {
+          await supabase.functions.invoke('scrape-product-images');
+        } catch (e) {
+          console.log('Image scraping triggered');
+        }
       }
 
       // Clear the converted links after successful auto-import
