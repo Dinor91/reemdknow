@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { RefreshCw, Link2, Download, Check, Copy, ExternalLink, Globe, Search, Sparkles, MessageSquareText, Upload } from "lucide-react";
+import { RefreshCw, Link2, Download, Check, Copy, ExternalLink, Globe, Search, Sparkles, MessageSquareText, Upload, FileSpreadsheet } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -225,10 +225,12 @@ function extractLinksFromText(text: string, platform: 'israel' | 'thailand'): st
 export const LinkConverter = () => {
   const [inputLinks, setInputLinks] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [googleSheetsUrl, setGoogleSheetsUrl] = useState("");
   const [freeText, setFreeText] = useState("");
   const [convertedLinks, setConvertedLinks] = useState<ConvertedLink[]>([]);
   const [isConverting, setIsConverting] = useState(false);
   const [isScraping, setIsScraping] = useState(false);
+  const [isScrapingSheets, setIsScrapingSheets] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isRecategorizing, setIsRecategorizing] = useState(false);
   const [isExtractingLinks, setIsExtractingLinks] = useState(false);
@@ -241,8 +243,10 @@ export const LinkConverter = () => {
   // Progress tracking
   const [conversionProgress, setConversionProgress] = useState({ current: 0, total: 0 });
   const [scrapeProgress, setScrapeProgress] = useState<string | null>(null);
+  const [sheetsProgress, setSheetsProgress] = useState<string | null>(null);
   const [extractedLinksCount, setExtractedLinksCount] = useState(0);
   const [uploadedLinksCount, setUploadedLinksCount] = useState(0);
+  const [sheetsLinksCount, setSheetsLinksCount] = useState(0);
 
   // Extract hyperlinks from Excel file
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -434,6 +438,64 @@ export const LinkConverter = () => {
     } finally {
       setIsScraping(false);
       setScrapeProgress(null);
+    }
+  };
+
+  // Scrape Google Sheets URL for links
+  const handleScrapeGoogleSheets = async () => {
+    if (!googleSheetsUrl.trim()) {
+      toast.error("הכנס קישור ל-Google Sheets");
+      return;
+    }
+
+    // Validate it's a Google Sheets URL
+    if (!googleSheetsUrl.includes('docs.google.com/spreadsheets')) {
+      toast.error("הקישור לא נראה כמו Google Sheets");
+      return;
+    }
+
+    setIsScrapingSheets(true);
+    setSheetsProgress("מתחבר ל-Google Sheets...");
+    setSheetsLinksCount(0);
+
+    try {
+      const platformName = selectedPlatform === 'thailand' ? 'Lazada' : 'AliExpress';
+      const linkPattern = selectedPlatform === 'thailand' ? /lazada/i : /aliexpress|s\.click/i;
+
+      setSheetsProgress("סורק את הגיליון...");
+      
+      // Use Firecrawl to scrape the Google Sheets page (it renders the HTML)
+      const { data, error } = await supabase.functions.invoke('scrape-google-sheets', {
+        body: { url: googleSheetsUrl.trim(), platform: selectedPlatform }
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'שגיאה בסריקת הגיליון');
+      }
+
+      setSheetsProgress("מעבד תוצאות...");
+
+      if (data.links && data.links.length > 0) {
+        // Add scraped links to the input textarea
+        const linkUrls = data.links.join('\n');
+        setInputLinks(prev => {
+          const existingLinks = prev.split('\n').filter(l => l.trim());
+          const newLinks = data.links.filter((l: string) => !existingLinks.includes(l));
+          return [...existingLinks, ...newLinks].join('\n');
+        });
+        setSheetsLinksCount(data.links.length);
+        toast.success(`נמצאו ${data.links.length} קישורי ${platformName}!`);
+      } else {
+        toast.warning(`לא נמצאו קישורי ${platformName} בגיליון`);
+      }
+    } catch (err: any) {
+      console.error('Google Sheets scrape error:', err);
+      toast.error(err.message || "שגיאה בסריקת הגיליון");
+    } finally {
+      setIsScrapingSheets(false);
+      setSheetsProgress(null);
     }
   };
 
@@ -911,22 +973,31 @@ export const LinkConverter = () => {
         </div>
 
         <Tabs defaultValue="freetext" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-4">
-            <TabsTrigger value="freetext" className="flex items-center gap-2">
-              <MessageSquareText className="h-4 w-4" />
-              טקסט חופשי
+          <TabsList className="grid w-full grid-cols-5 mb-4">
+            <TabsTrigger value="freetext" className="flex items-center gap-1 text-xs sm:text-sm">
+              <MessageSquareText className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">טקסט חופשי</span>
+              <span className="sm:hidden">טקסט</span>
             </TabsTrigger>
-            <TabsTrigger value="file" className="flex items-center gap-2">
-              <Upload className="h-4 w-4" />
-              העלאת קובץ
+            <TabsTrigger value="sheets" className="flex items-center gap-1 text-xs sm:text-sm">
+              <FileSpreadsheet className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Google Sheets</span>
+              <span className="sm:hidden">שיטס</span>
             </TabsTrigger>
-            <TabsTrigger value="scrape" className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              סריקת אתר
+            <TabsTrigger value="file" className="flex items-center gap-1 text-xs sm:text-sm">
+              <Upload className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">העלאת קובץ</span>
+              <span className="sm:hidden">קובץ</span>
             </TabsTrigger>
-            <TabsTrigger value="paste" className="flex items-center gap-2">
-              <Link2 className="h-4 w-4" />
-              קישורים ישירים
+            <TabsTrigger value="scrape" className="flex items-center gap-1 text-xs sm:text-sm">
+              <Globe className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">סריקת אתר</span>
+              <span className="sm:hidden">אתר</span>
+            </TabsTrigger>
+            <TabsTrigger value="paste" className="flex items-center gap-1 text-xs sm:text-sm">
+              <Link2 className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">ישירים</span>
+              <span className="sm:hidden">לינקים</span>
             </TabsTrigger>
           </TabsList>
 
@@ -991,6 +1062,60 @@ https://aliexpress.com/item/1234567890.html
             
             <p className="text-xs text-muted-foreground">
               פשוט תעתיק את כל ההודעות מהקבוצה - הכלי יזהה ויחלץ את כל לינקי {selectedPlatform === 'thailand' ? 'Lazada' : 'AliExpress'} אוטומטית
+            </p>
+          </TabsContent>
+
+          <TabsContent value="sheets" className="space-y-3">
+            <label className="text-sm font-medium">
+              קישור ל-Google Sheets ציבורי - {selectedPlatform === 'thailand' ? 'Lazada' : 'AliExpress'}:
+            </label>
+            <div className="flex gap-2">
+              <Input
+                value={googleSheetsUrl}
+                onChange={(e) => setGoogleSheetsUrl(e.target.value)}
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                className="font-mono text-sm flex-1"
+                dir="ltr"
+              />
+              <Button 
+                onClick={handleScrapeGoogleSheets} 
+                disabled={isScrapingSheets || !googleSheetsUrl.trim()}
+              >
+                {isScrapingSheets ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
+                    סורק...
+                  </>
+                ) : (
+                  <>
+                    <FileSpreadsheet className="h-4 w-4 ml-2" />
+                    סרוק שיטס
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {/* Sheets Progress */}
+            {isScrapingSheets && sheetsProgress && (
+              <div className="space-y-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{sheetsProgress}</span>
+                </div>
+                <Progress value={undefined} className="h-2" />
+              </div>
+            )}
+
+            {sheetsLinksCount > 0 && (
+              <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  ✅ נמצאו {sheetsLinksCount} קישורים מהגיליון! לחץ על "המר לקישורים שלי" להמשיך
+                </p>
+              </div>
+            )}
+            
+            <p className="text-xs text-muted-foreground">
+              הדבק קישור ל-Google Sheets ציבורי. הכלי יסרוק את הגיליון ויחלץ את כל ההיפר-לינקים אוטומטית.
             </p>
           </TabsContent>
 
