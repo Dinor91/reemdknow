@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { RefreshCw, Link2, Download, Check, Copy, ExternalLink, Globe, Search, Sparkles, MessageSquareText } from "lucide-react";
+import { RefreshCw, Link2, Download, Check, Copy, ExternalLink, Globe, Search, Sparkles, MessageSquareText, Upload } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import * as XLSX from 'xlsx';
 
 interface ConvertedLink {
   originalUrl: string;
@@ -231,14 +232,92 @@ export const LinkConverter = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [isRecategorizing, setIsRecategorizing] = useState(false);
   const [isExtractingLinks, setIsExtractingLinks] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("כללי");
   const [selectedForImport, setSelectedForImport] = useState<Set<string>>(new Set());
   const [selectedPlatform, setSelectedPlatform] = useState<'israel' | 'thailand'>('israel');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Progress tracking
   const [conversionProgress, setConversionProgress] = useState({ current: 0, total: 0 });
   const [scrapeProgress, setScrapeProgress] = useState<string | null>(null);
   const [extractedLinksCount, setExtractedLinksCount] = useState(0);
+  const [uploadedLinksCount, setUploadedLinksCount] = useState(0);
+
+  // Extract hyperlinks from Excel file
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingFile(true);
+    setUploadedLinksCount(0);
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { cellStyles: true });
+      
+      const foundLinks = new Set<string>();
+      const platformName = selectedPlatform === 'thailand' ? 'Lazada' : 'AliExpress';
+      const linkPattern = selectedPlatform === 'thailand' ? /lazada/i : /aliexpress|s\.click/i;
+      
+      // Go through all sheets
+      for (const sheetName of workbook.SheetNames) {
+        const sheet = workbook.Sheets[sheetName];
+        
+        // Method 1: Check for hyperlinks in cell metadata
+        for (const cellAddress in sheet) {
+          if (cellAddress.startsWith('!')) continue; // Skip special keys
+          
+          const cell = sheet[cellAddress];
+          
+          // Check for hyperlink in cell
+          if (cell.l && cell.l.Target) {
+            const link = cell.l.Target;
+            if (linkPattern.test(link)) {
+              foundLinks.add(link);
+            }
+          }
+          
+          // Method 2: Check cell value for URLs
+          if (cell.v && typeof cell.v === 'string') {
+            const urlMatches = cell.v.match(/https?:\/\/[^\s"'<>]+/gi);
+            if (urlMatches) {
+              urlMatches.forEach(url => {
+                if (linkPattern.test(url)) {
+                  foundLinks.add(url.replace(/[,.\s!?)]+$/, ''));
+                }
+              });
+            }
+          }
+        }
+      }
+
+      if (foundLinks.size === 0) {
+        toast.warning(`לא נמצאו קישורי ${platformName} בקובץ`);
+        return;
+      }
+
+      // Add to input links
+      setInputLinks(prev => {
+        const existingLinks = prev.split('\n').filter(l => l.trim());
+        const newLinks = Array.from(foundLinks).filter(l => !existingLinks.includes(l));
+        return [...existingLinks, ...newLinks].join('\n');
+      });
+
+      setUploadedLinksCount(foundLinks.size);
+      toast.success(`נמצאו ${foundLinks.size} קישורי ${platformName} בקובץ!`);
+      
+    } catch (err) {
+      console.error('Error parsing file:', err);
+      toast.error("שגיאה בקריאת הקובץ");
+    } finally {
+      setIsUploadingFile(false);
+      // Reset input so the same file can be uploaded again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   // Extract links from pasted free text
   const handleExtractFromText = () => {
@@ -832,10 +911,14 @@ export const LinkConverter = () => {
         </div>
 
         <Tabs defaultValue="freetext" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="freetext" className="flex items-center gap-2">
               <MessageSquareText className="h-4 w-4" />
               טקסט חופשי
+            </TabsTrigger>
+            <TabsTrigger value="file" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              העלאת קובץ
             </TabsTrigger>
             <TabsTrigger value="scrape" className="flex items-center gap-2">
               <Globe className="h-4 w-4" />
@@ -908,6 +991,52 @@ https://aliexpress.com/item/1234567890.html
             
             <p className="text-xs text-muted-foreground">
               פשוט תעתיק את כל ההודעות מהקבוצה - הכלי יזהה ויחלץ את כל לינקי {selectedPlatform === 'thailand' ? 'Lazada' : 'AliExpress'} אוטומטית
+            </p>
+          </TabsContent>
+
+          <TabsContent value="file" className="space-y-3">
+            <label className="text-sm font-medium">
+              העלה קובץ Excel או CSV עם קישורים - {selectedPlatform === 'thailand' ? 'Lazada' : 'AliExpress'}:
+            </label>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".xlsx,.xls,.csv"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            
+            <div 
+              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {isUploadingFile ? (
+                <div className="flex flex-col items-center gap-2">
+                  <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">מעבד קובץ...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm font-medium">לחץ להעלאת קובץ</p>
+                  <p className="text-xs text-muted-foreground">
+                    XLSX, XLS או CSV - הכלי יחלץ היפר-לינקים מוסתרים
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {uploadedLinksCount > 0 && (
+              <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  ✅ נמצאו {uploadedLinksCount} קישורים מהקובץ! לחץ על "המר לקישורים שלי" להמשיך
+                </p>
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              ייצא את הטבלה מ-Google Sheets כ-XLSX והעלה כאן. הכלי יחלץ את כל ההיפר-לינקים המוסתרים אוטומטית.
             </p>
           </TabsContent>
 
