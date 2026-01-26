@@ -5,6 +5,53 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Check if URL is a short link that needs following
+function isShortLink(url: string): boolean {
+  const shortLinkDomains = [
+    's.click.aliexpress.com',
+    'a.aliexpress.com',
+    's.lazada.co.th',
+    'c.lazada.co.th',
+  ];
+  return shortLinkDomains.some(domain => url.includes(domain));
+}
+
+// Follow a redirect to get the final URL (with retry)
+async function followRedirect(url: string, depth = 0): Promise<string | null> {
+  if (depth > 5) return null; // Prevent infinite loops
+  
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'manual',
+    });
+    
+    const location = response.headers.get('location');
+    if (location) {
+      // If it's still a short link or redirect, follow it
+      if (isShortLink(location)) {
+        return await followRedirect(location, depth + 1);
+      }
+      return location;
+    }
+    
+    // Try GET if HEAD didn't work
+    const getResponse = await fetch(url, { redirect: 'manual' });
+    const getLocation = getResponse.headers.get('location');
+    if (getLocation) {
+      if (isShortLink(getLocation)) {
+        return await followRedirect(getLocation, depth + 1);
+      }
+      return getLocation;
+    }
+    
+    return null;
+  } catch (e) {
+    console.log('Error following redirect:', url, e);
+    return null;
+  }
+}
+
 // Extract AliExpress links from content
 function extractAliExpressLinks(content: string): string[] {
   const patterns = [
@@ -54,6 +101,39 @@ function extractLazadaLinks(content: string): string[] {
   return Array.from(foundLinks);
 }
 
+// Extract product ID from AliExpress URL
+function extractAliExpressProductId(url: string): string | null {
+  const patterns = [
+    /\/item\/(\d+)\.html/i,
+    /\/i\/(\d+)\.html/i,
+    /productId[=:](\d+)/i,
+    /\/(\d{10,})\.html/i,
+    /item\/(\d+)/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+// Extract product ID from Lazada URL
+function extractLazadaProductId(url: string): string | null {
+  const patterns = [
+    /-i(\d+)-s/i,
+    /-i(\d+)\.html/i,
+    /itemId[=:](\d+)/i,
+    /-i(\d+)(?:\?|$|\.)/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -89,9 +169,12 @@ serve(async (req) => {
     console.log('Scraping Google Sheets URL:', url)
     console.log('Platform:', platform)
 
+    const isThailand = platform === 'thailand';
+    const extractLinks = isThailand ? extractLazadaLinks : extractAliExpressLinks;
+    const extractProductId = isThailand ? extractLazadaProductId : extractAliExpressProductId;
+    const platformName = isThailand ? 'Lazada' : 'AliExpress';
+
     // Convert share URL to published HTML URL for better scraping
-    // Format: https://docs.google.com/spreadsheets/d/SHEET_ID/edit?usp=sharing
-    // To: https://docs.google.com/spreadsheets/d/SHEET_ID/gviz/tq?tqx=out:html
     const sheetIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
     const sheetId = sheetIdMatch ? sheetIdMatch[1] : null;
     
@@ -104,19 +187,17 @@ serve(async (req) => {
 
     // Try multiple URLs for better coverage
     const urlsToTry = [
-      url, // Original URL
-      `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:html`, // HTML export
-      `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=html`, // Another HTML export format
+      url,
+      `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:html`,
+      `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=html`,
     ];
 
-    const allLinks = new Set<string>();
-    const extractFunction = platform === 'thailand' ? extractLazadaLinks : extractAliExpressLinks;
+    const allRawLinks = new Set<string>();
 
     for (const scrapeUrl of urlsToTry) {
       try {
         console.log('Trying URL:', scrapeUrl);
         
-        // Use Firecrawl to scrape the page
         const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
           method: 'POST',
           headers: {
@@ -139,48 +220,92 @@ serve(async (req) => {
         
         // Extract from HTML
         const html = scrapeData.data?.html || scrapeData.html || '';
-        const extractedFromHtml = extractFunction(html);
-        extractedFromHtml.forEach(link => allLinks.add(link));
+        extractLinks(html).forEach(link => allRawLinks.add(link));
         
         // Extract from markdown
         const markdown = scrapeData.data?.markdown || scrapeData.markdown || '';
-        const extractedFromMd = extractFunction(markdown);
-        extractedFromMd.forEach(link => allLinks.add(link));
+        extractLinks(markdown).forEach(link => allRawLinks.add(link));
         
         // Extract from links array
         const linksArray = scrapeData.data?.links || scrapeData.links || [];
         for (const link of linksArray) {
-          if (platform === 'thailand') {
-            if (link.includes('lazada')) {
-              allLinks.add(link);
-            }
+          if (isThailand) {
+            if (link.includes('lazada')) allRawLinks.add(link);
           } else {
-            if (link.includes('aliexpress') || link.includes('s.click')) {
-              allLinks.add(link);
-            }
+            if (link.includes('aliexpress') || link.includes('s.click')) allRawLinks.add(link);
           }
         }
         
-        console.log(`Found ${allLinks.size} links so far from ${scrapeUrl}`);
+        console.log(`Found ${allRawLinks.size} raw links so far from ${scrapeUrl}`);
         
-        // If we found links, we can stop
-        if (allLinks.size > 0) {
-          break;
-        }
+        if (allRawLinks.size > 0) break;
       } catch (e) {
         console.log('Error scraping URL:', scrapeUrl, e);
         continue;
       }
     }
 
-    const platformName = platform === 'thailand' ? 'Lazada' : 'AliExpress';
-    console.log(`Found ${allLinks.size} total ${platformName} links`);
+    console.log(`Total raw links found: ${allRawLinks.size}`);
+
+    // Separate direct links (with product ID) and short links (need resolution)
+    const directLinks: string[] = [];
+    const shortLinks: string[] = [];
+
+    for (const link of allRawLinks) {
+      if (extractProductId(link)) {
+        directLinks.push(link);
+      } else if (isShortLink(link)) {
+        shortLinks.push(link);
+      }
+    }
+
+    console.log(`Direct links: ${directLinks.length}, Short links to resolve: ${shortLinks.length}`);
+
+    // Resolve short links in batches
+    const resolvedLinks: string[] = [];
+    const batchSize = 5;
+    
+    for (let i = 0; i < shortLinks.length; i += batchSize) {
+      const batch = shortLinks.slice(i, i + batchSize);
+      const results = await Promise.all(batch.map(async (shortLink) => {
+        const resolved = await followRedirect(shortLink);
+        if (resolved && extractProductId(resolved)) {
+          console.log(`Resolved: ${shortLink} -> ${resolved}`);
+          return resolved;
+        }
+        return null;
+      }));
+      
+      for (const result of results) {
+        if (result) resolvedLinks.push(result);
+      }
+      
+      // Small delay between batches
+      if (i + batchSize < shortLinks.length) {
+        await new Promise(r => setTimeout(r, 300));
+      }
+    }
+
+    // Combine all valid links (deduplicated by product ID)
+    const seenProductIds = new Set<string>();
+    const finalLinks: string[] = [];
+    
+    for (const link of [...directLinks, ...resolvedLinks]) {
+      const productId = extractProductId(link);
+      if (productId && !seenProductIds.has(productId)) {
+        seenProductIds.add(productId);
+        finalLinks.push(link);
+      }
+    }
+
+    console.log(`Found ${finalLinks.length} unique ${platformName} product links`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        linksFound: allLinks.size,
-        links: Array.from(allLinks)
+        linksFound: finalLinks.length,
+        shortLinksResolved: resolvedLinks.length,
+        links: finalLinks
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
