@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.track-click]
 verify_jwt = false
+
+[functions.resolve-short-links]
+verify_jwt = false
