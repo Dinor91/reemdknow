@@ -165,6 +165,17 @@ function extractProductId(url: string): string | null {
   return extractAliExpressProductId(url);
 }
 
+// Check if URL is a short link that needs resolution
+function isShortLink(url: string): boolean {
+  const shortLinkDomains = [
+    's.lazada.co.th',
+    'c.lazada.co.th',
+    's.click.aliexpress.com',
+    'a.aliexpress.com',
+  ];
+  return shortLinkDomains.some(domain => url.includes(domain));
+}
+
 // Extract AliExpress links from free text (messages)
 function extractAliExpressLinks(text: string): string[] {
   const patterns = [
@@ -245,6 +256,7 @@ export const LinkConverter = () => {
   const [scrapeProgress, setScrapeProgress] = useState<string | null>(null);
   const [sheetsProgress, setSheetsProgress] = useState<string | null>(null);
   const [extractedLinksCount, setExtractedLinksCount] = useState(0);
+  const [resolvingShortLinks, setResolvingShortLinks] = useState(false);
   const [uploadedLinksCount, setUploadedLinksCount] = useState(0);
   const [sheetsLinksCount, setSheetsLinksCount] = useState(0);
 
@@ -504,7 +516,7 @@ export const LinkConverter = () => {
     const platformName = isThailand ? 'Lazada' : 'AliExpress';
     
     // Filter links based on platform
-    const links = inputLinks
+    let links = inputLinks
       .split('\n')
       .map(l => l.trim())
       .filter(l => {
@@ -522,6 +534,50 @@ export const LinkConverter = () => {
 
     setIsConverting(true);
     setConvertedLinks([]);
+    
+    // Step 1: Identify short links that need resolution
+    const extractId = isThailand ? extractLazadaProductId : extractAliExpressProductId;
+    const shortLinks = links.filter(url => isShortLink(url) && !extractId(url));
+    const directLinks = links.filter(url => !shortLinks.includes(url));
+    
+    // Step 2: Resolve short links if any
+    if (shortLinks.length > 0) {
+      setResolvingShortLinks(true);
+      toast.info(`פותר ${shortLinks.length} קישורים קצרים...`);
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('resolve-short-links', {
+          body: { urls: shortLinks }
+        });
+        
+        if (error) throw error;
+        
+        if (data.success && data.resolved) {
+          // Replace short links with resolved URLs
+          const resolvedMap = data.resolved as Record<string, string>;
+          links = links.map(url => {
+            if (resolvedMap[url]) {
+              console.log(`Replaced: ${url} -> ${resolvedMap[url]}`);
+              return resolvedMap[url];
+            }
+            return url;
+          });
+          
+          if (data.resolvedCount > 0) {
+            toast.success(`נפתרו ${data.resolvedCount} קישורים קצרים`);
+          }
+          if (data.failedCount > 0) {
+            toast.warning(`${data.failedCount} קישורים לא נפתרו`);
+          }
+        }
+      } catch (err) {
+        console.error('Error resolving short links:', err);
+        toast.warning('שגיאה בפתירת קישורים קצרים, ממשיך עם הקישורים הזמינים');
+      } finally {
+        setResolvingShortLinks(false);
+      }
+    }
+    
     setConversionProgress({ current: 0, total: links.length });
 
     const results: ConvertedLink[] = [];
