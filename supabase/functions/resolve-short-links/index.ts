@@ -18,34 +18,79 @@ function isShortLink(url: string): boolean {
   return SHORT_LINK_DOMAINS.some(domain => url.includes(domain));
 }
 
-// Follow a redirect to get the final URL (with retry)
+// Follow a redirect to get the final URL (with retry and browser simulation)
 async function followRedirect(url: string, depth = 0): Promise<string | null> {
   if (depth > 5) return null; // Prevent infinite loops
   
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
+  };
+  
   try {
-    // Try HEAD request first (faster)
+    // Try GET request with browser-like headers (more reliable than HEAD for these sites)
     const response = await fetch(url, {
-      method: 'HEAD',
+      method: 'GET',
       redirect: 'manual',
+      headers,
     });
     
-    const location = response.headers.get('location');
+    // Check for redirect in headers
+    let location = response.headers.get('location');
+    
+    // Some sites use meta refresh or JavaScript redirect - check body for these
+    if (!location && response.status === 200) {
+      const body = await response.text();
+      
+      // Look for meta refresh redirect
+      const metaMatch = body.match(/content=["'][^"']*url=([^"'>\s]+)/i);
+      if (metaMatch) {
+        location = metaMatch[1];
+      }
+      
+      // Look for JavaScript redirect
+      const jsMatch = body.match(/window\.location\.href\s*=\s*["']([^"']+)/i) ||
+                     body.match(/location\.replace\s*\(\s*["']([^"']+)/i) ||
+                     body.match(/location\.href\s*=\s*["']([^"']+)/i);
+      if (jsMatch) {
+        location = jsMatch[1];
+      }
+      
+      // Look for canonical link or og:url
+      const canonicalMatch = body.match(/<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)/i) ||
+                            body.match(/property=["']og:url["'][^>]*content=["']([^"']+)/i);
+      if (canonicalMatch) {
+        const canonicalUrl = canonicalMatch[1];
+        // Only use canonical if it's a product URL (not the short link domain)
+        if (!isShortLink(canonicalUrl) && (canonicalUrl.includes('/products/') || canonicalUrl.includes('/item/'))) {
+          location = canonicalUrl;
+        }
+      }
+    }
+    
     if (location) {
+      // Handle relative URLs
+      if (location.startsWith('/')) {
+        const urlObj = new URL(url);
+        location = `${urlObj.protocol}//${urlObj.host}${location}`;
+      }
+      
       // If it's still a short link, follow it
       if (isShortLink(location)) {
         return await followRedirect(location, depth + 1);
       }
+      
+      console.log(`Resolved at depth ${depth}: ${url} -> ${location.substring(0, 100)}...`);
       return location;
     }
     
-    // Try GET if HEAD didn't work
-    const getResponse = await fetch(url, { redirect: 'manual' });
-    const getLocation = getResponse.headers.get('location');
-    if (getLocation) {
-      if (isShortLink(getLocation)) {
-        return await followRedirect(getLocation, depth + 1);
-      }
-      return getLocation;
+    // If we got here and status is a redirect (3xx), try to read from the body
+    if (response.status >= 300 && response.status < 400) {
+      console.log(`Got ${response.status} but no location header for: ${url}`);
     }
     
     return null;
