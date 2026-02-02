@@ -614,22 +614,46 @@ export const LinkConverter = () => {
 
           if (linkError) throw linkError;
 
-          // Parse the Lazada API response
-          const responseData = linkData?.data;
-          const newLink = responseData?.data?.trackingLink || responseData?.trackingLink || null;
-          const productInfo = responseData?.data || responseData;
+          // Parse the Lazada API response - correct path based on actual API response
+          // Response structure: { data: { result: { data: { productBatchGetLinkInfoList: [...] } } } }
+          const responseResult = linkData?.data?.result?.data;
+          const productList = responseResult?.productBatchGetLinkInfoList || [];
+          const errorList = responseResult?.errorInfoList || [];
+          
+          // Check if we got a successful link
+          const productInfo = productList[0];
+          const newLink = productInfo?.regularPromotionLink || null;
+          
+          // Check for errors
+          let errorMsg: string | undefined = undefined;
+          if (!newLink) {
+            const errorInfo = errorList[0];
+            if (errorInfo?.errorCode === '2001') {
+              errorMsg = "המוצר לא זמין בתוכנית השותפים";
+            } else if (errorInfo?.errorMsg) {
+              errorMsg = errorInfo.errorMsg;
+            } else {
+              errorMsg = "לא הצלחנו ליצור קישור חדש";
+            }
+          }
+          
+          // Parse commission rate (comes as "1%" string)
+          let commissionRate: number | undefined;
+          if (productInfo?.regularCommission) {
+            commissionRate = parseFloat(productInfo.regularCommission.replace('%', ''));
+          }
 
           results.push({
             originalUrl: url,
             productId,
             newTrackingLink: newLink,
             productName: productInfo?.productName || undefined,
-            priceUsd: productInfo?.price ? parseFloat(productInfo.price) : undefined,
-            commissionRate: productInfo?.commissionRate ? parseFloat(productInfo.commissionRate) : undefined,
-            inStock: true,
-            imageUrl: productInfo?.imageUrl || undefined,
-            detectedCategory: detectCategory(productInfo?.productName || ''),
-            error: newLink ? undefined : "לא הצלחנו ליצור קישור חדש"
+            priceUsd: undefined, // Lazada batch-links doesn't return price
+            commissionRate: commissionRate,
+            inStock: !!newLink,
+            imageUrl: undefined, // Lazada batch-links doesn't return image
+            detectedCategory: 'כללי', // Will be set manually for Thailand
+            error: errorMsg
           });
 
         } else {
