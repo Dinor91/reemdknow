@@ -1328,13 +1328,25 @@ const FeedTab = () => {
     setSyncing(true);
     try {
       const functionName = platform === "lazada" ? "sync-feed-products" : "sync-aliexpress-products";
-      const { error } = await supabase.functions.invoke(functionName);
+      toast.info("מסנכרן מוצרים... זה יכול לקחת עד דקה");
+      
+      const { data, error } = await supabase.functions.invoke(functionName);
+      
       if (error) throw error;
-      toast.success("הסינכרון החל! הרענן בעוד מספר שניות");
-      setTimeout(fetchFeedProducts, 10000);
+      
+      // Show results from sync
+      if (data) {
+        const msg = `סונכרנו ${data.upserted || 0} מוצרים מתוך ${data.totalFetched || 0}`;
+        toast.success(msg);
+      } else {
+        toast.success("הסינכרון הושלם!");
+      }
+      
+      // Refresh the product list immediately after sync completes
+      await fetchFeedProducts();
     } catch (e) {
       console.error("Error syncing:", e);
-      toast.error("שגיאה בסינכרון");
+      toast.error("שגיאה בסינכרון - נסה שוב");
     }
     setSyncing(false);
   };
