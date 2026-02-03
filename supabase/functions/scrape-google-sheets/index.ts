@@ -77,13 +77,19 @@ function extractAliExpressLinks(content: string): string[] {
   return Array.from(foundLinks);
 }
 
-// Extract Lazada links from content
+// Extract Lazada links from content - more aggressive patterns
 function extractLazadaLinks(content: string): string[] {
   const patterns = [
-    /https?:\/\/(?:www\.)?lazada\.co\.th\/products\/[^\s"'<>]+/gi,
-    /https?:\/\/s\.lazada\.co\.th\/[^\s"'<>]+/gi,
-    /https?:\/\/(?:www\.)?lazada\.co\.th\/[^\s"'<>]*i\d+[^\s"'<>]*/gi,
-    /https?:\/\/c\.lazada\.co\.th\/[^\s"'<>]+/gi,
+    // Direct product links
+    /https?:\/\/(?:www\.)?lazada\.co\.th\/products\/[^\s"'<>\]]+/gi,
+    // Short links
+    /https?:\/\/s\.lazada\.co\.th\/[^\s"'<>\]]+/gi,
+    // Product ID patterns
+    /https?:\/\/(?:www\.)?lazada\.co\.th\/[^\s"'<>\]]*i\d+[^\s"'<>\]]*/gi,
+    // Affiliate short links
+    /https?:\/\/c\.lazada\.co\.th\/[^\s"'<>\]]+/gi,
+    // Generic lazada.co.th links (catch-all)
+    /https?:\/\/[a-z]*\.?lazada\.co\.th[^\s"'<>\]]+/gi,
   ];
   
   const foundLinks = new Set<string>();
@@ -92,8 +98,13 @@ function extractLazadaLinks(content: string): string[] {
     const matches = content.match(pattern);
     if (matches) {
       matches.forEach(match => {
-        const cleanUrl = match.replace(/[,.\s!?)'"<>]+$/, '');
-        foundLinks.add(cleanUrl);
+        // Clean trailing punctuation and special chars
+        let cleanUrl = match.replace(/[,.\s!?)'"<>\]\\]+$/, '');
+        // Remove HTML entities that might be attached
+        cleanUrl = cleanUrl.replace(/&amp;/g, '&').replace(/&quot;/g, '');
+        if (cleanUrl.includes('lazada.co.th')) {
+          foundLinks.add(cleanUrl);
+        }
       });
     }
   }
@@ -185,63 +196,109 @@ serve(async (req) => {
       )
     }
 
-    // Try multiple URLs for better coverage
+    // Try multiple URL formats for better coverage - including CSV which preserves hyperlinks
     const urlsToTry = [
+      // CSV format often exposes hyperlink URLs directly
+      `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`,
+      // TSV format also good for extracting links
+      `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=tsv`,
+      // Original URL
       url,
-      `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:html`,
+      // HTML export
       `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=html`,
+      // Visualization HTML
+      `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:html`,
     ];
 
     const allRawLinks = new Set<string>();
 
-    for (const scrapeUrl of urlsToTry) {
+    // First, try direct fetch for CSV/TSV formats (no Firecrawl needed)
+    for (const exportUrl of urlsToTry.slice(0, 2)) {
       try {
-        console.log('Trying URL:', scrapeUrl);
-        
-        const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            url: scrapeUrl,
-            formats: ['html', 'markdown', 'links'],
-            waitFor: 5000,
-          }),
-        });
+        console.log('Trying direct fetch for:', exportUrl);
+        const directResponse = await fetch(exportUrl);
+        if (directResponse.ok) {
+          const textContent = await directResponse.text();
+          console.log('Got text content, length:', textContent.length);
+          
+          // Extract links from the CSV/TSV content
+          extractLinks(textContent).forEach(link => allRawLinks.add(link));
+          
+          // Also look for any URL-like patterns in the raw text
+          const urlPattern = /https?:\/\/[^\s,"\t\n]+/gi;
+          const rawMatches = textContent.match(urlPattern) || [];
+          for (const match of rawMatches) {
+            const cleanMatch = match.replace(/[,"\t]+$/, '');
+            if (isThailand && cleanMatch.includes('lazada')) {
+              allRawLinks.add(cleanMatch);
+            } else if (!isThailand && (cleanMatch.includes('aliexpress') || cleanMatch.includes('s.click'))) {
+              allRawLinks.add(cleanMatch);
+            }
+          }
+          
+          console.log(`Found ${allRawLinks.size} raw links from direct fetch of ${exportUrl}`);
+        }
+      } catch (e) {
+        console.log('Direct fetch failed for:', exportUrl, e);
+      }
+    }
 
-        if (!scrapeResponse.ok) {
-          console.log('Firecrawl response not ok for:', scrapeUrl);
+    // If we found links from direct fetch, skip Firecrawl
+    if (allRawLinks.size === 0) {
+      // Fall back to Firecrawl for HTML/JavaScript rendered content
+      for (const scrapeUrl of urlsToTry.slice(2)) {
+        try {
+          console.log('Trying Firecrawl for:', scrapeUrl);
+          
+          const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              url: scrapeUrl,
+              formats: ['html', 'markdown', 'links', 'rawHtml'],
+              waitFor: 5000,
+            }),
+          });
+
+          if (!scrapeResponse.ok) {
+            console.log('Firecrawl response not ok for:', scrapeUrl);
+            continue;
+          }
+
+          const scrapeData = await scrapeResponse.json();
+          
+          // Extract from HTML
+          const html = scrapeData.data?.html || scrapeData.html || '';
+          extractLinks(html).forEach(link => allRawLinks.add(link));
+          
+          // Extract from raw HTML (might have more data)
+          const rawHtml = scrapeData.data?.rawHtml || '';
+          extractLinks(rawHtml).forEach(link => allRawLinks.add(link));
+          
+          // Extract from markdown
+          const markdown = scrapeData.data?.markdown || scrapeData.markdown || '';
+          extractLinks(markdown).forEach(link => allRawLinks.add(link));
+          
+          // Extract from links array
+          const linksArray = scrapeData.data?.links || scrapeData.links || [];
+          for (const link of linksArray) {
+            if (isThailand) {
+              if (link.includes('lazada')) allRawLinks.add(link);
+            } else {
+              if (link.includes('aliexpress') || link.includes('s.click')) allRawLinks.add(link);
+            }
+          }
+          
+          console.log(`Found ${allRawLinks.size} raw links from Firecrawl for ${scrapeUrl}`);
+          
+          if (allRawLinks.size > 0) break;
+        } catch (e) {
+          console.log('Error scraping URL:', scrapeUrl, e);
           continue;
         }
-
-        const scrapeData = await scrapeResponse.json();
-        
-        // Extract from HTML
-        const html = scrapeData.data?.html || scrapeData.html || '';
-        extractLinks(html).forEach(link => allRawLinks.add(link));
-        
-        // Extract from markdown
-        const markdown = scrapeData.data?.markdown || scrapeData.markdown || '';
-        extractLinks(markdown).forEach(link => allRawLinks.add(link));
-        
-        // Extract from links array
-        const linksArray = scrapeData.data?.links || scrapeData.links || [];
-        for (const link of linksArray) {
-          if (isThailand) {
-            if (link.includes('lazada')) allRawLinks.add(link);
-          } else {
-            if (link.includes('aliexpress') || link.includes('s.click')) allRawLinks.add(link);
-          }
-        }
-        
-        console.log(`Found ${allRawLinks.size} raw links so far from ${scrapeUrl}`);
-        
-        if (allRawLinks.size > 0) break;
-      } catch (e) {
-        console.log('Error scraping URL:', scrapeUrl, e);
-        continue;
       }
     }
 
