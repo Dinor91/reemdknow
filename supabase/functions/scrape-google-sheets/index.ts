@@ -16,33 +16,81 @@ function isShortLink(url: string): boolean {
   return shortLinkDomains.some(domain => url.includes(domain));
 }
 
-// Follow a redirect to get the final URL (with retry)
+// Follow a redirect to get the final URL (with retry and better headers)
 async function followRedirect(url: string, depth = 0): Promise<string | null> {
-  if (depth > 5) return null; // Prevent infinite loops
+  if (depth > 10) return null; // Prevent infinite loops
+  
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+  };
   
   try {
+    // Try GET with manual redirect first (more reliable for affiliate links)
     const response = await fetch(url, {
-      method: 'HEAD',
+      method: 'GET',
       redirect: 'manual',
+      headers,
     });
     
-    const location = response.headers.get('location');
+    let location = response.headers.get('location');
+    
+    // Some servers use lowercase
+    if (!location) {
+      location = response.headers.get('Location');
+    }
+    
     if (location) {
+      // Handle relative URLs
+      if (location.startsWith('/')) {
+        const urlObj = new URL(url);
+        location = `${urlObj.protocol}//${urlObj.host}${location}`;
+      }
+      
+      console.log(`Redirect ${depth}: ${url.substring(0, 50)}... -> ${location.substring(0, 80)}...`);
+      
       // If it's still a short link or redirect, follow it
-      if (isShortLink(location)) {
+      if (isShortLink(location) || location.includes('redirect') || location.includes('click')) {
         return await followRedirect(location, depth + 1);
       }
       return location;
     }
     
-    // Try GET if HEAD didn't work
-    const getResponse = await fetch(url, { redirect: 'manual' });
-    const getLocation = getResponse.headers.get('location');
-    if (getLocation) {
-      if (isShortLink(getLocation)) {
-        return await followRedirect(getLocation, depth + 1);
+    // Check for meta refresh or JavaScript redirect in HTML
+    if (response.headers.get('content-type')?.includes('text/html')) {
+      const html = await response.text();
+      
+      // Look for meta refresh
+      const metaMatch = html.match(/meta[^>]*http-equiv=["']?refresh["']?[^>]*url=["']?([^"'\s>]+)/i);
+      if (metaMatch) {
+        let redirectUrl = metaMatch[1];
+        if (redirectUrl.startsWith('/')) {
+          const urlObj = new URL(url);
+          redirectUrl = `${urlObj.protocol}//${urlObj.host}${redirectUrl}`;
+        }
+        console.log(`Meta refresh found: ${redirectUrl.substring(0, 80)}...`);
+        return await followRedirect(redirectUrl, depth + 1);
       }
-      return getLocation;
+      
+      // Look for lazada product URL in the HTML itself
+      const lazadaMatch = html.match(/https?:\/\/(?:www\.)?lazada\.co\.th\/products\/[^\s"'<>]+/i);
+      if (lazadaMatch) {
+        console.log(`Found Lazada URL in HTML: ${lazadaMatch[0].substring(0, 80)}...`);
+        return lazadaMatch[0];
+      }
+      
+      // Look for window.location redirect
+      const jsMatch = html.match(/window\.location(?:\.href)?\s*=\s*["']([^"']+)["']/i);
+      if (jsMatch) {
+        console.log(`JS redirect found: ${jsMatch[1].substring(0, 80)}...`);
+        return await followRedirect(jsMatch[1], depth + 1);
+      }
+    }
+    
+    // If we got a 200 response, return the current URL (might be the final destination)
+    if (response.status === 200 && url.includes('lazada.co.th/products')) {
+      return url;
     }
     
     return null;
@@ -129,13 +177,16 @@ function extractAliExpressProductId(url: string): string | null {
   return null;
 }
 
-// Extract product ID from Lazada URL
+// Extract product ID from Lazada URL - more patterns
 function extractLazadaProductId(url: string): string | null {
   const patterns = [
     /-i(\d+)-s/i,
     /-i(\d+)\.html/i,
     /itemId[=:](\d+)/i,
     /-i(\d+)(?:\?|$|\.)/i,
+    /\/products\/[^/]*-i(\d+)/i,
+    /item_id=(\d+)/i,
+    /[\?&]id=(\d+)/i,
   ];
   
   for (const pattern of patterns) {
@@ -318,17 +369,29 @@ serve(async (req) => {
 
     console.log(`Direct links: ${directLinks.length}, Short links to resolve: ${shortLinks.length}`);
 
-    // Resolve short links in batches
+    // Resolve short links in batches with better logging
     const resolvedLinks: string[] = [];
     const batchSize = 5;
+    let successCount = 0;
+    let failCount = 0;
     
     for (let i = 0; i < shortLinks.length; i += batchSize) {
       const batch = shortLinks.slice(i, i + batchSize);
       const results = await Promise.all(batch.map(async (shortLink) => {
         const resolved = await followRedirect(shortLink);
-        if (resolved && extractProductId(resolved)) {
-          console.log(`Resolved: ${shortLink} -> ${resolved}`);
-          return resolved;
+        if (resolved) {
+          const productId = extractProductId(resolved);
+          if (productId) {
+            console.log(`✓ Resolved: ${shortLink.substring(0, 40)}... -> ID: ${productId}`);
+            successCount++;
+            return resolved;
+          } else {
+            console.log(`✗ No product ID in resolved URL: ${resolved.substring(0, 80)}...`);
+            failCount++;
+          }
+        } else {
+          console.log(`✗ Failed to resolve: ${shortLink.substring(0, 50)}...`);
+          failCount++;
         }
         return null;
       }));
@@ -339,9 +402,11 @@ serve(async (req) => {
       
       // Small delay between batches
       if (i + batchSize < shortLinks.length) {
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 500));
       }
     }
+
+    console.log(`Resolution complete: ${successCount} success, ${failCount} failed`);
 
     // Combine all valid links (deduplicated by product ID)
     const seenProductIds = new Set<string>();
