@@ -856,7 +856,10 @@ export const LinkConverter = () => {
     }
   };
 
-  // Auto-import all successful conversions with detected categories
+  // Progress state for batch import
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+
+  // Auto-import all successful conversions with detected categories - BATCH PROCESSING
   const handleAutoImportAll = async () => {
     const linksToImport = convertedLinks.filter(l => l.newTrackingLink);
 
@@ -866,6 +869,7 @@ export const LinkConverter = () => {
     }
 
     setIsImporting(true);
+    setImportProgress({ current: 0, total: 0 });
 
     try {
       // Deduplicate by productId - keep the one with higher commission rate
@@ -877,30 +881,54 @@ export const LinkConverter = () => {
         }
       });
       
+      const allProducts = Array.from(uniqueProducts.values());
+      const BATCH_SIZE = 50; // Process 50 products at a time
+      const totalProducts = allProducts.length;
+      let importedCount = 0;
+      
+      setImportProgress({ current: 0, total: totalProducts });
+      
+      // Split into batches
+      const batches: typeof allProducts[] = [];
+      for (let i = 0; i < allProducts.length; i += BATCH_SIZE) {
+        batches.push(allProducts.slice(i, i + BATCH_SIZE));
+      }
+      
       if (selectedPlatform === 'thailand') {
-        // Thailand: Insert into category_products table
-        const productsToInsert = Array.from(uniqueProducts.values()).map(link => ({
-          lazada_product_id: link.productId,
-          name_hebrew: link.productName || `מוצר ${link.productId}`,
-          name_english: link.productName || null,
-          affiliate_link: link.newTrackingLink!,
-          category: link.detectedCategory || 'כללי',
-          price_thb: link.priceUsd || null,
-          image_url: link.imageUrl || null,
-          is_active: true,
-          out_of_stock: link.inStock === false
-        }));
+        // Thailand: Insert into category_products table in batches
+        for (let i = 0; i < batches.length; i++) {
+          const batch = batches[i];
+          const productsToInsert = batch.map(link => ({
+            lazada_product_id: link.productId,
+            name_hebrew: link.productName || `מוצר ${link.productId}`,
+            name_english: link.productName || null,
+            affiliate_link: link.newTrackingLink!,
+            category: link.detectedCategory || 'כללי',
+            price_thb: link.priceUsd || null,
+            image_url: link.imageUrl || null,
+            is_active: true,
+            out_of_stock: link.inStock === false
+          }));
 
-        const { error } = await supabase
-          .from('category_products')
-          .upsert(productsToInsert, { 
-            onConflict: 'lazada_product_id',
-            ignoreDuplicates: false 
-          });
+          const { error } = await supabase
+            .from('category_products')
+            .upsert(productsToInsert, { 
+              onConflict: 'lazada_product_id',
+              ignoreDuplicates: false 
+            });
 
-        if (error) throw error;
+          if (error) throw error;
 
-        toast.success(`✅ יובאו ${uniqueProducts.size} מוצרים לתאילנד!`);
+          importedCount += batch.length;
+          setImportProgress({ current: importedCount, total: totalProducts });
+          
+          // Small delay between batches to prevent overwhelming the database
+          if (i < batches.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+
+        toast.success(`✅ יובאו ${totalProducts} מוצרים לתאילנד!`);
 
         // Trigger Lazada image scraping
         try {
@@ -909,37 +937,41 @@ export const LinkConverter = () => {
           console.log('Lazada image scraping triggered');
         }
       } else {
-        // Israel: Insert into israel_editor_products table
-        const productsToInsert = Array.from(uniqueProducts.values()).map(link => ({
-          aliexpress_product_id: link.productId,
-          product_name_hebrew: link.productName || `מוצר ${link.productId}`,
-          product_name_english: link.productName || null,
-          tracking_link: link.newTrackingLink!,
-          category_name_hebrew: link.detectedCategory || 'כללי',
-          price_usd: link.priceUsd || null,
-          original_price_usd: link.originalPriceUsd || null,
-          image_url: link.imageUrl || null,
-          is_active: true,
-          out_of_stock: link.inStock === false
-        }));
+        // Israel: Insert into israel_editor_products table in batches
+        for (let i = 0; i < batches.length; i++) {
+          const batch = batches[i];
+          const productsToInsert = batch.map(link => ({
+            aliexpress_product_id: link.productId,
+            product_name_hebrew: link.productName || `מוצר ${link.productId}`,
+            product_name_english: link.productName || null,
+            tracking_link: link.newTrackingLink!,
+            category_name_hebrew: link.detectedCategory || 'כללי',
+            price_usd: link.priceUsd || null,
+            original_price_usd: link.originalPriceUsd || null,
+            image_url: link.imageUrl || null,
+            is_active: true,
+            out_of_stock: link.inStock === false
+          }));
 
-        const { error } = await supabase
-          .from('israel_editor_products')
-          .upsert(productsToInsert, { 
-            onConflict: 'aliexpress_product_id',
-            ignoreDuplicates: false 
-          });
+          const { error } = await supabase
+            .from('israel_editor_products')
+            .upsert(productsToInsert, { 
+              onConflict: 'aliexpress_product_id',
+              ignoreDuplicates: false 
+            });
 
-        if (error) throw error;
+          if (error) throw error;
 
-        // Count categories for summary
-        const categoryCounts: Record<string, number> = {};
-        linksToImport.forEach(l => {
-          const cat = l.detectedCategory || 'כללי';
-          categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-        });
+          importedCount += batch.length;
+          setImportProgress({ current: importedCount, total: totalProducts });
+          
+          // Small delay between batches
+          if (i < batches.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
 
-        toast.success(`✅ יובאו ${uniqueProducts.size} מוצרים! מתרגם לעברית...`);
+        toast.success(`✅ יובאו ${totalProducts} מוצרים! מתרגם לעברית...`);
         
         // Trigger translation for Israel products
         try {
@@ -967,9 +999,10 @@ export const LinkConverter = () => {
       setInputLinks('');
     } catch (err) {
       console.error('Error auto-importing:', err);
-      toast.error("שגיאה בייבוא אוטומטי");
+      toast.error(`שגיאה בייבוא - יובאו ${importProgress.current} מתוך ${importProgress.total}`);
     } finally {
       setIsImporting(false);
+      setImportProgress({ current: 0, total: 0 });
     }
   };
 
@@ -1368,7 +1401,7 @@ https://he.aliexpress.com/item/9876543210.html`}
             {convertedLinks.some(l => l.newTrackingLink) && (
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
                 <div className="flex items-center justify-between gap-4">
-                  <div>
+                  <div className="flex-1">
                     <h4 className="font-semibold text-green-800 dark:text-green-200 flex items-center gap-2">
                       <Sparkles className="h-5 w-5" />
                       ייבוא אוטומטי לקטגוריות
@@ -1376,6 +1409,18 @@ https://he.aliexpress.com/item/9876543210.html`}
                     <p className="text-sm text-green-700 dark:text-green-300">
                       הכלי יזהה את הקטגוריות אוטומטית ויייבא את כל {convertedLinks.filter(l => l.newTrackingLink).length} המוצרים
                     </p>
+                    {/* Progress bar during import */}
+                    {isImporting && importProgress.total > 0 && (
+                      <div className="mt-3 space-y-1">
+                        <Progress 
+                          value={(importProgress.current / importProgress.total) * 100} 
+                          className="h-2 bg-green-200 dark:bg-green-800"
+                        />
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          מייבא {importProgress.current} מתוך {importProgress.total} מוצרים ({Math.round((importProgress.current / importProgress.total) * 100)}%)
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <Button
                     onClick={handleAutoImportAll}
