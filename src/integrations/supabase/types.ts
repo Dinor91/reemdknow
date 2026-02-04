@@ -119,6 +119,33 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_emails: {
+        Row: {
+          blocked_at: string
+          blocked_by: string | null
+          email: string
+          id: string
+          notes: string | null
+          reason: string | null
+        }
+        Insert: {
+          blocked_at?: string
+          blocked_by?: string | null
+          email: string
+          id?: string
+          notes?: string | null
+          reason?: string | null
+        }
+        Update: {
+          blocked_at?: string
+          blocked_by?: string | null
+          email?: string
+          id?: string
+          notes?: string | null
+          reason?: string | null
+        }
+        Relationships: []
+      }
       button_clicks: {
         Row: {
           button_type: string
@@ -446,6 +473,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      has_pending_request: { Args: { check_email: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -453,6 +481,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_email_blocked: { Args: { check_email: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
