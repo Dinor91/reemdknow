@@ -749,14 +749,27 @@ export const LinkConverter = () => {
     setIsConverting(false);
     setConversionProgress({ current: 0, total: 0 });
 
+    // Calculate detailed stats
     const successCount = results.filter(r => r.newTrackingLink).length;
-    const filteredCount = results.filter(r => r.error?.includes('דירוג נמוך')).length;
+    const lowRatingCount = results.filter(r => r.error?.includes('דירוג נמוך')).length;
+    const errorCount = results.filter(r => r.error && !r.error.includes('דירוג נמוך')).length;
+    const duplicatesRemoved = links.length - results.length;
     
-    if (filteredCount > 0) {
-      toast.success(`הומרו ${successCount} מתוך ${results.length} קישורים (${filteredCount} סוננו - דירוג מתחת ל-4⭐)`);
-    } else {
-      toast.success(`הומרו ${successCount} מתוך ${results.length} קישורים`);
+    // Build detailed summary message
+    const summaryParts: string[] = [];
+    summaryParts.push(`✅ ${successCount} מוצרים מוכנים לייבוא`);
+    
+    if (lowRatingCount > 0) {
+      summaryParts.push(`⭐ ${lowRatingCount} סוננו (דירוג < 4)`);
     }
+    if (errorCount > 0) {
+      summaryParts.push(`❌ ${errorCount} שגיאות`);
+    }
+    if (duplicatesRemoved > 0) {
+      summaryParts.push(`🔄 ${duplicatesRemoved} כפילויות הוסרו`);
+    }
+    
+    toast.success(summaryParts.join(' | '), { duration: 6000 });
   };
 
   const handleImport = async () => {
