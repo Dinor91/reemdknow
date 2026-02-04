@@ -1291,12 +1291,14 @@ const FeedTab = () => {
   const fetchLazadaProducts = async () => {
     const { data, error } = await supabase
       .from("feed_products")
-      .select("*");
+      .select("*")
+      .order("updated_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching Lazada products:", error);
       toast.error("שגיאה בטעינת מוצרי Lazada");
     } else {
+      console.log(`Fetched ${data?.length || 0} Lazada products`);
       setLazadaProducts(data || []);
     }
   };
@@ -1304,12 +1306,14 @@ const FeedTab = () => {
   const fetchAliexpressProducts = async () => {
     const { data, error } = await supabase
       .from("aliexpress_feed_products")
-      .select("*");
+      .select("*")
+      .order("updated_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching AliExpress products:", error);
       toast.error("שגיאה בטעינת מוצרי AliExpress");
     } else {
+      console.log(`Fetched ${data?.length || 0} AliExpress products`);
       setAliexpressProducts(data || []);
     }
   };
