@@ -3,7 +3,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CallToActionBanner } from "./CallToActionBanner";
-import { useRef, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -43,11 +43,24 @@ const categories: Category[] = [
   { icon: Package, emoji: "📦", title: "כללי" }
 ];
 
+const CTA_STORAGE_KEY = 'thailand_cta_last_shown';
+const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
+
+const shouldShowCTA = (): boolean => {
+  const lastShown = localStorage.getItem(CTA_STORAGE_KEY);
+  if (!lastShown) return true;
+  const timeSince = Date.now() - parseInt(lastShown, 10);
+  return timeSince > WEEK_IN_MS;
+};
+
+const markCTAShown = () => {
+  localStorage.setItem(CTA_STORAGE_KEY, Date.now().toString());
+};
+
 export const ThailandCategories = () => {
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const hasShownRef = useRef(false);
 
   // Fetch products from category_products table
   const { data: dbProducts = [], isLoading: loading } = useQuery({
@@ -94,10 +107,10 @@ export const ThailandCategories = () => {
   }, [products]);
 
   const handleProductClick = () => {
-    if (!hasShownRef.current) {
+    if (shouldShowCTA()) {
       setTimeout(() => {
         setDialogOpen(true);
-        hasShownRef.current = true;
+        markCTAShown();
       }, 1500);
     }
   };
