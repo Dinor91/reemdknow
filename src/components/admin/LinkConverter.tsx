@@ -760,12 +760,23 @@ export const LinkConverter = () => {
   };
 
   const handleImport = async () => {
-    const linksToImport = convertedLinks.filter(
-      l => l.newTrackingLink && selectedForImport.has(l.productId)
-    );
+    // First check if there are any converted links at all
+    if (convertedLinks.length === 0) {
+      toast.error("אין מוצרים שהומרו - סרוק קישורים קודם ולחץ על 'המר'");
+      return;
+    }
+
+    const successfulLinks = convertedLinks.filter(l => l.newTrackingLink);
+    if (successfulLinks.length === 0) {
+      const errorCount = convertedLinks.filter(l => l.error).length;
+      toast.error(`כל ${convertedLinks.length} המוצרים נכשלו בהמרה (${errorCount} שגיאות)`);
+      return;
+    }
+
+    const linksToImport = successfulLinks.filter(l => selectedForImport.has(l.productId));
 
     if (linksToImport.length === 0) {
-      toast.error("בחר קישורים לייבוא");
+      toast.error(`בחר מוצרים לייבוא (${successfulLinks.length} זמינים)`);
       return;
     }
 
@@ -861,10 +872,22 @@ export const LinkConverter = () => {
 
   // Auto-import all successful conversions with detected categories - BATCH PROCESSING
   const handleAutoImportAll = async () => {
+    // First check if there are any converted links at all
+    if (convertedLinks.length === 0) {
+      toast.error("אין מוצרים שהומרו - סרוק קישורים קודם ולחץ על 'המר'");
+      return;
+    }
+
     const linksToImport = convertedLinks.filter(l => l.newTrackingLink);
 
     if (linksToImport.length === 0) {
-      toast.error("אין מוצרים לייבוא");
+      const errorCount = convertedLinks.filter(l => l.error).length;
+      const filteredCount = convertedLinks.filter(l => l.error?.includes('דירוג נמוך')).length;
+      if (filteredCount > 0) {
+        toast.error(`כל ${convertedLinks.length} המוצרים סוננו - ${filteredCount} בדירוג נמוך מ-4⭐`);
+      } else {
+        toast.error(`כל ${convertedLinks.length} המוצרים נכשלו בהמרה (${errorCount} שגיאות)`);
+      }
       return;
     }
 
