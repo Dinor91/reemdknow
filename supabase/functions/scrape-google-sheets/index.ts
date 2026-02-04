@@ -20,6 +20,20 @@ function isShortLink(url: string): boolean {
 async function followRedirect(url: string, depth = 0): Promise<string | null> {
   if (depth > 10) return null; // Prevent infinite loops
   
+  // Decode URL-encoded URLs before processing
+  let decodedUrl = url;
+  try {
+    // Keep decoding until the URL doesn't change (handles double-encoding)
+    while (decodedUrl.includes('%3A') || decodedUrl.includes('%2F')) {
+      const newDecoded = decodeURIComponent(decodedUrl);
+      if (newDecoded === decodedUrl) break;
+      decodedUrl = newDecoded;
+    }
+  } catch (e) {
+    // If decoding fails, use original URL
+    console.log('URL decode failed, using original:', url.substring(0, 60));
+  }
+  
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -27,8 +41,10 @@ async function followRedirect(url: string, depth = 0): Promise<string | null> {
   };
   
   try {
+    // Use the decoded URL for fetching
+    const fetchUrl = decodedUrl;
     // Try GET with manual redirect first (more reliable for affiliate links)
-    const response = await fetch(url, {
+    const response = await fetch(fetchUrl, {
       method: 'GET',
       redirect: 'manual',
       headers,
@@ -89,8 +105,8 @@ async function followRedirect(url: string, depth = 0): Promise<string | null> {
     }
     
     // If we got a 200 response, return the current URL (might be the final destination)
-    if (response.status === 200 && url.includes('lazada.co.th/products')) {
-      return url;
+    if (response.status === 200 && decodedUrl.includes('lazada.co.th/products')) {
+      return decodedUrl;
     }
     
     return null;
