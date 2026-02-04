@@ -1756,12 +1756,26 @@ interface ContactRequest {
   status: string;
   admin_notes: string | null;
   created_at: string;
+  budget: string | null;
+  requirements: string | null;
+}
+
+interface BlockedEmail {
+  id: string;
+  email: string;
+  reason: string | null;
+  blocked_at: string;
+  notes: string | null;
 }
 
 const RequestsTab = () => {
   const [requests, setRequests] = useState<ContactRequest[]>([]);
+  const [blockedEmails, setBlockedEmails] = useState<BlockedEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const [locationTab, setLocationTab] = useState<"all" | "thailand" | "israel">("all");
+  const [showBlocked, setShowBlocked] = useState(false);
+  const { user } = useAuth();
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -1779,6 +1793,19 @@ const RequestsTab = () => {
     setLoading(false);
   };
 
+  const fetchBlockedEmails = async () => {
+    const { data, error } = await supabase
+      .from("blocked_emails")
+      .select("*")
+      .order("blocked_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching blocked emails:", error);
+    } else {
+      setBlockedEmails(data || []);
+    }
+  };
+
   const updateStatus = async (id: string, newStatus: string) => {
     const { error } = await supabase
       .from("contact_requests")
@@ -1793,17 +1820,73 @@ const RequestsTab = () => {
     }
   };
 
+  const markAsSpam = async (request: ContactRequest) => {
+    if (!confirm(`לסמן את ${request.email} כספאם? המייל הזה לא יוכל לשלוח בקשות נוספות.`)) return;
+
+    // Add to blocked emails
+    const { error: blockError } = await supabase
+      .from("blocked_emails")
+      .insert({
+        email: request.email.toLowerCase(),
+        reason: "spam",
+        blocked_by: user?.id,
+        notes: `חסום מבקשה: ${request.request_text.substring(0, 100)}...`
+      });
+
+    if (blockError) {
+      if (blockError.code === '23505') {
+        toast.info("המייל הזה כבר חסום");
+      } else {
+        toast.error("שגיאה בחסימת המייל");
+        console.error(blockError);
+        return;
+      }
+    }
+
+    // Update request status to spam
+    const { error: updateError } = await supabase
+      .from("contact_requests")
+      .update({ status: "spam" })
+      .eq("id", request.id);
+
+    if (updateError) {
+      toast.error("שגיאה בעדכון סטטוס");
+    } else {
+      toast.success("המייל סומן כספאם וחסום");
+      fetchRequests();
+      fetchBlockedEmails();
+    }
+  };
+
+  const unblockEmail = async (blocked: BlockedEmail) => {
+    if (!confirm(`להסיר חסימה מ-${blocked.email}?`)) return;
+
+    const { error } = await supabase
+      .from("blocked_emails")
+      .delete()
+      .eq("id", blocked.id);
+
+    if (error) {
+      toast.error("שגיאה בהסרת חסימה");
+    } else {
+      toast.success("החסימה הוסרה");
+      fetchBlockedEmails();
+    }
+  };
+
   const exportToExcel = () => {
-    // Create CSV content
-    const headers = ["תאריך", "מייל", "טלפון", "פלטפורמה", "מיקום", "סטטוס", "תוכן הפניה", "הערות מנהל"];
-    const rows = requests.map(r => [
+    const filteredForExport = getFilteredRequests();
+    const headers = ["תאריך", "מייל", "טלפון", "פלטפורמה", "מיקום", "סטטוס", "תקציב", "תוכן הפניה", "דרישות", "הערות מנהל"];
+    const rows = filteredForExport.map(r => [
       new Date(r.created_at).toLocaleDateString('he-IL'),
       r.email,
       r.phone || "",
       r.platform,
       r.location,
       r.status,
+      r.budget || "",
       r.request_text.replace(/,/g, ";"),
+      r.requirements?.replace(/,/g, ";") || "",
       r.admin_notes?.replace(/,/g, ";") || ""
     ]);
 
@@ -1812,13 +1895,12 @@ const RequestsTab = () => {
       ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
     ].join("\n");
 
-    // Add BOM for Hebrew support
     const BOM = "\uFEFF";
     const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `פניות_${new Date().toLocaleDateString('he-IL')}.csv`;
+    link.download = `פניות_${locationTab}_${new Date().toLocaleDateString('he-IL')}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1828,31 +1910,48 @@ const RequestsTab = () => {
 
   useEffect(() => {
     fetchRequests();
+    fetchBlockedEmails();
   }, []);
 
-  const filteredRequests = requests.filter(r =>
-    r.email.toLowerCase().includes(filter.toLowerCase()) ||
-    r.request_text.toLowerCase().includes(filter.toLowerCase()) ||
-    (r.phone && r.phone.includes(filter))
-  );
+  const getFilteredRequests = () => {
+    return requests.filter(r => {
+      const matchesSearch = r.email.toLowerCase().includes(filter.toLowerCase()) ||
+        r.request_text.toLowerCase().includes(filter.toLowerCase()) ||
+        (r.phone && r.phone.includes(filter));
+      
+      const matchesLocation = locationTab === "all" || r.location === locationTab;
+      
+      return matchesSearch && matchesLocation && r.status !== "spam";
+    });
+  };
+
+  const filteredRequests = getFilteredRequests();
+
+  const israelCount = requests.filter(r => r.location === "israel" && r.status !== "spam").length;
+  const thailandCount = requests.filter(r => r.location === "thailand" && r.status !== "spam").length;
+  const newIsraelCount = requests.filter(r => r.location === "israel" && r.status === "new").length;
+  const newThailandCount = requests.filter(r => r.location === "thailand" && r.status === "new").length;
 
   const statusColors: Record<string, string> = {
     new: "bg-blue-100 text-blue-700",
     in_progress: "bg-yellow-100 text-yellow-700",
     done: "bg-green-100 text-green-700",
-    cancelled: "bg-gray-100 text-gray-500"
+    cancelled: "bg-gray-100 text-gray-500",
+    spam: "bg-red-100 text-red-700"
   };
 
   const statusLabels: Record<string, string> = {
     new: "חדש",
     in_progress: "בטיפול",
     done: "טופל",
-    cancelled: "בוטל"
+    cancelled: "בוטל",
+    spam: "ספאם"
   };
 
   const platformLabels: Record<string, string> = {
     lazada: "Lazada",
     aliexpress: "AliExpress",
+    ksp: "KSP",
     other: "אחר"
   };
 
@@ -1863,6 +1962,23 @@ const RequestsTab = () => {
 
   return (
     <div className="space-y-4">
+      {/* Location Tabs */}
+      <Tabs value={locationTab} onValueChange={(v) => setLocationTab(v as "all" | "thailand" | "israel")} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="all">
+            הכל ({requests.filter(r => r.status !== "spam").length})
+          </TabsTrigger>
+          <TabsTrigger value="thailand">
+            🇹🇭 תאילנד ({thailandCount})
+            {newThailandCount > 0 && <span className="mr-1 bg-blue-500 text-white text-xs px-1.5 rounded-full">{newThailandCount}</span>}
+          </TabsTrigger>
+          <TabsTrigger value="israel">
+            🇮🇱 ישראל ({israelCount})
+            {newIsraelCount > 0 && <span className="mr-1 bg-blue-500 text-white text-xs px-1.5 rounded-full">{newIsraelCount}</span>}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         <Input
           placeholder="חיפוש לפי מייל או תוכן..."
@@ -1870,8 +1986,16 @@ const RequestsTab = () => {
           onChange={(e) => setFilter(e.target.value)}
           className="w-full sm:max-w-xs"
         />
-        <div className="flex gap-2">
-          <Button onClick={exportToExcel} variant="outline" disabled={requests.length === 0} size="sm" className="text-xs md:text-sm">
+        <div className="flex gap-2 flex-wrap">
+          <Button 
+            onClick={() => setShowBlocked(!showBlocked)} 
+            variant={showBlocked ? "default" : "outline"} 
+            size="sm" 
+            className="text-xs md:text-sm"
+          >
+            🚫 חסומים ({blockedEmails.length})
+          </Button>
+          <Button onClick={exportToExcel} variant="outline" disabled={filteredRequests.length === 0} size="sm" className="text-xs md:text-sm">
             <Download className="h-3 w-3 md:h-4 md:w-4 ml-1" />
             <span className="hidden sm:inline">ייצוא לאקסל</span>
             <span className="sm:hidden">ייצוא</span>
@@ -1883,8 +2007,34 @@ const RequestsTab = () => {
         </div>
       </div>
 
+      {/* Blocked Emails Panel */}
+      {showBlocked && (
+        <Card className="p-4 border-red-200 bg-red-50">
+          <h3 className="font-bold mb-3 text-red-800">🚫 מיילים חסומים ({blockedEmails.length})</h3>
+          {blockedEmails.length === 0 ? (
+            <p className="text-sm text-red-600">אין מיילים חסומים</p>
+          ) : (
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {blockedEmails.map(blocked => (
+                <div key={blocked.id} className="flex items-center justify-between bg-white p-2 rounded text-sm">
+                  <div>
+                    <span className="font-mono">{blocked.email}</span>
+                    <span className="text-xs text-muted-foreground mr-2">
+                      ({new Date(blocked.blocked_at).toLocaleDateString('he-IL')})
+                    </span>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => unblockEmail(blocked)} className="text-xs">
+                    הסר חסימה
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+
       <div className="text-sm text-muted-foreground">
-        סה"כ {requests.length} פניות | {requests.filter(r => r.status === 'new').length} חדשות
+        מציג {filteredRequests.length} פניות | {filteredRequests.filter(r => r.status === 'new').length} חדשות
       </div>
 
       {loading ? (
@@ -1892,7 +2042,7 @@ const RequestsTab = () => {
       ) : filteredRequests.length === 0 ? (
         <Card className="p-8 text-center">
           <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">אין פניות עדיין</p>
+          <p className="text-muted-foreground">אין פניות {locationTab !== "all" ? `מ${locationLabels[locationTab]}` : ""}</p>
         </Card>
       ) : (
         <div className="space-y-3">
@@ -1911,9 +2061,19 @@ const RequestsTab = () => {
                       <span className="text-xs">
                         {locationLabels[request.location] || request.location}
                       </span>
+                      {request.budget && (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                          💰 {request.budget}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm mb-2">{request.request_text}</p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    {request.requirements && (
+                      <p className="text-xs text-muted-foreground mb-2 bg-muted p-2 rounded">
+                        <strong>דרישות:</strong> {request.requirements}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-1">
                         <Mail className="h-3 w-3" />
                         {request.email}
@@ -1929,7 +2089,7 @@ const RequestsTab = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex flex-col gap-2 flex-shrink-0">
                     {request.status === 'new' && (
                       <Button size="sm" variant="outline" onClick={() => updateStatus(request.id, 'in_progress')}>
                         התחל טיפול
@@ -1938,6 +2098,16 @@ const RequestsTab = () => {
                     {request.status === 'in_progress' && (
                       <Button size="sm" onClick={() => updateStatus(request.id, 'done')}>
                         סיים
+                      </Button>
+                    )}
+                    {request.status !== 'spam' && (
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => markAsSpam(request)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs"
+                      >
+                        🚫 ספאם
                       </Button>
                     )}
                   </div>

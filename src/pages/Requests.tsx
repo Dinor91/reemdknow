@@ -9,12 +9,14 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, CheckCircle } from "lucide-react";
+import { Send, CheckCircle, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Requests = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [pendingWarning, setPendingWarning] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     phone: "",
@@ -36,6 +38,29 @@ const Requests = () => {
     setIsSubmitting(true);
 
     try {
+      // Check if email is blocked (silent rejection)
+      const { data: isBlocked } = await supabase.rpc('is_email_blocked', { 
+        check_email: formData.email 
+      });
+      
+      if (isBlocked) {
+        // Silent rejection - pretend it worked
+        setIsSubmitted(true);
+        return;
+      }
+
+      // Check if email has pending request (show warning but allow)
+      const { data: hasPending } = await supabase.rpc('has_pending_request', { 
+        check_email: formData.email 
+      });
+      
+      if (hasPending && !pendingWarning) {
+        // Show warning, but allow them to submit again
+        setPendingWarning(true);
+        setIsSubmitting(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('contact_requests')
         .insert({
@@ -108,6 +133,18 @@ const Requests = () => {
                 מחפשים מוצר ספציפי? ספרו לי ונמצא לכם את הדיל הכי טוב!
               </p>
             </div>
+
+            {/* Pending Warning */}
+            {pendingWarning && (
+              <Alert className="mb-4 border-yellow-500 bg-yellow-50">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-yellow-800">
+                  יש לך כבר בקשה פתוחה בטיפול. אם תשלח בקשה חדשה, היא תתווסף לתור.
+                  <br />
+                  <strong>לחץ שוב על "שלח בקשה" אם אתה רוצה להמשיך.</strong>
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6 bg-card p-6 rounded-xl border shadow-sm">
