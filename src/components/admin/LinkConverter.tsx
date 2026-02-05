@@ -1190,44 +1190,6 @@ export const LinkConverter = () => {
                 <SelectItem value="thailand">🇹🇭 תאילנד (Lazada)</SelectItem>
               </SelectContent>
             </Select>
-            
-            <Button 
-              variant="outline" 
-              onClick={handleRecategorize}
-              disabled={isRecategorizing}
-              className="shrink-0"
-            >
-              {isRecategorizing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
-                  מסווג...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4 ml-2" />
-                  סווג מחדש "כללי"
-                </>
-              )}
-            </Button>
-           
-           <Button 
-             variant="secondary" 
-             onClick={handleUpdateProductDetails}
-             disabled={isUpdatingProducts}
-             className="shrink-0"
-           >
-             {isUpdatingProducts ? (
-               <>
-                 <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
-                 מעדכן...
-               </>
-             ) : (
-               <>
-                 <Download className="h-4 w-4 ml-2" />
-                 עדכן פרטי מוצרים
-               </>
-             )}
-           </Button>
           </div>
         </div>
 
