@@ -652,7 +652,7 @@ export const LinkConverter = () => {
             commissionRate: commissionRate,
             inStock: !!newLink,
             imageUrl: undefined, // Lazada batch-links doesn't return image
-            detectedCategory: 'כללי', // Will be set manually for Thailand
+           detectedCategory: detectCategory(productInfo?.productName || ''),
             error: errorMsg
           });
 
@@ -936,7 +936,7 @@ export const LinkConverter = () => {
           const batch = batches[i];
           const productsToInsert = batch.map(link => ({
             lazada_product_id: link.productId,
-            name_hebrew: link.productName || `מוצר ${link.productId}`,
+           name_hebrew: link.productName || '',
             name_english: link.productName || null,
             affiliate_link: link.newTrackingLink!,
             category: link.detectedCategory || 'כללי',
@@ -972,6 +972,21 @@ export const LinkConverter = () => {
         } catch (e) {
           console.log('Lazada image scraping triggered');
         }
+       
+       // Trigger product data sync to fetch prices and images from Lazada feed
+       try {
+         const { data: session } = await supabase.auth.getSession();
+         if (session?.session?.access_token) {
+           await supabase.functions.invoke('update-category-products', {
+             headers: {
+               Authorization: `Bearer ${session.session.access_token}`
+             }
+           });
+           toast.info("🔄 מעדכן מחירים ותמונות מ-Lazada...");
+         }
+       } catch (e) {
+         console.log('Product data sync triggered');
+       }
       } else {
         // Israel: Insert into israel_editor_products table in batches
         for (let i = 0; i < batches.length; i++) {
