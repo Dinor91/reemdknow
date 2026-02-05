@@ -138,6 +138,7 @@ const ProductsTab = () => {
   const [aliEditData, setAliEditData] = useState<Partial<IsraelEditorProduct> & { category_name_hebrew?: string }>({});
   const [filter, setFilter] = useState("");
   const [updatingFromApi, setUpdatingFromApi] = useState(false);
+ const [isRecategorizing, setIsRecategorizing] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({
@@ -202,10 +203,28 @@ const ProductsTab = () => {
   const updateFromApi = async () => {
     setUpdatingFromApi(true);
     try {
-      const { error } = await supabase.functions.invoke("update-category-products");
-      if (error) throw error;
-      toast.success("העדכון החל! הרענן בעוד מספר שניות");
-      setTimeout(fetchProducts, 5000);
+     const { data: session } = await supabase.auth.getSession();
+     if (!session?.session?.access_token) {
+       toast.error("יש להתחבר כאדמין");
+       setUpdatingFromApi(false);
+       return;
+     }
+     
+     toast.info("🔄 מעדכן מחירים ותמונות מ-Lazada...");
+     const { data, error } = await supabase.functions.invoke("update-category-products", {
+       headers: {
+         Authorization: `Bearer ${session.session.access_token}`
+       }
+     });
+     
+     if (error) throw error;
+     
+     if (data?.updated > 0) {
+       toast.success(`✅ עודכנו ${data.updated} מוצרים (${data.foundInFeed || 0} נמצאו בפיד)`);
+     } else {
+       toast.info("כל המוצרים כבר מעודכנים");
+     }
+     fetchProducts();
     } catch (e) {
       console.error("Error updating from API:", e);
       toast.error("שגיאה בעדכון מה-API");
@@ -293,6 +312,76 @@ const ProductsTab = () => {
   const collapseAll = () => {
     setExpandedCategories(new Set());
   };
+
+ // Category keywords for auto-detection (Thailand)
+ const CATEGORY_KEYWORDS: Record<string, string[]> = {
+   "בית": ["home", "kitchen", "bathroom", "bedroom", "furniture", "decor", "storage", "organizer", "towel", "curtain", "pillow", "blanket", "lamp", "pot", "pan", "bowl", "container", "utensil", "knife", "cutting board", "plate", "cup", "mug", "blender", "mixer", "coffee", "tea", "bbq", "grill", "opener", "silicone"],
+   "ילדים": ["kid", "child", "baby", "toy", "game", "puzzle", "doll", "lego", "educational", "stroller", "diaper", "bottle", "pacifier", "infant", "toddler", "children", "school", "backpack kid", "lunch box", "playmat", "balloon", "birthday"],
+   "טיולים": ["travel", "luggage", "suitcase", "backpack", "camping", "hiking", "outdoor", "tent", "sleeping bag", "flashlight", "water bottle"],
+   "בריאות": ["health", "medical", "massage", "fitness", "exercise", "yoga", "gym", "weight", "scale", "blood pressure", "thermometer", "vitamin", "posture", "back support", "knee", "wrist", "pain relief", "sleep", "trimmer", "clipper", "shaver", "beard", "razor", "essential oil", "diffuser"],
+   "גאדג׳טים": ["gadget", "electronic", "usb", "bluetooth", "wireless", "speaker", "headphone", "earphone", "power bank", "cable", "charger", "adapter", "mouse", "keyboard", "webcam", "microphone", "led", "drone", "camera", "tripod", "phone holder", "tablet", "smart watch", "earbuds", "tws", "headset", "hub", "dock"],
+   "נסיעות": ["passport", "neck pillow", "travel adapter", "packing"],
+   "רכב": ["car", "auto", "vehicle", "tire", "wheel", "motor", "engine", "dashboard", "gps", "driving", "parking", "seat cover", "steering", "headlight", "brake", "motorcycle", "bike holder", "trunk", "windshield", "charger car", "obd", "rearview", "mirror car", "bumper", "wiper"],
+   "בית חכם": ["smart home", "wifi", "alexa", "google home", "automation", "sensor", "switch", "socket", "plug smart", "bulb smart", "camera security", "doorbell", "lock smart", "thermostat", "remote control", "zigbee", "tuya", "robot vacuum", "dreame", "xiaomi robot", "roborock", "roomba"],
+   "כלי עבודה": ["tool", "drill", "screwdriver", "wrench", "hammer", "plier", "saw", "measure", "tape", "level", "multimeter", "soldering", "welding", "cutting", "grinding", "toolbox", "work light", "safety", "ladder", "pump"],
+   "הדברה": ["pest", "insect", "mosquito", "bug", "repellent", "trap", "cockroach", "ant", "fly", "mouse trap", "rat"],
+   "חצר וגינה": ["garden", "plant", "flower", "hose", "sprinkler", "lawn", "patio"],
+   "DIY": ["diy", "craft", "paint", "brush", "glue", "screw", "nail", "wood", "renovation"]
+ };
+
+ const detectCategory = (productName: string): string => {
+   if (!productName) return "כללי";
+   const lowerName = productName.toLowerCase();
+   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+     for (const keyword of keywords) {
+       if (lowerName.includes(keyword.toLowerCase())) {
+         return category;
+       }
+     }
+   }
+   return "כללי";
+ };
+
+ const handleRecategorize = async () => {
+   setIsRecategorizing(true);
+   try {
+     const { data: productsToUpdate, error } = await supabase
+       .from('category_products')
+       .select('id, name_hebrew, name_english, category')
+       .eq('category', 'כללי');
+
+     if (error) throw error;
+
+     if (!productsToUpdate || productsToUpdate.length === 0) {
+       toast.info("אין מוצרים בקטגוריית 'כללי' לסיווג");
+       setIsRecategorizing(false);
+       return;
+     }
+
+     let updated = 0;
+     for (const product of productsToUpdate) {
+       const productName = product.name_english || product.name_hebrew;
+       const newCategory = detectCategory(productName);
+       
+       if (newCategory !== 'כללי') {
+         const { error: updateError } = await supabase
+           .from('category_products')
+           .update({ category: newCategory })
+           .eq('id', product.id);
+         
+         if (!updateError) updated++;
+       }
+     }
+
+     toast.success(`סווגו מחדש ${updated} מתוך ${productsToUpdate.length} מוצרים`);
+     fetchProducts();
+   } catch (err) {
+     console.error('Error recategorizing:', err);
+     toast.error("שגיאה בסיווג מחדש");
+   } finally {
+     setIsRecategorizing(false);
+   }
+ };
 
   const addNewProduct = async () => {
     if (!newProduct.name_hebrew || !newProduct.affiliate_link) {
@@ -591,6 +680,11 @@ const ProductsTab = () => {
                 <span className="hidden sm:inline">עדכון מ-API</span>
                 <span className="sm:hidden">API</span>
               </Button>
+             <Button onClick={handleRecategorize} disabled={isRecategorizing} variant="secondary" size="sm" className="text-xs md:text-sm">
+               <RefreshCw className={`h-3 w-3 md:h-4 md:w-4 ml-1 ${isRecategorizing ? "animate-spin" : ""}`} />
+               <span className="hidden sm:inline">סווג "כללי"</span>
+               <span className="sm:hidden">סווג</span>
+             </Button>
             </div>
           </div>
 
