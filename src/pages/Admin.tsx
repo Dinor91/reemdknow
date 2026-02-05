@@ -139,6 +139,7 @@ const ProductsTab = () => {
   const [filter, setFilter] = useState("");
   const [updatingFromApi, setUpdatingFromApi] = useState(false);
  const [isRecategorizing, setIsRecategorizing] = useState(false);
+  const [quickCategoryUpdate, setQuickCategoryUpdate] = useState<Record<string, boolean>>({});
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({
@@ -382,6 +383,26 @@ const ProductsTab = () => {
      setIsRecategorizing(false);
    }
  };
+
+  const handleQuickCategoryChange = async (productId: string, newCategory: string) => {
+    setQuickCategoryUpdate(prev => ({ ...prev, [productId]: true }));
+    try {
+      const { error } = await supabase
+        .from('category_products')
+        .update({ category: newCategory, updated_at: new Date().toISOString() })
+        .eq('id', productId);
+
+      if (error) throw error;
+      
+      toast.success(`הועבר לקטגוריה "${newCategory}"`);
+      fetchProducts();
+    } catch (err) {
+      console.error('Error updating category:', err);
+      toast.error("שגיאה בעדכון קטגוריה");
+    } finally {
+      setQuickCategoryUpdate(prev => ({ ...prev, [productId]: false }));
+    }
+  };
 
   const addNewProduct = async () => {
     if (!newProduct.name_hebrew || !newProduct.affiliate_link) {
@@ -971,6 +992,22 @@ const ProductsTab = () => {
                                 >
                                   <ExternalLink className="h-4 w-4" />
                                 </a>
+                                {category === "כללי" && (
+                                  <Select 
+                                    value="" 
+                                    onValueChange={(val) => handleQuickCategoryChange(product.id, val)}
+                                    disabled={quickCategoryUpdate[product.id]}
+                                  >
+                                    <SelectTrigger className="w-[120px] h-8 text-xs bg-background border">
+                                      <SelectValue placeholder={quickCategoryUpdate[product.id] ? "מעדכן..." : "העבר ל..."} />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-background z-50 border shadow-lg">
+                                      {CATEGORIES_THAILAND.filter(cat => cat !== "כללי").map(cat => (
+                                        <SelectItem key={cat} value={cat} className="text-xs">{cat}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
                                 <Button size="sm" variant="ghost" onClick={() => startEdit(product)}>
                                   ערוך
                                 </Button>
