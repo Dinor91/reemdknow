@@ -244,6 +244,7 @@ export const LinkConverter = () => {
   const [isScrapingSheets, setIsScrapingSheets] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isRecategorizing, setIsRecategorizing] = useState(false);
+  const [isUpdatingProducts, setIsUpdatingProducts] = useState(false);
   const [isExtractingLinks, setIsExtractingLinks] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("כללי");
@@ -376,35 +377,67 @@ export const LinkConverter = () => {
   const handleRecategorize = async () => {
     setIsRecategorizing(true);
     try {
-      // Fetch products with "כללי" category
-      const { data: products, error } = await supabase
-        .from('israel_editor_products')
-        .select('id, product_name_hebrew, product_name_english, category_name_hebrew')
-        .eq('category_name_hebrew', 'כללי');
+     if (selectedPlatform === 'thailand') {
+       // Thailand: Fetch from category_products
+       const { data: products, error } = await supabase
+         .from('category_products')
+         .select('id, name_hebrew, name_english, category')
+         .eq('category', 'כללי');
 
-      if (error) throw error;
+       if (error) throw error;
 
-      if (!products || products.length === 0) {
-        toast.info("אין מוצרים בקטגוריית 'כללי' לסיווג");
-        return;
-      }
+       if (!products || products.length === 0) {
+         toast.info("אין מוצרים בקטגוריית 'כללי' לסיווג");
+         return;
+       }
 
-      let updated = 0;
-      for (const product of products) {
-        const productName = product.product_name_english || product.product_name_hebrew;
-        const newCategory = detectCategory(productName);
-        
-        if (newCategory !== 'כללי') {
-          const { error: updateError } = await supabase
-            .from('israel_editor_products')
-            .update({ category_name_hebrew: newCategory })
-            .eq('id', product.id);
-          
-          if (!updateError) updated++;
+       let updated = 0;
+       for (const product of products) {
+         const productName = product.name_english || product.name_hebrew;
+         const newCategory = detectCategory(productName);
+         
+         if (newCategory !== 'כללי') {
+           const { error: updateError } = await supabase
+             .from('category_products')
+             .update({ category: newCategory })
+             .eq('id', product.id);
+           
+           if (!updateError) updated++;
+         }
         }
-      }
 
-      toast.success(`סווגו מחדש ${updated} מתוך ${products.length} מוצרים`);
+       toast.success(`סווגו מחדש ${updated} מתוך ${products.length} מוצרים (תאילנד)`);
+     } else {
+       // Israel: Fetch from israel_editor_products
+       const { data: products, error } = await supabase
+         .from('israel_editor_products')
+         .select('id, product_name_hebrew, product_name_english, category_name_hebrew')
+         .eq('category_name_hebrew', 'כללי');
+
+       if (error) throw error;
+
+       if (!products || products.length === 0) {
+         toast.info("אין מוצרים בקטגוריית 'כללי' לסיווג");
+         return;
+       }
+
+       let updated = 0;
+       for (const product of products) {
+         const productName = product.product_name_english || product.product_name_hebrew;
+         const newCategory = detectCategory(productName);
+         
+         if (newCategory !== 'כללי') {
+           const { error: updateError } = await supabase
+             .from('israel_editor_products')
+             .update({ category_name_hebrew: newCategory })
+             .eq('id', product.id);
+           
+           if (!updateError) updated++;
+         }
+       }
+
+       toast.success(`סווגו מחדש ${updated} מתוך ${products.length} מוצרים (ישראל)`);
+     }
     } catch (err) {
       console.error('Error recategorizing:', err);
       toast.error("שגיאה בסיווג מחדש");
@@ -883,6 +916,49 @@ export const LinkConverter = () => {
   // Progress state for batch import
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
 
+  // Update product details from API (prices, images)
+  const handleUpdateProductDetails = async () => {
+    setIsUpdatingProducts(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        toast.error("יש להתחבר כאדמין");
+        return;
+      }
+
+      if (selectedPlatform === 'thailand') {
+        // Thailand: Update from Lazada feed
+        toast.info("🔄 מעדכן מחירים ותמונות מ-Lazada...");
+        const { data, error } = await supabase.functions.invoke('update-category-products', {
+          headers: {
+            Authorization: `Bearer ${session.session.access_token}`
+          }
+        });
+
+        if (error) throw error;
+
+        if (data?.updated > 0) {
+          toast.success(`✅ עודכנו ${data.updated} מוצרים (${data.foundInFeed} נמצאו בפיד)`);
+        } else {
+          toast.info("כל המוצרים כבר מעודכנים");
+        }
+      } else {
+        // Israel: Trigger translation and image scraping
+        toast.info("🔄 מעדכן תרגום ותמונות...");
+        await supabase.functions.invoke('translate-products', {
+          body: { platform: 'israel' }
+        });
+        await supabase.functions.invoke('scrape-product-images');
+        toast.success("✅ עדכון הושלם");
+      }
+    } catch (err) {
+      console.error('Error updating products:', err);
+      toast.error("שגיאה בעדכון המוצרים");
+    } finally {
+      setIsUpdatingProducts(false);
+    }
+  };
+
   // Auto-import all successful conversions with detected categories - BATCH PROCESSING
   const handleAutoImportAll = async () => {
     // First check if there are any converted links at all
@@ -1133,6 +1209,25 @@ export const LinkConverter = () => {
                 </>
               )}
             </Button>
+           
+           <Button 
+             variant="secondary" 
+             onClick={handleUpdateProductDetails}
+             disabled={isUpdatingProducts}
+             className="shrink-0"
+           >
+             {isUpdatingProducts ? (
+               <>
+                 <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
+                 מעדכן...
+               </>
+             ) : (
+               <>
+                 <Download className="h-4 w-4 ml-2" />
+                 עדכן פרטי מוצרים
+               </>
+             )}
+           </Button>
           </div>
         </div>
 
