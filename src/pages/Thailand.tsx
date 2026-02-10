@@ -24,14 +24,14 @@ const Thailand = () => {
         {/* 1. Hero Section */}
         <ThailandHero />
 
+        {/* Services Section */}
+        <ThailandServices />
+
         {/* 2. Featured Products - הכי שווה השבוע */}
         <FeaturedProductsThailand />
 
-        {/* 3. CTA Section - וואטסאפ/טלגרם */}
+        {/* 3. CTA Section */}
         <JoinCTASection country="thailand" />
-
-        {/* Services Section */}
-        <ThailandServices />
 
         {/* 4. Categories Accordion */}
         <ThailandCategories />
