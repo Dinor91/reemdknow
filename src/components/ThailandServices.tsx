@@ -48,7 +48,7 @@ export const ThailandServices = () => {
     <section dir="rtl" className="py-12 px-4 md:px-6">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-10">
-          <p className="text-sm font-semibold text-primary tracking-wide mb-2 uppercase">
+          <p className="text-2xl md:text-3xl font-extrabold tracking-wide mb-2" style={{ color: '#f28433', WebkitTextStroke: '0.5px black' }}>
             COMING SOON
           </p>
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
@@ -96,16 +96,6 @@ export const ThailandServices = () => {
                   <p className="text-xs font-medium text-foreground/70 italic">
                     {service.highlight}
                   </p>
-                  <Button
-                    onClick={() => handleServiceClick(service.id)}
-                    className={`w-full ${
-                      service.featured
-                        ? "bg-primary hover:bg-primary/90"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    פרטים נוספים בקרוב
-                  </Button>
                 </CardContent>
               </Card>
             );
