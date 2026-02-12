@@ -29,25 +29,25 @@ const ChannelSelect = () => {
 
       <div className="max-w-md w-full space-y-6">
         
-        {/* Logo + warm greeting - small, personal */}
+        {/* Logo + warm greeting */}
         <div className="text-center space-y-2">
           <img 
             src={logo} 
             alt="(D)Know" 
-            className="w-24 h-24 mx-auto rounded-full shadow-md ring-4 ring-white/80 object-contain" 
+            className="w-20 h-20 mx-auto rounded-2xl shadow-md ring-4 ring-white/80 object-cover" 
           />
           <p className="text-base text-muted-foreground">
             היי, אני ראם · נשוי ואבא ל-2, גר בתאילנד
           </p>
         </div>
 
-        {/* H1 - The value proposition */}
+        {/* H1 - Personal hook */}
         <div className="text-center space-y-2">
           <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
-            המלצות אמיתיות מ-AliExpress ו-KSP
+            הדילים שאני מוצא – עכשיו גם אצלכם
           </h1>
-          <p className="text-xl font-bold text-[hsl(var(--heading))]">
-            כמו שהייתי ממליץ למשפחה ולחברים
+          <p className="text-lg text-muted-foreground">
+            המלצות אמיתיות מ-AliExpress ו-KSP, כמו שהייתי ממליץ למשפחה
           </p>
         </div>
 
@@ -93,10 +93,27 @@ const ChannelSelect = () => {
           </div>
         </div>
 
-        {/* Anti-spam */}
+        {/* Anti-spam + second CTA */}
         <p className="text-center text-sm text-muted-foreground">
           3-4 הודעות בשבוע בלבד. בלי ספאם. אף פעם.
         </p>
+
+        {/* Second CTA at bottom */}
+        <a
+          href={whatsappLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={handleWhatsAppClick}
+          className="block"
+        >
+          <Button
+            size="lg"
+            className="w-full h-12 text-base font-bold bg-whatsapp hover:bg-whatsapp/90 text-white gap-3 transition-all duration-300 hover:scale-[1.03] shadow-md rounded-2xl"
+          >
+            <MessageCircle className="h-5 w-5" />
+            רוצה להצטרף? לחצו כאן
+          </Button>
+        </a>
       </div>
     </div>
   );
