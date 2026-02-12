@@ -4,6 +4,7 @@ import { trackEvent } from "@/lib/analytics";
 import { trackButtonClick } from "@/lib/trackClick";
 import { useEffect } from "react";
 import logo from "@/assets/dknow-logo.png";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const WhatsAppIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -29,30 +30,29 @@ const ChannelSelect = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-6" dir="rtl" style={{ background: 'linear-gradient(180deg, hsl(38 30% 97%) 0%, hsl(38 25% 95%) 50%, hsl(210 20% 96%) 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-5" dir="rtl" style={{ background: 'linear-gradient(180deg, hsl(38 30% 97%) 0%, hsl(38 25% 95%) 50%, hsl(210 20% 96%) 100%)' }}>
       <FacebookPixel />
 
       <div className="max-w-md w-full space-y-3">
         
-        {/* Logo + intro - compact */}
-        <div className="flex items-center gap-3 justify-center">
+        {/* Logo only - compact */}
+        <div className="flex justify-center">
           <img 
             src={logo} 
             alt="(D)Know" 
-            className="w-[72px] h-[72px] rounded-xl shadow-sm ring-2 ring-white/80 object-cover flex-shrink-0" 
+            className="w-[56px] h-[56px] rounded-xl shadow-sm ring-2 ring-white/80 object-cover" 
           />
-          <p className="text-sm text-foreground leading-snug">
-            היי, אני ראם 👋<br/>ממליץ על מוצרים מאלי אקספרס ו-KSP באופן מקצועי
-          </p>
         </div>
 
-        {/* H1 - benefit focused */}
-        <div className="text-center space-y-1">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
+        {/* H1 - benefit focused, bold */}
+        <div className="text-center space-y-1.5">
+          <h1 className="text-[22px] md:text-3xl font-extrabold text-foreground leading-tight">
             מפסיקים לשלם ביוקר! 💸
+            <br />
+            <span className="text-[19px] md:text-2xl font-bold">כל הדילים השווים מאליאקספרס אחרי סינון קפדני</span>
           </h1>
-          <p className="text-[15px] text-muted-foreground leading-relaxed">
-            קבלו רק מוצרים שעברו סינון קפדני – ישירות לווטסאפ
+          <p className="text-[14px] text-muted-foreground leading-relaxed">
+            אל תהמרו על הכסף שלכם. קבלו ישירות לווטסאפ רק מוצרים שעברו את ״מבחן הסינון״ שלי (כמו שראיתם בסרטון)
           </p>
         </div>
 
@@ -79,32 +79,46 @@ const ChannelSelect = () => {
         </a>
 
         {/* Social proof bubble - WhatsApp testimonial */}
-        <div className="bg-card rounded-2xl p-3.5 shadow-sm border border-border flex items-start gap-3">
+        <div className="bg-card rounded-2xl p-3.5 shadow-md border border-border flex items-start gap-3">
           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-whatsapp/15 flex items-center justify-center">
             <WhatsAppIcon className="h-4 w-4 text-whatsapp" />
           </div>
           <div className="text-[13px] text-foreground leading-relaxed">
-            <span className="font-bold">"חסכתי 200 ש״ח בזכות המלצה מהקבוצה!"</span>
-            <span className="text-muted-foreground"> – חברת קבוצה</span>
+            <span className="font-bold">"חסכתי 500 ש״ח על עגלת הקניות בזכות הסינון של ראם!"</span>
+            <span className="text-muted-foreground"> – חברת קהילה</span>
           </div>
         </div>
 
-        {/* Benefits - sharp */}
+        {/* Benefits - authoritative */}
         <div className="bg-card rounded-2xl p-4 shadow-sm border border-border space-y-2.5">
           <h2 className="font-bold text-sm text-center text-muted-foreground">למה כדאי להצטרף?</h2>
           <div className="space-y-2 text-[14px] text-foreground">
             <div className="flex items-center gap-2.5">
               <span className="flex-shrink-0 text-base">🔍</span>
-              <span>סינון מקצועי – רק מוצרים עם דירוג גבוה ובדיקת איכות</span>
+              <span><strong>סינון מקצועי:</strong> בדיקה ידנית של דירוג קונים ואמינות מוכר</span>
             </div>
             <div className="flex items-center gap-2.5">
               <span className="flex-shrink-0 text-base">💰</span>
-              <span>קופונים "מתחת לרדאר" שחוסכים מאות שקלים</span>
+              <span><strong>קופונים "מתחת לרדאר":</strong> הנחות שחוסכות מאות שקלים בכל קנייה</span>
             </div>
             <div className="flex items-center gap-2.5">
               <span className="flex-shrink-0 text-base">🤫</span>
-              <span>קבוצה שקטה – 0% ספאם, 100% ערך</span>
+              <span><strong>קהילה שקטה:</strong> 0% ספאם, 100% ערך של "אחד שיודע"</span>
             </div>
+          </div>
+        </div>
+
+        {/* Authority section - "Dknow - אחד שיודע" */}
+        <div className="bg-card rounded-2xl p-4 shadow-sm border border-border">
+          <h3 className="font-bold text-sm text-center text-muted-foreground mb-3">מי עומד מאחורי <span dir="ltr">(D)Know</span>?</h3>
+          <div className="flex items-start gap-3">
+            <Avatar className="w-12 h-12 flex-shrink-0 ring-2 ring-border">
+              <AvatarImage src={logo} alt="ראם" />
+              <AvatarFallback>ר</AvatarFallback>
+            </Avatar>
+            <p className="text-[13px] text-foreground leading-relaxed">
+              היי, אני <strong>ראם</strong>. אבא ל-2 והנדימן בנשמה. אני גר בתאילנד וחי את עולם הקניות אונליין (Lazada, AliExpress ו-KSP). הפכתי לאובססיבי לסינון מוצרים כדי לוודא שאתם מקבלים רק <strong>איכות גבוהה במחיר הכי נמוך</strong>. אצלי לא קונים חתול בשק.
+            </p>
           </div>
         </div>
 
