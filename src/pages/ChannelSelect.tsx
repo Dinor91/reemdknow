@@ -29,34 +29,39 @@ const ChannelSelect = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8" dir="rtl" style={{ background: 'linear-gradient(180deg, hsl(38 30% 97%) 0%, hsl(38 25% 95%) 50%, hsl(210 20% 96%) 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-6" dir="rtl" style={{ background: 'linear-gradient(180deg, hsl(38 30% 97%) 0%, hsl(38 25% 95%) 50%, hsl(210 20% 96%) 100%)' }}>
       <FacebookPixel />
 
-      <div className="max-w-md w-full space-y-4">
+      <div className="max-w-md w-full space-y-3">
         
-        {/* Logo + intro */}
-        <div className="text-center space-y-1.5">
+        {/* Logo + intro - compact */}
+        <div className="flex items-center gap-3 justify-center">
           <img 
             src={logo} 
             alt="(D)Know" 
-            className="w-[120px] h-[120px] mx-auto rounded-2xl shadow-md ring-4 ring-white/80 object-cover" 
+            className="w-[72px] h-[72px] rounded-xl shadow-sm ring-2 ring-white/80 object-cover flex-shrink-0" 
           />
-          <p className="text-sm text-foreground">
-            היי, אני ראם · נשוי ואבא ל-2, גר בתאילנד וממליץ על מוצרים באופן מקצועי
+          <p className="text-sm text-foreground leading-snug">
+            היי, אני ראם 👋<br/>ממליץ על מוצרים מאלי אקספרס ו-KSP באופן מקצועי
           </p>
         </div>
 
-        {/* H1 */}
+        {/* H1 - benefit focused */}
         <div className="text-center space-y-1">
           <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
-            הדילים שאני מוצא – עכשיו גם אצלכם
+            מפסיקים לשלם ביוקר! 💸
           </h1>
-          <p className="text-base text-muted-foreground">
-            המלצות אמינות מ-AliExpress ו-KSP, כמו שהייתי ממליץ למשפחה
+          <p className="text-[15px] text-muted-foreground leading-relaxed">
+            קבלו רק מוצרים שעברו סינון קפדני – ישירות לווטסאפ
           </p>
         </div>
 
-        {/* CTA */}
+        {/* Social proof - above CTA */}
+        <p className="text-center text-sm font-semibold text-muted-foreground">
+          <span className="text-[hsl(var(--heading))] font-bold">250+ ישראלים</span> כבר חוסכים בקבוצה
+        </p>
+
+        {/* Primary CTA - above the fold */}
         <a
           href={whatsappLink}
           target="_blank"
@@ -69,30 +74,36 @@ const ChannelSelect = () => {
             className="w-full h-14 text-lg font-bold bg-whatsapp hover:bg-whatsapp/90 text-white gap-3 transition-all duration-300 hover:scale-[1.03] animate-pulse-glow shadow-lg rounded-2xl"
           >
             <WhatsAppIcon className="h-6 w-6" />
-            הצטרפות לקבוצה
+            רוצה להצטרף ולחסוך! 🔥
           </Button>
         </a>
 
-        {/* Social proof */}
-        <p className="text-center text-sm font-semibold text-muted-foreground">
-          <span className="text-[hsl(var(--heading))] font-bold">250+ ישראלים</span> כבר בקבוצה
-        </p>
+        {/* Social proof bubble - WhatsApp testimonial */}
+        <div className="bg-card rounded-2xl p-3.5 shadow-sm border border-border flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-whatsapp/15 flex items-center justify-center">
+            <WhatsAppIcon className="h-4 w-4 text-whatsapp" />
+          </div>
+          <div className="text-[13px] text-foreground leading-relaxed">
+            <span className="font-bold">"חסכתי 200 ש״ח בזכות המלצה מהקבוצה!"</span>
+            <span className="text-muted-foreground"> – חברת קבוצה</span>
+          </div>
+        </div>
 
-        {/* Benefits - short */}
-        <div className="bg-card rounded-2xl p-5 shadow-sm border border-border space-y-3">
-          <h2 className="font-bold text-base text-center">מה תקבלו בקבוצה?</h2>
-          <div className="space-y-2 text-[15px] text-foreground">
-            <div className="flex items-center gap-3">
-              <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[hsl(var(--heading))]"></span>
-              <span>המלצה יומית על מוצר שבדקתי אישית</span>
+        {/* Benefits - sharp */}
+        <div className="bg-card rounded-2xl p-4 shadow-sm border border-border space-y-2.5">
+          <h2 className="font-bold text-sm text-center text-muted-foreground">למה כדאי להצטרף?</h2>
+          <div className="space-y-2 text-[14px] text-foreground">
+            <div className="flex items-center gap-2.5">
+              <span className="flex-shrink-0 text-base">🔍</span>
+              <span>סינון מקצועי – רק מוצרים עם דירוג גבוה ובדיקת איכות</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[hsl(var(--heading))]"></span>
-              <span>קופונים ומבצעים בלעדיים</span>
+            <div className="flex items-center gap-2.5">
+              <span className="flex-shrink-0 text-base">💰</span>
+              <span>קופונים "מתחת לרדאר" שחוסכים מאות שקלים</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[hsl(var(--heading))]"></span>
-              <span>קהילה תומכת – בלי ספאם, אף פעם</span>
+            <div className="flex items-center gap-2.5">
+              <span className="flex-shrink-0 text-base">🤫</span>
+              <span>קבוצה שקטה – 0% ספאם, 100% ערך</span>
             </div>
           </div>
         </div>
@@ -110,7 +121,7 @@ const ChannelSelect = () => {
             className="w-full h-12 text-base font-bold bg-whatsapp hover:bg-whatsapp/90 text-white gap-3 transition-all duration-300 hover:scale-[1.03] shadow-md rounded-2xl"
           >
             <WhatsAppIcon className="h-5 w-5" />
-            להצטרפות לקבוצה
+            להצטרפות מהירה לקבוצה
           </Button>
         </a>
       </div>
