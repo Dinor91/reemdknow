@@ -42,7 +42,7 @@ const ChannelSelect = () => {
             className="w-[120px] h-[120px] mx-auto rounded-2xl shadow-md ring-4 ring-white/80 object-cover" 
           />
           <p className="text-base text-foreground">
-            היי, אני ראם · נשוי ואבא ל-2, גר בתאילנד
+            היי, אני ראם · נשוי ואבא ל-2, גר בתאילנד וממליץ על מוצרים באופן מקצועי
           </p>
         </div>
 
@@ -52,7 +52,7 @@ const ChannelSelect = () => {
             הדילים שאני מוצא – עכשיו גם אצלכם
           </h1>
           <p className="text-lg text-muted-foreground">
-            המלצות אמיתיות מ-AliExpress ו-KSP, כמו שהייתי ממליץ למשפחה
+            המלצות אמינות מ-AliExpress ו-KSP, כמו שהייתי ממליץ למשפחה
           </p>
         </div>
 
