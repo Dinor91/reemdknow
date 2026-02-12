@@ -2460,6 +2460,49 @@ const StatsTab = () => {
             </ChartContainer>
           </Card>
 
+          {/* Join Page Stats */}
+          {(() => {
+            const joinClicks = allClicks.filter(c => {
+              const clickDate = new Date(c.created_at);
+              const startOfDay = new Date(startDate);
+              startOfDay.setHours(0, 0, 0, 0);
+              const endOfDay = new Date(endDate);
+              endOfDay.setHours(23, 59, 59, 999);
+              return c.source === 'join_israel_landing' && clickDate >= startOfDay && clickDate <= endOfDay;
+            });
+            const joinWA = joinClicks.filter(c => c.button_type === 'whatsapp').length;
+            const joinTG = joinClicks.filter(c => c.button_type === 'telegram').length;
+            return (
+              <Card className="p-4 sm:p-6 border-2 border-orange-200 bg-orange-50/30">
+                <h2 className="text-lg sm:text-xl font-semibold mb-3 flex items-center gap-2">
+                  📊 דף Join (מודעות)
+                </h2>
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">סה"כ קליקים</p>
+                    <p className="text-2xl font-bold text-orange-600">{joinClicks.length}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">WhatsApp</p>
+                    <p className="text-2xl font-bold text-green-600">{joinWA}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Telegram</p>
+                    <p className="text-2xl font-bold text-blue-500">{joinTG}</p>
+                  </div>
+                </div>
+                {stats && stats.total > 0 && (
+                  <p className="text-xs text-muted-foreground mt-3 text-center">
+                    {joinClicks.length > 0 
+                      ? `${((joinClicks.length / stats.total) * 100).toFixed(1)}% מכלל הקליקים`
+                      : 'אין קליקים מדף Join בטווח הנבחר'
+                    }
+                  </p>
+                )}
+              </Card>
+            );
+          })()}
+
           {/* By Source */}
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">לפי מקור</h2>
@@ -2467,7 +2510,9 @@ const StatsTab = () => {
               {Object.entries(stats.bySource).length > 0 ? (
                 Object.entries(stats.bySource).map(([source, counts]) => (
                   <div key={source} className="flex items-center justify-between border-b pb-2">
-                    <span className="font-medium">{source}</span>
+                    <span className={`font-medium ${source === 'join_israel_landing' ? 'text-orange-600' : ''}`}>
+                      {source === 'join_israel_landing' ? '📢 ' + source : source}
+                    </span>
                     <div className="flex gap-4">
                       <span className="text-green-600">WA: {counts.whatsapp}</span>
                       <span className="text-blue-500">TG: {counts.telegram}</span>
