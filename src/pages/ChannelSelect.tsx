@@ -112,26 +112,8 @@ const ChannelSelect = () => {
           3-4 הודעות בשבוע בלבד. בלי ספאם. אף פעם.
         </p>
 
-        {/* Telegram secondary */}
-        <div className="space-y-2 pt-1">
-          <p className="text-center text-xs text-muted-foreground">מעדיפים טלגרם?</p>
-          <a
-            href={telegramLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleTelegramClick}
-            className="block"
-          >
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full h-10 text-sm font-semibold border-telegram text-telegram hover:bg-telegram hover:text-white gap-2 transition-all duration-300 rounded-xl"
-            >
-              <Send className="h-4 w-4" />
-              הצטרפות בטלגרם
-            </Button>
-          </a>
-        </div>
+
+
       </div>
     </div>
   );
