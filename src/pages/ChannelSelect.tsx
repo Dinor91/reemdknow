@@ -8,63 +8,69 @@ import logo from "@/assets/logo.jpg";
 
 const ChannelSelect = () => {
   useEffect(() => {
-    document.title = "(D)Know - Facebook Dec Camp";
+    document.title = "(D)Know - המלצות חכמות מאלי אקספרס ו-KSP";
   }, []);
 
-  const whatsappLink = "https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j";
-  const telegramLink = "https://t.me/+wJIFEYTlOuUzZjBk";
+  const whatsappLink = "https://chat.whatsapp.com/Dfcih86pI6D35dehovi5KN";
+  const telegramLink = "https://t.me/+Wi46HCt_SbU3YWI0";
 
   const handleWhatsAppClick = () => {
     trackEvent("click_whatsapp", {
       event_category: "engagement",
       event_label: "WhatsApp Community Join",
-      source: "join_campaign",
+      source: "join_israel_landing",
     });
-    trackFBLead("channel_select_whatsapp");
-    trackButtonClick("whatsapp", "join_campaign", "thailand");
+    trackFBLead("join_israel_whatsapp");
+    trackButtonClick("whatsapp", "join_israel_landing", "israel");
   };
 
   const handleTelegramClick = () => {
     trackEvent("click_telegram", {
       event_category: "engagement",
       event_label: "Telegram Community Join",
-      source: "join_campaign",
+      source: "join_israel_landing",
     });
-    trackFBLead("channel_select_telegram");
-    trackButtonClick("telegram", "join_campaign", "thailand");
+    trackFBLead("join_israel_telegram");
+    trackButtonClick("telegram", "join_israel_landing", "israel");
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4" dir="rtl">
       <FacebookPixel />
 
       <div className="max-w-md w-full text-center space-y-5">
-        {/* Logo - bigger */}
-        <img src={logo} alt="ראם (D)Know" className="w-36 h-36 mx-auto rounded-full shadow-lg" />
+        {/* Logo */}
+        <img src={logo} alt="ראם (D)Know" className="w-32 h-32 mx-auto rounded-full shadow-lg" />
 
         {/* Hook */}
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-foreground leading-tight">?טסים לתאילנד</h1>
-          <p className="text-xl font-bold text-[#f28433]">אל תשלמו מחירי תיירים 💸</p>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-foreground leading-tight">
+            קונים באלי אקספרס?
+          </h1>
+          <p className="text-xl font-bold" style={{ color: '#f28433' }}>
+            יש דרך חכמה יותר
+          </p>
         </div>
 
-        {/* Personal intro - shorter and black */}
-        <p className="text-lg text-foreground">אני ראם, גר בתאילנד וכל יום אני מוצא מוצרים שחוסכים לכם כסף</p>
+        {/* Personal intro */}
+        <p className="text-lg text-foreground leading-relaxed">
+          אני ראם, כל יום אני מוצא לכם מוצרים שווים מ-AliExpress ו-KSP – כמו שהייתי ממליץ למשפחה ולחברים
+        </p>
 
-        <p className="text-lg text-foreground">!כן, הם יגיעו אליכם למלון</p>
-
-        {/* Value bullets - centered */}
-        <div className="bg-white rounded-xl p-4 shadow-sm space-y-2 text-center">
-          <p className="font-bold text-[#41b5b3] text-lg">💡 מה תקבלו?</p>
-          <p className="text-base"> המלצה יומית על מוצר שבדקתי ✅</p>
-          <p className="text-base"> קופונים ומבצעים ✅</p>
-          <p className="text-base"> משלוח עד למלון ✅</p>
+        {/* Value bullets */}
+        <div className="bg-white rounded-xl p-5 shadow-sm space-y-3 text-center border border-blue-100">
+          <p className="font-bold text-lg" style={{ color: '#41b5b3' }}>מה תקבלו?</p>
+          <p className="text-base">מוצרים שנבדקו אישית עם דירוג 4.5+ ✅</p>
+          <p className="text-base">קופונים והנחות בלעדיות ✅</p>
+          <p className="text-base">3-4 המלצות בשבוע, בלי ספאם ✅</p>
         </div>
 
         {/* Social proof */}
-        <p className="text-base font-bold text-[#f28433]">🔥 כבר 250+ ישראלים בקבוצה</p>
+        <p className="text-base font-bold" style={{ color: '#f28433' }}>
+          🔥 כבר 250+ ישראלים בקבוצה
+        </p>
 
-        {/* Main CTA */}
+        {/* Main CTA - WhatsApp */}
         <a
           href={whatsappLink}
           target="_blank"
@@ -77,11 +83,11 @@ const ChannelSelect = () => {
             className="w-full h-14 text-lg font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white gap-3 transition-all duration-300 hover:scale-105 animate-pulse-glow shadow-xl rounded-xl"
           >
             <MessageCircle className="h-6 w-6" />
-            הצטרפות לקבוצה
+            הצטרפות לקבוצה בוואטסאפ
           </Button>
         </a>
 
-        {/* Secondary option */}
+        {/* Secondary - Telegram */}
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">מעדיפים טלגרם?</p>
           <a
@@ -102,7 +108,7 @@ const ChannelSelect = () => {
           </a>
         </div>
 
-        <p className="text-sm text-foreground">אין לי זמן לספאם – יש לי 2 ילדים 😅</p>
+        <p className="text-sm text-muted-foreground">בלי פרסומות. בלי שטויות. רק מה ששווה באמת.</p>
       </div>
     </div>
   );
