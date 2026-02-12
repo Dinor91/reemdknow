@@ -32,29 +32,36 @@ const ChannelSelect = () => {
     <div className="min-h-screen flex items-center justify-center px-4 py-8" dir="rtl" style={{ background: 'linear-gradient(180deg, hsl(38 30% 97%) 0%, hsl(38 25% 95%) 50%, hsl(210 20% 96%) 100%)' }}>
       <FacebookPixel />
 
-      <div className="max-w-md w-full space-y-6">
+      <div className="max-w-md w-full space-y-4">
         
-        {/* Logo + warm greeting */}
-        <div className="text-center space-y-2">
+        {/* Logo + warm greeting - compact */}
+        <div className="text-center space-y-1.5">
           <img 
             src={logo} 
             alt="(D)Know" 
             className="w-[120px] h-[120px] mx-auto rounded-2xl shadow-md ring-4 ring-white/80 object-cover" 
           />
-          <p className="text-base text-foreground">
+          <p className="text-sm text-foreground">
             היי, אני ראם · נשוי ואבא ל-2, גר בתאילנד וממליץ על מוצרים באופן מקצועי
           </p>
         </div>
 
-        {/* H1 - Personal hook */}
-        <div className="text-center space-y-2">
+        {/* H1 - Campaign bridge hook */}
+        <div className="text-center space-y-1.5">
           <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">
-            הדילים שאני מוצא – עכשיו גם אצלכם
+            מפסיקים לשלם ביוקר! 💸
+            <br />
+            <span className="text-xl md:text-2xl">כל הדילים השווים מאליאקספרס אחרי סינון קפדני</span>
           </h1>
-          <p className="text-lg text-muted-foreground">
-            המלצות אמינות מ-AliExpress ו-KSP, כמו שהייתי ממליץ למשפחה
+          <p className="text-base text-muted-foreground leading-relaxed">
+            המלצות אמינות מ-AliExpress ,KSP ועוד – בדיוק כמו שאני בודק למשפחה שלי. אצלי לא קונים חתול בשק!
           </p>
         </div>
+
+        {/* Social proof - above CTA */}
+        <p className="text-center text-sm font-semibold text-muted-foreground">
+          <span className="text-[hsl(var(--heading))] font-bold">250+ ישראלים</span> כבר חוסכים חכם בכל יום!
+        </p>
 
         {/* CTA - right after emotional peak */}
         <a
@@ -73,27 +80,22 @@ const ChannelSelect = () => {
           </Button>
         </a>
 
-        {/* Social proof */}
-        <p className="text-center text-sm font-semibold text-muted-foreground">
-          <span className="text-[hsl(var(--heading))]">250+ ישראלים</span> כבר בקבוצה
-        </p>
-
-        {/* H2 - Value details */}
-        <div className="bg-card rounded-2xl p-5 shadow-sm border border-border space-y-4">
+        {/* Value details */}
+        <div className="bg-card rounded-2xl p-5 shadow-sm border border-border space-y-3">
           <h2 className="font-bold text-base text-center">מה תקבלו בקבוצה?</h2>
           
-          <div className="space-y-3 text-base text-foreground">
-            <div className="flex items-center gap-3">
-              <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[hsl(var(--heading))]"></span>
-              <span>המלצה יומית על מוצר שבדקתי אישית</span>
+          <div className="space-y-2.5 text-[15px] text-foreground">
+            <div className="flex items-start gap-3">
+              <span className="flex-shrink-0 w-1.5 h-1.5 mt-2 rounded-full bg-[hsl(var(--heading))]"></span>
+              <span>המלצות יומיות על מוצרים איכותיים שעברו סינון ידני (כמו שראיתם בסרטון! 🔍)</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[hsl(var(--heading))]"></span>
-              <span>קופונים ומבצעים בלעדיים</span>
+            <div className="flex items-start gap-3">
+              <span className="flex-shrink-0 w-1.5 h-1.5 mt-2 rounded-full bg-[hsl(var(--heading))]"></span>
+              <span>קופונים בלעדיים והנחות שחוסכות מאות שקלים בכל קנייה 💰</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[hsl(var(--heading))]"></span>
-              <span>קהילה תומכת</span>
+            <div className="flex items-start gap-3">
+              <span className="flex-shrink-0 w-1.5 h-1.5 mt-2 rounded-full bg-[hsl(var(--heading))]"></span>
+              <span>קהילת אימהות וצרכנים חכמים שעוזרים אחד לשני לקנות נכון 👨‍👩‍👧‍👦</span>
             </div>
           </div>
         </div>
@@ -116,7 +118,7 @@ const ChannelSelect = () => {
             className="w-full h-12 text-base font-bold bg-whatsapp hover:bg-whatsapp/90 text-white gap-3 transition-all duration-300 hover:scale-[1.03] shadow-md rounded-2xl"
           >
             <WhatsAppIcon className="h-5 w-5" />
-            רוצה להצטרף? לחצו כאן
+            להצטרפות מהירה לקבוצה
           </Button>
         </a>
       </div>
