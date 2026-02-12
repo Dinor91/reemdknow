@@ -5,6 +5,7 @@ import { trackButtonClick } from "@/lib/trackClick";
 import { useEffect } from "react";
 import logo from "@/assets/dknow-logo.png";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import ramProfile from "@/assets/ram-profile.jpeg";
 
 const WhatsAppIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -113,7 +114,7 @@ const ChannelSelect = () => {
           <h3 className="font-bold text-sm text-center text-muted-foreground mb-3">מי עומד מאחורי <span dir="ltr">(D)Know</span>?</h3>
           <div className="flex items-start gap-3">
             <Avatar className="w-12 h-12 flex-shrink-0 ring-2 ring-border">
-              <AvatarImage src={logo} alt="ראם" />
+              <AvatarImage src={ramProfile} alt="ראם" className="object-cover" />
               <AvatarFallback>ר</AvatarFallback>
             </Avatar>
             <p className="text-[13px] text-foreground leading-relaxed">
