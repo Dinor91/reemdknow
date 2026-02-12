@@ -4,7 +4,7 @@ import { trackEvent } from "@/lib/analytics";
 import { trackButtonClick } from "@/lib/trackClick";
 import { useEffect } from "react";
 import { MessageCircle, Send } from "lucide-react";
-import logo from "@/assets/logo.jpg";
+import logo from "@/assets/dknow-logo.png";
 
 const ChannelSelect = () => {
   useEffect(() => {
