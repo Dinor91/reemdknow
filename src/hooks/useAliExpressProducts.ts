@@ -76,7 +76,7 @@ export const useAliExpressProducts = (options?: {
 
       return data as AliExpressProduct[];
     },
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 };
 
