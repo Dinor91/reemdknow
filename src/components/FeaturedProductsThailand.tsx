@@ -32,7 +32,7 @@ const useFeaturedProducts = () => {
         .select('*')
         .eq('out_of_stock', false)
         .order('sales_7d', { ascending: false, nullsFirst: false })
-        .limit(8);
+        .limit(6);
 
       if (error) throw error;
 
@@ -99,52 +99,37 @@ export const FeaturedProductsThailand = () => {
             ))}
           </div>
         ) : (
-          <>
-            {/* Mobile: Carousel */}
-            {isMobile ? (
-              <div className="px-2">
-                <Carousel
-                  opts={{
-                    align: "center",
-                    loop: true,
-                    direction: "rtl",
-                  }}
-                  className="w-full"
-                >
-                  <CarouselContent className="-mr-4">
-                    {displayProducts.map((product) => (
-                      <CarouselItem key={product.id} className="pr-4 basis-[85%]">
-                        <ProductCard 
-                          product={product} 
-                          accentColor="orange"
-                          ctaText="לדיל בלאזדה"
-                        />
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <div className="flex justify-center gap-4 mt-6">
-                    <CarouselNext className="relative inset-0 translate-x-0 translate-y-0 h-10 w-10" />
-                    <CarouselPrevious className="relative inset-0 translate-x-0 translate-y-0 h-10 w-10" />
-                  </div>
-                </Carousel>
-                <p className="text-center text-sm text-muted-foreground mt-4">
-                  החליקו לעוד מוצרים
-                </p>
-              </div>
-            ) : (
-              /* Desktop: Grid - 4 products */
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {displayProducts.slice(0, 4).map((product) => (
-                  <ProductCard 
-                    key={product.id} 
-                    product={product} 
-                    accentColor="orange"
-                    ctaText="לדיל בלאזדה"
-                  />
+          <div className="px-2">
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+                direction: "rtl",
+              }}
+              className="w-full"
+            >
+              <CarouselContent className="-mr-4">
+                {displayProducts.map((product) => (
+                  <CarouselItem key={product.id} className={`pr-4 ${isMobile ? 'basis-[85%]' : 'basis-[25%]'}`}>
+                    <ProductCard 
+                      product={product} 
+                      accentColor="orange"
+                      ctaText="לדיל בלאזדה"
+                    />
+                  </CarouselItem>
                 ))}
+              </CarouselContent>
+              <div className="flex justify-center gap-4 mt-6">
+                <CarouselNext className="relative inset-0 translate-x-0 translate-y-0 h-10 w-10" />
+                <CarouselPrevious className="relative inset-0 translate-x-0 translate-y-0 h-10 w-10" />
               </div>
+            </Carousel>
+            {isMobile && (
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                החליקו לעוד מוצרים
+              </p>
             )}
-          </>
+          </div>
         )}
       </div>
     </section>
