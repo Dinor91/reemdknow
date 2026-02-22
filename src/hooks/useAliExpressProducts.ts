@@ -45,10 +45,11 @@ export const useAliExpressProducts = (options?: {
           .select('*')
           .eq('out_of_stock', false)
           .eq('is_featured', true)
-          .order('sales_30d', { ascending: false, nullsFirst: false });
+        .order('updated_at', { ascending: false })
+        .order('sales_30d', { ascending: false, nullsFirst: false });
 
-        if (options?.limit) {
-          featuredQuery.limit(options.limit);
+      if (options?.limit) {
+        featuredQuery.limit(options.limit);
         }
 
         const { data: featuredData, error: featuredError } = await featuredQuery;
