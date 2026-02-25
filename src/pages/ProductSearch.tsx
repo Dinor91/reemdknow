@@ -13,21 +13,21 @@ const ProductSearch = () => {
   const [showResults, setShowResults] = useState(false);
 
   const parameters = [
-    { icon: "🛍️", label: "Product", value: "—" },
-    { icon: "💰", label: "Max Budget", value: "—" },
-    { icon: "⭐", label: "Min Rating", value: "—" },
-    { icon: "🏷️", label: "Brand", value: "—" },
-    { icon: "🌐", label: "Platform", value: "—" },
+    { icon: "🛍️", label: "מוצר", value: "—" },
+    { icon: "💰", label: "תקציב מקס׳", value: "—" },
+    { icon: "⭐", label: "דירוג מינימלי", value: "—" },
+    { icon: "🏷️", label: "מותג", value: "—" },
+    { icon: "🌐", label: "פלטפורמה", value: "—" },
   ];
 
   const resultCards = [
-    { rank: "🥇", label: "Best Price", accentClass: "border-green-500 bg-green-500/10", badgeClass: "bg-green-500/20 text-green-700" },
-    { rank: "🥈", label: "Best Rated", accentClass: "border-[#0F3460] bg-[#0F3460]/10", badgeClass: "bg-[#0F3460]/20 text-[#0F3460]" },
-    { rank: "🥉", label: "Best Value", accentClass: "border-[#FF6B35] bg-[#FF6B35]/10", badgeClass: "bg-[#FF6B35]/20 text-[#FF6B35]" },
+    { rank: "🥇", label: "המחיר הטוב ביותר", accentClass: "border-green-500 bg-green-500/10", badgeClass: "bg-green-500/20 text-green-700" },
+    { rank: "🥈", label: "הדירוג הגבוה ביותר", accentClass: "border-[#0F3460] bg-[#0F3460]/10", badgeClass: "bg-[#0F3460]/20 text-[#0F3460]" },
+    { rank: "🥉", label: "התמורה הטובה ביותר", accentClass: "border-[#FF6B35] bg-[#FF6B35]/10", badgeClass: "bg-[#FF6B35]/20 text-[#FF6B35]" },
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col" dir="ltr">
+    <div className="min-h-screen bg-background flex flex-col" dir="rtl">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b" style={{ backgroundColor: "#1A1A2E" }}>
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -35,11 +35,11 @@ const ProductSearch = () => {
             <img src={logo} alt="Logo" className="h-10 w-10 rounded-full object-contain" />
           </Link>
           <h1 className="text-lg md:text-xl font-bold text-center text-white">
-            Smart Product Search
+            חיפוש מוצרים חכם
           </h1>
           <div className="flex items-center gap-2 text-sm text-white/70">
             <span className="h-2 w-2 rounded-full bg-green-400 inline-block" />
-            <span className="hidden sm:inline">Ready to Search</span>
+            <span className="hidden sm:inline">מוכן לחיפוש</span>
           </div>
         </div>
       </header>
@@ -48,9 +48,9 @@ const ProductSearch = () => {
         {/* ─── TOP: INPUT AREA ─── */}
         <section className="space-y-4">
           <div>
-            <h2 className="text-xl font-bold text-foreground">📋 Paste Customer Message</h2>
+            <h2 className="text-xl font-bold text-foreground">📋 הדבקת הודעת לקוח</h2>
             <p className="text-sm text-muted-foreground">
-              Paste any customer message and let the tool extract the search parameters automatically
+              הדביקו הודעת לקוח והכלי יחלץ את פרמטרי החיפוש באופן אוטומטי
             </p>
           </div>
 
@@ -61,21 +61,21 @@ const ProductSearch = () => {
               onChange={(e) => setMessage(e.target.value)}
               rows={6}
               className="w-full resize-none pr-16 text-base"
-              placeholder={`Paste customer message here...\nExample: Hi Ram, I'm looking for Bluetooth earbuds, budget up to 800 THB, brand doesn't matter, just good quality`}
+              placeholder={`הדביקו הודעת לקוח כאן...\nדוגמה: היי ראם, אני מחפש אוזניות בלוטות׳, תקציב עד 800 באט, לא משנה מותג, פשוט איכות טובה`}
             />
             {message && (
               <button
                 onClick={() => setMessage("")}
                 className="absolute top-2 right-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors bg-background/80 rounded px-2 py-1"
               >
-                <X className="h-3 w-3" /> Clear
+                <X className="h-3 w-3" /> נקה
               </button>
             )}
           </div>
 
           {/* Extracted Parameters */}
           <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">🔍 Detected Parameters:</p>
+            <p className="text-sm font-medium text-muted-foreground">🔍 פרמטרים שזוהו:</p>
             <div className="flex flex-wrap gap-2">
               {parameters.map((p) => (
                 <Badge
@@ -98,9 +98,9 @@ const ProductSearch = () => {
                 <SelectValue placeholder="Platform Override" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Platforms</SelectItem>
-                <SelectItem value="lazada">Lazada Thailand only</SelectItem>
-                <SelectItem value="aliexpress">AliExpress only</SelectItem>
+                <SelectItem value="all">כל הפלטפורמות</SelectItem>
+                <SelectItem value="lazada">Lazada תאילנד בלבד</SelectItem>
+                <SelectItem value="aliexpress">AliExpress בלבד</SelectItem>
               </SelectContent>
             </Select>
 
@@ -110,10 +110,10 @@ const ProductSearch = () => {
                 className="w-full sm:w-auto text-white font-semibold px-8"
                 style={{ backgroundColor: "#0F3460" }}
               >
-                🚀 Search Now
+                🚀 חפש עכשיו
               </Button>
-              <p className="text-xs text-muted-foreground text-center sm:text-right">
-                Results will appear below in a few seconds
+              <p className="text-xs text-muted-foreground text-center sm:text-start">
+                התוצאות יופיעו למטה תוך שניות
               </p>
             </div>
           </div>
@@ -123,8 +123,8 @@ const ProductSearch = () => {
         <section className="space-y-4">
           {/* Section title bar */}
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-foreground">📦 Search Results</h2>
-            <span className="text-sm text-muted-foreground italic">Awaiting search...</span>
+            <h2 className="text-xl font-bold text-foreground">📦 תוצאות חיפוש</h2>
+            <span className="text-sm text-muted-foreground italic">ממתין לחיפוש...</span>
           </div>
 
           {/* Empty State */}
@@ -150,7 +150,7 @@ const ProductSearch = () => {
                       {/* Header */}
                       <div className="flex items-center justify-between">
                         <span className="text-lg font-bold">
-                          {card.rank} Option {i + 1}
+                          {card.rank} אפשרות {i + 1}
                         </span>
                         <Badge className={card.badgeClass}>{card.label}</Badge>
                       </div>
@@ -166,10 +166,10 @@ const ProductSearch = () => {
                       </div>
 
                       {/* Product info */}
-                      <p className="font-semibold text-foreground line-clamp-2">Product Name Placeholder</p>
+                      <p className="font-semibold text-foreground line-clamp-2">שם המוצר כאן</p>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <span>⭐ 4.8</span>
-                        <span>🛒 1.2k sold</span>
+                        <span>🛒 1.2k נמכרו</span>
                       </div>
 
                       {/* Price */}
@@ -183,9 +183,9 @@ const ProductSearch = () => {
 
                       {/* Explanation */}
                       <div className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">💬 Why this product?</p>
+                        <p className="text-sm font-medium text-foreground">💬 למה המוצר הזה?</p>
                         <p className="text-sm text-muted-foreground italic">
-                          "Matches budget, high rating, and fast shipping to your area."
+                          ״מתאים לתקציב, דירוג גבוה, ומשלוח מהיר לאזור שלך.״
                         </p>
                       </div>
 
@@ -193,7 +193,7 @@ const ProductSearch = () => {
 
                       {/* Action */}
                       <Button variant="outline" className="w-full gap-2" disabled>
-                        <ExternalLink className="h-4 w-4" /> View Product
+                        <ExternalLink className="h-4 w-4" /> צפה במוצר
                       </Button>
                     </CardContent>
                   </Card>
@@ -202,10 +202,10 @@ const ProductSearch = () => {
 
               {/* Post-results info */}
               <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground gap-2 pt-2">
-                <span>Search completed in — seconds</span>
-                <span>Last search: —</span>
+                <span>החיפוש הושלם תוך — שניות</span>
+                <span>חיפוש אחרון: —</span>
                 <Button variant="ghost" size="sm" className="gap-1" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-                  <RotateCcw className="h-3 w-3" /> New Search
+                  <RotateCcw className="h-3 w-3" /> חיפוש חדש
                 </Button>
               </div>
             </>
@@ -216,7 +216,7 @@ const ProductSearch = () => {
       {/* Footer */}
       <footer className="border-t py-4 mt-auto">
         <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground gap-2">
-          <span>Powered by Lazada Open API & AliExpress API</span>
+          <span>מופעל על ידי Lazada Open API & AliExpress API</span>
           <span>v1.0</span>
         </div>
       </footer>
