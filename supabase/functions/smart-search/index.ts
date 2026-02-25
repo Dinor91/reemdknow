@@ -268,8 +268,8 @@ async function searchIsrael(
 
   return (data || []).map((p: any) => ({
     id: p.id,
-    platform: "israel" as const,
-    platform_label: "🇮🇱 ישראל",
+    platform: "aliexpress" as const,
+    platform_label: "🇮🇱 AliExpress",
     product_name: p.product_name_hebrew || p.product_name_english,
     price_display: `$${(p.price_usd || 0).toFixed(2)}`,
     price_usd: p.price_usd || 0,
