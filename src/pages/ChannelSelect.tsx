@@ -2,7 +2,7 @@ import { FacebookPixel, trackFBLead } from "@/components/FacebookPixel";
 import { trackEvent } from "@/lib/analytics";
 import { trackButtonClick } from "@/lib/trackClick";
 import { useEffect } from "react";
-import logo from "@/assets/dknow-logo.png";
+import ramProfile from "@/assets/ram-profile.jpeg";
 
 const WhatsAppIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -40,20 +40,32 @@ interface LinkItemProps {
   href: string;
   icon: React.ReactNode;
   label: string;
+  sublabel?: string;
   bgClass: string;
+  iconBg: string;
   onClick?: () => void;
+  featured?: boolean;
 }
 
-const LinkItem = ({ href, icon, label, bgClass, onClick }: LinkItemProps) => (
+const LinkItem = ({ href, icon, label, sublabel, bgClass, iconBg, onClick, featured }: LinkItemProps) => (
   <a
     href={href}
     target="_blank"
     rel="noopener noreferrer"
     onClick={onClick}
-    className={`flex items-center gap-4 w-full px-5 py-4 rounded-2xl text-white font-semibold text-[16px] transition-all duration-200 hover:scale-[1.03] hover:shadow-lg active:scale-[0.98] ${bgClass}`}
+    className={`group relative flex items-center gap-4 w-full px-4 py-3.5 rounded-2xl font-semibold text-[15px] transition-all duration-300 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] ${bgClass} ${featured ? 'ring-2 ring-white/30 shadow-lg' : ''}`}
+    style={{ animationDelay: '0.1s' }}
   >
-    <span className="flex-shrink-0">{icon}</span>
-    <span>{label}</span>
+    <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 ${iconBg}`}>
+      {icon}
+    </div>
+    <div className="flex flex-col min-w-0">
+      <span className="text-white font-bold leading-tight">{label}</span>
+      {sublabel && <span className="text-white/60 text-[12px] font-normal">{sublabel}</span>}
+    </div>
+    <svg className="h-4 w-4 text-white/40 mr-auto flex-shrink-0 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
   </a>
 );
 
@@ -73,72 +85,107 @@ const ChannelSelect = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8" dir="rtl" style={{ background: 'linear-gradient(180deg, hsl(25 20% 10%) 0%, hsl(25 15% 15%) 50%, hsl(25 10% 12%) 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-8" dir="rtl">
       <FacebookPixel />
 
-      <div className="max-w-md w-full space-y-5">
-        {/* Profile */}
+      {/* Animated gradient background */}
+      <div className="fixed inset-0 -z-10" style={{ background: 'linear-gradient(145deg, hsl(220 25% 8%) 0%, hsl(250 20% 12%) 40%, hsl(220 30% 10%) 100%)' }} />
+      <div className="fixed inset-0 -z-10 opacity-30" style={{ background: 'radial-gradient(circle at 50% 0%, hsl(260 60% 30%) 0%, transparent 50%)' }} />
+
+      <div className="max-w-md w-full space-y-6">
+        {/* Profile Avatar */}
         <div className="flex flex-col items-center gap-3">
-          <img 
-            src={logo} 
-            alt="(D)Know" 
-            className="w-20 h-20 rounded-full shadow-lg ring-4 ring-white/20 object-cover" 
-          />
-          <div className="text-center">
-            <h1 className="text-2xl font-extrabold text-white">
-              (D)Know
+          <div className="relative">
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#F77737] opacity-75 blur-sm animate-pulse" />
+            <img 
+              src={ramProfile} 
+              alt="ראם - (D)Know" 
+              className="relative w-24 h-24 rounded-full object-cover ring-4 ring-white/10 shadow-2xl" 
+            />
+          </div>
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-extrabold text-white tracking-tight">
+              ראם | <span dir="ltr">(D)Know</span>
             </h1>
-            <p className="text-[15px] text-white/60 mt-1">
+            <p className="text-[14px] text-white/50 leading-relaxed max-w-[280px]">
               דילים שווים אחרי סינון קפדני 🔍
+              <br />
+              ישראל 🇮🇱 • תאילנד 🇹🇭
             </p>
           </div>
+        </div>
+
+        {/* Divider label */}
+        <div className="flex items-center gap-3 px-1">
+          <div className="flex-1 h-px bg-white/10" />
+          <span className="text-[11px] text-white/30 font-medium tracking-wider uppercase">הצטרפו לקהילה</span>
+          <div className="flex-1 h-px bg-white/10" />
         </div>
 
         {/* Links */}
         <div className="space-y-3">
           <LinkItem
             href={LINKS.whatsappIsrael}
-            icon={<WhatsAppIcon className="h-6 w-6" />}
-            label="קבוצת וואטסאפ ישראל 🇮🇱"
-            bgClass="bg-[hsl(142,70%,42%)] hover:bg-[hsl(142,70%,38%)]"
+            icon={<WhatsAppIcon className="h-5 w-5 text-white" />}
+            label="וואטסאפ ישראל 🇮🇱"
+            sublabel="דילים מאליאקספרס אחרי סינון"
+            bgClass="bg-[hsl(142,70%,36%)] hover:bg-[hsl(142,70%,40%)]"
+            iconBg="bg-white/20"
+            featured
             onClick={() => handleClick("whatsapp", "join_linktree_israel")}
           />
 
           <LinkItem
             href={LINKS.whatsappThailand}
-            icon={<WhatsAppIcon className="h-6 w-6" />}
-            label="קבוצת וואטסאפ תאילנד 🇹🇭"
-            bgClass="bg-[hsl(142,70%,42%)] hover:bg-[hsl(142,70%,38%)]"
+            icon={<WhatsAppIcon className="h-5 w-5 text-white" />}
+            label="וואטסאפ תאילנד 🇹🇭"
+            sublabel="דילים מלאזדה לגרים בתאילנד"
+            bgClass="bg-[hsl(142,70%,36%)] hover:bg-[hsl(142,70%,40%)]"
+            iconBg="bg-white/20"
             onClick={() => handleClick("whatsapp", "join_linktree_thailand")}
           />
+        </div>
 
+        {/* Divider label */}
+        <div className="flex items-center gap-3 px-1">
+          <div className="flex-1 h-px bg-white/10" />
+          <span className="text-[11px] text-white/30 font-medium tracking-wider uppercase">עקבו אחריי</span>
+          <div className="flex-1 h-px bg-white/10" />
+        </div>
+
+        <div className="space-y-3">
           <LinkItem
             href={LINKS.instagram}
-            icon={<InstagramIcon className="h-6 w-6" />}
+            icon={<InstagramIcon className="h-5 w-5 text-white" />}
             label="Instagram"
-            bgClass="bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737]"
+            sublabel="@reemdknow"
+            bgClass="bg-gradient-to-r from-[hsl(280,60%,40%)] via-[hsl(350,80%,50%)] to-[hsl(30,90%,50%)]"
+            iconBg="bg-white/20"
             onClick={() => handleClick("instagram", "join_linktree")}
           />
 
           <LinkItem
             href={LINKS.tiktok}
-            icon={<TikTokIcon className="h-6 w-6" />}
+            icon={<TikTokIcon className="h-5 w-5 text-white" />}
             label="TikTok"
-            bgClass="bg-[hsl(0,0%,10%)] hover:bg-[hsl(0,0%,15%)] ring-1 ring-white/20"
+            sublabel="@reemdknow"
+            bgClass="bg-white/10 hover:bg-white/15 backdrop-blur-sm"
+            iconBg="bg-white/10"
             onClick={() => handleClick("tiktok", "join_linktree")}
           />
 
           <LinkItem
             href={LINKS.facebook}
-            icon={<FacebookIcon className="h-6 w-6" />}
+            icon={<FacebookIcon className="h-5 w-5 text-white" />}
             label="Facebook"
-            bgClass="bg-[#1877F2] hover:bg-[#1565C0]"
+            bgClass="bg-[hsl(220,70%,45%)] hover:bg-[hsl(220,70%,50%)]"
+            iconBg="bg-white/20"
             onClick={() => handleClick("facebook", "join_linktree")}
           />
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-white/30 pt-2">
+        <p className="text-center text-[11px] text-white/20 pt-3">
           © (D)Know — אחד שיודע
         </p>
       </div>
