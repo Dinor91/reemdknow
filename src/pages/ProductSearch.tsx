@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Search, Package, RotateCcw, X, ExternalLink, Loader2, AlertCircle } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Search, Package, RotateCcw, X, ExternalLink, Loader2, AlertCircle, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,6 +42,7 @@ interface SearchResponse {
     priority: string;
   };
   results?: SearchResult[];
+  total_scanned?: number;
   search_time_ms?: number;
 }
 
@@ -63,7 +64,21 @@ const ProductSearch = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   const [response, setResponse] = useState<SearchResponse | null>(null);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  const handleCopyWhatsApp = useCallback((result: SearchResult, idx: number) => {
+    const text = `היי! מצאתי לך מוצר מעולה 🎯\n\n` +
+      `📦 *${result.product_name}*\n` +
+      `💰 מחיר: ${result.price_display}\n` +
+      (result.rating > 0 ? `⭐ דירוג: ${result.rating.toFixed(1)}\n` : "") +
+      (result.sales_count > 0 ? `🛒 נמכרו: ${result.sales_count.toLocaleString()}\n` : "") +
+      `\n🔗 לינק למוצר:\n${result.tracking_link}`;
+    navigator.clipboard.writeText(text);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 2000);
+    trackButtonClick("whatsapp_copy", `product_search_${result.platform}`);
+  }, []);
 
   // Rotate loading messages
   useEffect(() => {
@@ -220,7 +235,7 @@ const ProductSearch = () => {
               {isLoading
                 ? LOADING_MESSAGES[loadingMsgIdx]
                 : response?.success && response.search_time_ms
-                ? `נמצאו ${response.results?.length || 0} תוצאות (${(response.search_time_ms / 1000).toFixed(1)}s)`
+                ? `נמצאו ${response.results?.length || 0} מתוך ${response.total_scanned || 0} מוצרים (${(response.search_time_ms / 1000).toFixed(1)}s)`
                 : "ממתין לחיפוש..."}
             </span>
           </div>
@@ -323,14 +338,25 @@ const ProductSearch = () => {
 
                         <hr className="border-border" />
 
-                        <Button
-                          variant="outline"
-                          className="w-full gap-2"
-                          onClick={() => handleProductClick(result)}
-                          disabled={!result.tracking_link}
-                        >
-                          <ExternalLink className="h-4 w-4" /> צפה במוצר
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1 gap-2"
+                            onClick={() => handleProductClick(result)}
+                            disabled={!result.tracking_link}
+                          >
+                            <ExternalLink className="h-4 w-4" /> צפה במוצר
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="gap-2"
+                            onClick={() => handleCopyWhatsApp(result, i)}
+                            disabled={!result.tracking_link}
+                          >
+                            {copiedIdx === i ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                            {copiedIdx === i ? "הועתק!" : "העתק"}
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   );

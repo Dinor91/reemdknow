@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const trackButtonClick = async (
-  buttonType: "whatsapp" | "telegram" | "instagram" | "facebook" | "tiktok",
+  buttonType: "whatsapp" | "whatsapp_copy" | "telegram" | "instagram" | "facebook" | "tiktok",
   source: string,
   country?: string
 ) => {
