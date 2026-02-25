@@ -423,23 +423,64 @@ const LAZADA_USER_TOKEN = Deno.env.get("LAZADA_ACCESS_TOKEN")?.trim();
 const LAZADA_API_URL = "https://api.lazada.co.th/rest";
 
 const LAZADA_CATEGORY_MAP: Record<string, string> = {
-  "fashion": "3008", "clothing": "3008", "shoes": "3008", "bag": "3008", "jewelry": "3008",
-  "swimwear": "3008", "bikini": "3008", "dress": "3008", "shirt": "3008",
-  "health": "10100869", "medical": "10100869", "massage": "10100869", "vitamin": "10100869",
-  "kitchen": "3833", "appliance": "3833", "blender": "3833", "oven": "3833", "coffee": "3833",
-  "car": "8428", "auto": "8428", "vehicle": "8428", "tire": "8428", "motorcycle": "8428",
-  "tool": "11830", "drill": "11830", "screwdriver": "11830", "hammer": "11830",
-  "electronic": "42062201", "gadget": "42062201", "headphone": "42062201", "earbuds": "42062201",
-  "speaker": "42062201", "bluetooth": "42062201", "usb": "42062201", "charger": "42062201",
-  "sport": "5761", "outdoor": "5761", "camping": "5761", "hiking": "5761", "fitness": "5761",
-  "pet": "10100387", "dog": "10100387", "cat": "10100387",
+  // Electronics/Gadgets (42062201)
+  "earbuds": "42062201", "headphone": "42062201", "speaker": "42062201",
+  "bluetooth": "42062201", "wireless audio": "42062201", "gadget": "42062201",
+  "smart device": "42062201", "led": "42062201", "usb": "42062201", "charger": "42062201",
+  "electronic": "42062201", "power bank": "42062201", "adapter": "42062201",
+  // Fashion (3008)
+  "clothing": "3008", "shirt": "3008", "dress": "3008", "pants": "3008",
+  "shoes": "3008", "fashion": "3008", "wear": "3008", "outfit": "3008",
+  "swimwear": "3008", "bikini": "3008", "jacket": "3008", "sneaker": "3008",
+  "bag": "3008", "jewelry": "3008", "necklace": "3008", "bracelet": "3008",
+  "sunglasses": "3008", "hat": "3008", "scarf": "3008",
+  // Health (10100869)
+  "medical": "10100869", "health": "10100869", "supplement": "10100869",
+  "vitamin": "10100869", "massage": "10100869", "fitness tracker": "10100869",
+  "blood pressure": "10100869", "pharmacy": "10100869", "thermometer": "10100869",
+  // Home & Kitchen (3833)
+  "oven": "3833", "blender": "3833", "rice cooker": "3833",
+  "kitchen": "3833", "cooking": "3833", "appliance": "3833",
+  "vacuum": "3833", "air purifier": "3833", "fan": "3833", "coffee": "3833",
+  // Toys & Games (5090) - includes musical instruments
   "toy": "5090", "game": "5090", "puzzle": "5090", "lego": "5090",
-  "phone": "3835", "tablet": "3835", "case": "3835",
-  "computer": "3836", "laptop": "3836", "keyboard": "3836", "mouse": "3836",
-  "baby": "5095", "kid": "5095", "child": "5095", "stroller": "5095", "diaper": "5095",
+  "board game": "5090", "doll": "5090", "action figure": "5090",
+  "instrument": "5090", "saxophone": "5090", "guitar": "5090", "piano": "5090",
+  "ukulele": "5090", "violin": "5090", "drum": "5090", "flute": "5090",
+  "music": "5090", "musical": "5090",
+  // Baby & Kids (5095)
+  "baby": "5095", "infant": "5095", "toddler": "5095", "kid": "5095",
+  "children": "5095", "stroller": "5095", "diaper": "5095",
+  "nursery": "5095", "child": "5095",
+  // Sports/Outdoor (5761)
+  "sport": "5761", "exercise": "5761", "gym": "5761", "yoga": "5761",
+  "camping": "5761", "hiking": "5761", "outdoor": "5761",
+  "bicycle": "5761", "swimming": "5761", "fitness": "5761",
+  // Automotive (8428)
+  "car": "8428", "vehicle": "8428", "motorcycle": "8428",
+  "auto": "8428", "driving": "8428", "parking": "8428", "tire": "8428",
+  // Tools/DIY (11830)
+  "tool": "11830", "diy": "11830", "drill": "11830", "hammer": "11830",
+  "repair": "11830", "hardware": "11830", "workshop": "11830", "screwdriver": "11830",
+  // Phones (3835)
+  "phone": "3835", "smartphone": "3835", "iphone": "3835",
+  "android": "3835", "mobile": "3835", "sim": "3835", "tablet": "3835",
+  // Computers (3836)
+  "laptop": "3836", "computer": "3836", "pc": "3836",
+  "keyboard": "3836", "mouse": "3836", "monitor": "3836",
+  // Cameras (10100245)
+  "camera": "10100245", "drone": "10100245", "gopro": "10100245",
+  "photography": "10100245", "lens": "10100245",
+  // Pets (10100387)
+  "pet": "10100387", "dog": "10100387", "cat": "10100387",
+  // Furniture (62541004)
   "furniture": "62541004", "sofa": "62541004", "table": "62541004", "chair": "62541004",
+  // Watches (5955)
   "watch": "5955", "smartwatch": "5955",
+  // Home/Decor (11829)
   "home": "11829", "decor": "11829", "storage": "11829", "pillow": "11829", "blanket": "11829",
+  // Media & Entertainment (3838)
+  "media": "3838", "book": "3838", "dvd": "3838", "vinyl": "3838",
 };
 
 async function generateLazadaSignature(apiPath: string, params: Record<string, string>, appSecret: string): Promise<string> {
@@ -490,10 +531,11 @@ async function searchLazadaLive(params: ExtractedParams, originalMessage: string
     try {
       const mapPrompt = `Map this product request to ONE Lazada categoryL1 ID.
 Available categories: ${JSON.stringify(Object.fromEntries([
-        ["3008","Fashion"],["10100869","Health"],["3833","Kitchen/Appliances"],["8428","Automotive"],
-        ["11830","Tools"],["42062201","Electronics"],["5761","Sports/Outdoor"],["10100387","Pet"],
-        ["5090","Toys"],["3835","Phones"],["3836","Computers"],["5095","Baby/Kids"],
-        ["62541004","Furniture"],["5955","Watches"],["11829","Home/Decor"]
+        ["3008","Fashion/Clothing/Shoes"],["10100869","Health/Medical/Supplements"],["3833","Kitchen/Appliances"],["8428","Automotive"],
+        ["11830","Tools/DIY/Hardware"],["42062201","Electronics/Gadgets/Audio"],["5761","Sports/Outdoor/Camping"],["10100387","Pet Supplies"],
+        ["5090","Toys/Games/Musical Instruments"],["3835","Phones/Tablets"],["3836","Computers/Laptops"],["5095","Baby/Kids/Children"],
+        ["62541004","Furniture"],["5955","Watches"],["11829","Home/Decor"],["10100245","Cameras/Drones/Photography"],
+        ["3838","Media/Entertainment/Books"]
       ]))}
 Request: "${originalMessage}"
 Return ONLY the category ID number as a string, nothing else.`;
