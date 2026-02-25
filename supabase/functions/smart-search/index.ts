@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { crypto as stdCrypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +39,7 @@ interface NormalizedProduct {
   tracking_link: string;
   category: string | null;
   is_featured: boolean;
+  is_live_result?: boolean;
 }
 
 async function callGemini(messages: { role: string; content: string }[]): Promise<string> {
@@ -308,6 +310,112 @@ async function searchIsrael(
   }));
 }
 
+// ========== AliExpress LIVE API Fallback ==========
+const ALIEXPRESS_APP_KEY = Deno.env.get("ALIEXPRESS_APP_KEY")?.trim();
+const ALIEXPRESS_APP_SECRET = Deno.env.get("ALIEXPRESS_APP_SECRET")?.trim();
+const ALIEXPRESS_TRACKING_ID = Deno.env.get("ALIEXPRESS_TRACKING_ID")?.trim();
+const ALIEXPRESS_API_URL = "https://api-sg.aliexpress.com/sync";
+
+function toHex(buffer: Uint8Array): string {
+  return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+async function generateAliSignature(params: Record<string, string>, appSecret: string): Promise<string> {
+  const sortedString = Object.keys(params).sort().map(k => `${k}${params[k]}`).join('');
+  const signStr = appSecret + sortedString + appSecret;
+  const encoder = new TextEncoder();
+  const hashBuffer = await stdCrypto.subtle.digest('MD5', encoder.encode(signStr));
+  return toHex(new Uint8Array(hashBuffer));
+}
+
+async function searchAliExpressLive(params: ExtractedParams): Promise<NormalizedProduct[]> {
+  if (!ALIEXPRESS_APP_KEY || !ALIEXPRESS_APP_SECRET) {
+    console.error("AliExpress API credentials not configured for live search");
+    return [];
+  }
+
+  const keywords = params.search_terms_english.join(" ");
+  if (!keywords) return [];
+
+  console.log(`🔴 LIVE AliExpress search: "${keywords}"`);
+
+  const apiParams: Record<string, string> = {
+    app_key: ALIEXPRESS_APP_KEY,
+    method: "aliexpress.affiliate.product.query",
+    timestamp: Date.now().toString(),
+    sign_method: "md5",
+    v: "2.0",
+    keywords,
+    page_no: "1",
+    page_size: "10",
+    target_currency: "USD",
+    target_language: "EN",
+  };
+
+  if (ALIEXPRESS_TRACKING_ID) apiParams.tracking_id = ALIEXPRESS_TRACKING_ID;
+
+  // Sort mapping
+  if (params.priority === "price") apiParams.sort = "SALE_PRICE_ASC";
+  else if (params.priority === "popular") apiParams.sort = "LAST_VOLUME_DESC";
+
+  // Budget filter (AliExpress uses cents for price filter)
+  if (params.max_budget_usd && params.max_budget_usd > 0) {
+    apiParams.max_sale_price = (params.max_budget_usd * 100).toString();
+  }
+
+  try {
+    const signature = await generateAliSignature(apiParams, ALIEXPRESS_APP_SECRET);
+    apiParams.sign = signature;
+
+    const queryString = Object.entries(apiParams)
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join("&");
+
+    const response = await fetch(`${ALIEXPRESS_API_URL}?${queryString}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const data = await response.json();
+    console.log("AliExpress live response:", JSON.stringify(data).substring(0, 500));
+
+    // Extract products from response
+    const respBody = data?.aliexpress_affiliate_product_query_response?.resp_result?.result;
+    const products = respBody?.products?.product || [];
+
+    console.log(`AliExpress live returned ${products.length} products`);
+
+    return products.map((p: any, i: number) => {
+      const salePrice = parseFloat(p.target_sale_price || p.target_original_price || "0");
+      const originalPrice = parseFloat(p.target_original_price || "0");
+      const discount = originalPrice > salePrice && originalPrice > 0
+        ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
+        : null;
+
+      return {
+        id: `live-ali-${p.product_id || i}`,
+        platform: "aliexpress" as const,
+        platform_label: "🇮🇱 AliExpress Live",
+        product_name: p.product_title || "Unknown",
+        price_display: `$${salePrice.toFixed(2)}`,
+        price_usd: salePrice,
+        original_price_display: originalPrice > salePrice ? `$${originalPrice.toFixed(2)}` : null,
+        discount_percentage: discount,
+        rating: parseFloat(p.evaluate_rate?.replace("%", "") || "0") / 20, // convert % to 5-star
+        sales_count: parseInt(p.lastest_volume || "0"),
+        image_url: p.product_main_image_url || "",
+        tracking_link: p.promotion_link || p.product_detail_url || "",
+        category: null,
+        is_featured: false,
+        is_live_result: true,
+      };
+    });
+  } catch (error) {
+    console.error("AliExpress live search error:", error);
+    return [];
+  }
+}
+
 function getSuggestion(params: ExtractedParams): string {
   if (params.brand) return `המותג ${params.brand} לא נמצא במאגר. נסה ללא מותג ספציפי`;
   if (params.max_budget_usd && params.max_budget_usd < 5) return "נסה להגדיל את התקציב";
@@ -420,6 +528,23 @@ serve(async (req) => {
 
     const allProducts = [...lazadaResults, ...aliResults, ...israelResults];
 
+    // Step C.5: Live API fallback for Israel/AliExpress when DB results < 3
+    const israelDbCount = aliResults.length + israelResults.length;
+    const shouldLiveSearchAli = (effectivePlatform === "all" || effectivePlatform === "israel" || effectivePlatform === "aliexpress") && israelDbCount < 3;
+    
+    let liveAliResults: NormalizedProduct[] = [];
+    if (shouldLiveSearchAli) {
+      console.log(`📡 Israel DB results (${israelDbCount}) < 3, triggering AliExpress LIVE search...`);
+      liveAliResults = await searchAliExpressLive(params);
+      
+      // Deduplicate: remove live results that match existing DB products by name similarity
+      const existingNames = new Set(allProducts.map(p => p.product_name.toLowerCase().substring(0, 30)));
+      liveAliResults = liveAliResults.filter(p => !existingNames.has(p.product_name.toLowerCase().substring(0, 30)));
+      
+      allProducts.push(...liveAliResults);
+      console.log(`Added ${liveAliResults.length} live AliExpress results, total now: ${allProducts.length}`);
+    }
+
     // Step D: No results check
     if (allProducts.length < 3) {
       // Try a broader search with lower rating
@@ -430,6 +555,12 @@ serve(async (req) => {
         shouldSearchIsrael ? searchIsrael(supabase, broadParams) : Promise.resolve([]),
       ]);
       const broadResults = [...bLazada, ...bAli, ...bIsrael];
+
+      if (broadResults.length < 3 && liveAliResults.length === 0) {
+        // Last resort: try live search even with broad params
+        const liveBroad = await searchAliExpressLive(broadParams);
+        broadResults.push(...liveBroad);
+      }
 
       if (broadResults.length < 3) {
         return new Response(
@@ -509,6 +640,7 @@ serve(async (req) => {
         tracking_link: product.tracking_link,
         category: product.category,
         is_featured: product.is_featured,
+        is_live_result: product.is_live_result || false,
         explanation_hebrew: r.explanation_hebrew,
       };
     }).filter(Boolean);
@@ -530,6 +662,7 @@ serve(async (req) => {
         },
         results,
         total_scanned: totalScanned,
+        live_results_count: liveAliResults.length,
         search_time_ms: Date.now() - startTime,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

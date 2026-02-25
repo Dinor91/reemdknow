@@ -28,6 +28,7 @@ interface SearchResult {
   tracking_link: string;
   category: string | null;
   is_featured: boolean;
+  is_live_result?: boolean;
   explanation_hebrew: string;
 }
 
@@ -45,6 +46,7 @@ interface SearchResponse {
   };
   results?: SearchResult[];
   total_scanned?: number;
+  live_results_count?: number;
   search_time_ms?: number;
 }
 
@@ -242,7 +244,7 @@ const ProductSearch = () => {
               {isLoading
                 ? LOADING_MESSAGES[loadingMsgIdx]
                 : response?.success && response.search_time_ms
-                ? `נמצאו ${response.results?.length || 0} מתוך ${response.total_scanned || 0} מוצרים (${(response.search_time_ms / 1000).toFixed(1)}s)`
+                ? `נמצאו ${response.results?.length || 0} מתוך ${response.total_scanned || 0} מוצרים${response.live_results_count ? ` (${response.live_results_count} Live)` : ""} (${(response.search_time_ms / 1000).toFixed(1)}s)`
                 : "ממתין לחיפוש..."}
             </span>
           </div>
@@ -309,7 +311,12 @@ const ProductSearch = () => {
                           <Badge variant="outline" className="text-xs">
                             {result.platform_label}
                           </Badge>
-                          {result.is_featured && (
+                          {result.is_live_result && (
+                            <Badge variant="destructive" className="text-xs gap-1 animate-pulse">
+                              🔴 Live
+                            </Badge>
+                          )}
+                          {result.is_featured && !result.is_live_result && (
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
