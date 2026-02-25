@@ -380,7 +380,7 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    const { message } = await req.json();
+    const { message, platform_override } = await req.json();
 
     if (!message || typeof message !== "string" || message.trim().length < 3) {
       return new Response(
@@ -394,14 +394,20 @@ serve(async (req) => {
     const params = await extractParams(message);
     console.log("Extracted params:", JSON.stringify(params));
 
+    // Apply platform override from dropdown (takes priority over Gemini detection)
+    const effectivePlatform = platform_override && platform_override !== "all" 
+      ? platform_override 
+      : params.platform;
+    console.log("Platform override:", platform_override, "Effective:", effectivePlatform);
+
     // Step B: Search all tables in parallel
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const shouldSearchLazada = params.platform === "all" || params.platform === "lazada";
-    const shouldSearchAli = params.platform === "all" || params.platform === "aliexpress";
-    const shouldSearchIsrael = params.platform === "all" || params.platform === "israel" || params.platform === "aliexpress";
+    const shouldSearchLazada = effectivePlatform === "all" || effectivePlatform === "lazada";
+    const shouldSearchAli = effectivePlatform === "all" || effectivePlatform === "aliexpress" || effectivePlatform === "israel";
+    const shouldSearchIsrael = effectivePlatform === "all" || effectivePlatform === "israel" || effectivePlatform === "aliexpress";
 
     const [lazadaResults, aliResults, israelResults] = await Promise.all([
       shouldSearchLazada ? searchLazada(supabase, params) : Promise.resolve([]),

@@ -99,7 +99,7 @@ const ProductSearch = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke("smart-search", {
-        body: { message: message.trim() },
+        body: { message: message.trim(), platform_override: platformOverride },
       });
 
       if (error) {
@@ -160,6 +160,21 @@ const ProductSearch = () => {
             <p className="text-sm text-muted-foreground">הדביקו הודעת לקוח והכלי יחלץ את פרמטרי החיפוש באופן אוטומטי</p>
           </div>
 
+          {/* Platform Selection - Above textarea */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-foreground">🌐 קהל יעד</label>
+            <Select value={platformOverride} onValueChange={setPlatformOverride}>
+              <SelectTrigger className="w-full sm:w-[280px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-background border z-50">
+                <SelectItem value="all">🌐 הכל – שתי הפלטפורמות</SelectItem>
+                <SelectItem value="israel">🇮🇱 ישראל – AliExpress</SelectItem>
+                <SelectItem value="lazada">🇹🇭 תאילנד – Lazada</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="relative">
             <Textarea
               value={message}
@@ -195,16 +210,6 @@ const ProductSearch = () => {
 
           {/* Action Bar */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <Select value={platformOverride} onValueChange={setPlatformOverride}>
-              <SelectTrigger className="w-full sm:w-[220px]">
-                <SelectValue placeholder="Platform Override" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">כל הפלטפורמות</SelectItem>
-                <SelectItem value="lazada">Lazada תאילנד בלבד</SelectItem>
-                <SelectItem value="aliexpress">AliExpress בלבד</SelectItem>
-              </SelectContent>
-            </Select>
 
             <div className="flex-1 flex flex-col items-stretch sm:items-end gap-1">
               <Button
