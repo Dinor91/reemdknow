@@ -1,11 +1,8 @@
-import { Button } from "@/components/ui/button";
 import { FacebookPixel, trackFBLead } from "@/components/FacebookPixel";
 import { trackEvent } from "@/lib/analytics";
 import { trackButtonClick } from "@/lib/trackClick";
 import { useEffect } from "react";
 import logo from "@/assets/dknow-logo.png";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import ramProfile from "@/assets/ram-profile.jpeg";
 
 const WhatsAppIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -13,132 +10,137 @@ const WhatsAppIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
   </svg>
 );
 
+const InstagramIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+  </svg>
+);
+
+const FacebookIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
+);
+
+const TikTokIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+  </svg>
+);
+
+const LINKS = {
+  whatsappIsrael: "https://chat.whatsapp.com/Dfcih86pI6D35dehovi5KN",
+  whatsappThailand: "https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j",
+  instagram: "https://www.instagram.com/reemdknow?igsh=MWxrNWR5ZHdwazd0dA%3D%3D&utm_source=qr",
+  facebook: "https://www.facebook.com/share/1H2sX5ZMoV/?mibextid=wwXIfr",
+  tiktok: "https://www.tiktok.com/@reemdknow?_r=1&_t=ZS-93B0gL6bFmK",
+};
+
+interface LinkItemProps {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  bgClass: string;
+  onClick?: () => void;
+}
+
+const LinkItem = ({ href, icon, label, bgClass, onClick }: LinkItemProps) => (
+  <a
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    onClick={onClick}
+    className={`flex items-center gap-4 w-full px-5 py-4 rounded-2xl text-white font-semibold text-[16px] transition-all duration-200 hover:scale-[1.03] hover:shadow-lg active:scale-[0.98] ${bgClass}`}
+  >
+    <span className="flex-shrink-0">{icon}</span>
+    <span>{label}</span>
+  </a>
+);
+
 const ChannelSelect = () => {
   useEffect(() => {
-    document.title = "(D)Know - המלצות חכמות מאלי אקספרס ו-KSP";
+    document.title = "(D)Know - כל הלינקים";
   }, []);
 
-  const whatsappLink = "https://chat.whatsapp.com/Dfcih86pI6D35dehovi5KN";
-
-  const handleWhatsAppClick = () => {
-    trackEvent("click_whatsapp", {
+  const handleClick = (platform: string, source: string) => {
+    trackEvent(`click_${platform}`, {
       event_category: "engagement",
-      event_label: "WhatsApp Community Join",
-      source: "join_israel_landing",
+      event_label: `${platform} - join page`,
+      source,
     });
-    trackFBLead("join_israel_whatsapp");
-    trackButtonClick("whatsapp", "join_israel_landing", "israel");
+    trackFBLead(`${platform}_join_linktree`);
+    trackButtonClick(platform as any, source, "join");
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-5" dir="rtl" style={{ background: 'linear-gradient(180deg, hsl(38 30% 97%) 0%, hsl(38 25% 95%) 50%, hsl(210 20% 96%) 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-8" dir="rtl" style={{ background: 'linear-gradient(180deg, hsl(25 20% 10%) 0%, hsl(25 15% 15%) 50%, hsl(25 10% 12%) 100%)' }}>
       <FacebookPixel />
 
-      <div className="max-w-md w-full space-y-3">
-        
-        {/* Logo only - compact */}
-        <div className="flex justify-center">
+      <div className="max-w-md w-full space-y-5">
+        {/* Profile */}
+        <div className="flex flex-col items-center gap-3">
           <img 
             src={logo} 
             alt="(D)Know" 
-            className="w-[56px] h-[56px] rounded-xl shadow-sm ring-2 ring-white/80 object-cover" 
+            className="w-20 h-20 rounded-full shadow-lg ring-4 ring-white/20 object-cover" 
           />
-        </div>
-
-        {/* H1 - benefit focused, bold */}
-        <div className="text-center space-y-1.5">
-          <h1 className="text-[22px] md:text-3xl font-extrabold text-foreground leading-tight">
-            מפסיקים לשלם ביוקר! 💸
-            <br />
-            <span className="text-[19px] md:text-2xl font-bold">כל הדילים השווים מאליאקספרס אחרי סינון קפדני</span>
-          </h1>
-          <p className="text-[14px] text-muted-foreground leading-relaxed">
-            אל תהמרו על הכסף שלכם. קבלו ישירות לווטסאפ רק מוצרים שעברו את ״מבחן הסינון״ שלי (כמו שראיתם בסרטון)
-          </p>
-        </div>
-
-        {/* Social proof - above CTA */}
-        <p className="text-center text-sm font-semibold text-muted-foreground">
-          <span className="text-[hsl(var(--heading))] font-bold">250+ ישראלים</span> כבר חוסכים בקבוצה
-        </p>
-
-        {/* Primary CTA - above the fold */}
-        <a
-          href={whatsappLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={handleWhatsAppClick}
-          className="block"
-        >
-          <Button
-            size="lg"
-            className="w-full h-14 text-lg font-bold bg-whatsapp hover:bg-whatsapp/90 text-white gap-3 transition-all duration-300 hover:scale-[1.03] animate-pulse-glow shadow-lg rounded-2xl"
-          >
-            <WhatsAppIcon className="h-6 w-6" />
-            רוצה להצטרף ולחסוך! 🔥
-          </Button>
-        </a>
-
-        {/* Social proof bubble - WhatsApp testimonial */}
-        <div className="bg-card rounded-2xl p-3.5 shadow-md border border-border flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-whatsapp/15 flex items-center justify-center">
-            <WhatsAppIcon className="h-4 w-4 text-whatsapp" />
-          </div>
-          <div className="text-[13px] text-foreground leading-relaxed">
-            <span className="font-bold">"חסכתי 500 ש״ח על עגלת הקניות בזכות הסינון של ראם!"</span>
-            <span className="text-muted-foreground"> – חברת קהילה</span>
-          </div>
-        </div>
-
-        {/* Benefits - authoritative */}
-        <div className="bg-card rounded-2xl p-4 shadow-sm border border-border space-y-2.5">
-          <h2 className="font-bold text-sm text-center text-muted-foreground">למה כדאי להצטרף?</h2>
-          <div className="space-y-2 text-[14px] text-foreground">
-            <div className="flex items-center gap-2.5">
-              <span className="flex-shrink-0 text-base">🔍</span>
-              <span><strong>סינון מקצועי:</strong> בדיקה ידנית של דירוג קונים ואמינות מוכר</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="flex-shrink-0 text-base">💰</span>
-              <span><strong>קופונים "מתחת לרדאר":</strong> הנחות שחוסכות מאות שקלים בכל קנייה</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="flex-shrink-0 text-base">🤫</span>
-              <span><strong>קהילה שקטה:</strong> 0% ספאם, 100% ערך של "אחד שיודע"</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Authority section - "Dknow - אחד שיודע" */}
-        <div className="bg-card rounded-2xl p-4 shadow-sm border border-border">
-          <h3 className="font-bold text-sm text-center text-muted-foreground mb-3">מי עומד מאחורי <span dir="ltr">(D)Know</span>?</h3>
-          <div className="flex items-start gap-3">
-            <Avatar className="w-12 h-12 flex-shrink-0 ring-2 ring-border">
-              <AvatarImage src={ramProfile} alt="ראם" className="object-cover" />
-              <AvatarFallback>ר</AvatarFallback>
-            </Avatar>
-            <p className="text-[13px] text-foreground leading-relaxed">
-              היי, אני <strong>ראם</strong>. אבא ל-2 והנדימן בנשמה. אני גר בתאילנד וחי את עולם הקניות אונליין (Lazada, AliExpress ו-KSP). הפכתי לאובססיבי לסינון מוצרים כדי לוודא שאתם מקבלים רק <strong>איכות גבוהה במחיר הכי נמוך</strong>. אצלי לא קונים חתול בשק.
+          <div className="text-center">
+            <h1 className="text-2xl font-extrabold text-white">
+              (D)Know
+            </h1>
+            <p className="text-[15px] text-white/60 mt-1">
+              דילים שווים אחרי סינון קפדני 🔍
             </p>
           </div>
         </div>
 
-        {/* Second CTA */}
-        <a
-          href={whatsappLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={handleWhatsAppClick}
-          className="block"
-        >
-          <Button
-            size="lg"
-            className="w-full h-12 text-base font-bold bg-whatsapp hover:bg-whatsapp/90 text-white gap-3 transition-all duration-300 hover:scale-[1.03] shadow-md rounded-2xl"
-          >
-            <WhatsAppIcon className="h-5 w-5" />
-            להצטרפות מהירה לקבוצה
-          </Button>
-        </a>
+        {/* Links */}
+        <div className="space-y-3">
+          <LinkItem
+            href={LINKS.whatsappIsrael}
+            icon={<WhatsAppIcon className="h-6 w-6" />}
+            label="קבוצת וואטסאפ ישראל 🇮🇱"
+            bgClass="bg-[hsl(142,70%,42%)] hover:bg-[hsl(142,70%,38%)]"
+            onClick={() => handleClick("whatsapp", "join_linktree_israel")}
+          />
+
+          <LinkItem
+            href={LINKS.whatsappThailand}
+            icon={<WhatsAppIcon className="h-6 w-6" />}
+            label="קבוצת וואטסאפ תאילנד 🇹🇭"
+            bgClass="bg-[hsl(142,70%,42%)] hover:bg-[hsl(142,70%,38%)]"
+            onClick={() => handleClick("whatsapp", "join_linktree_thailand")}
+          />
+
+          <LinkItem
+            href={LINKS.instagram}
+            icon={<InstagramIcon className="h-6 w-6" />}
+            label="Instagram"
+            bgClass="bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737]"
+            onClick={() => handleClick("instagram", "join_linktree")}
+          />
+
+          <LinkItem
+            href={LINKS.tiktok}
+            icon={<TikTokIcon className="h-6 w-6" />}
+            label="TikTok"
+            bgClass="bg-[hsl(0,0%,10%)] hover:bg-[hsl(0,0%,15%)] ring-1 ring-white/20"
+            onClick={() => handleClick("tiktok", "join_linktree")}
+          />
+
+          <LinkItem
+            href={LINKS.facebook}
+            icon={<FacebookIcon className="h-6 w-6" />}
+            label="Facebook"
+            bgClass="bg-[#1877F2] hover:bg-[#1565C0]"
+            onClick={() => handleClick("facebook", "join_linktree")}
+          />
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-white/30 pt-2">
+          © (D)Know — אחד שיודע
+        </p>
       </div>
     </div>
   );
