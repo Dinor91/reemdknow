@@ -200,9 +200,10 @@ async function searchAliExpress(
   let query = supabase
     .from("aliexpress_feed_products")
     .select(
-      "id, product_name, product_name_hebrew, price_usd, original_price_usd, rating, sales_30d, category_name_hebrew, tracking_link, image_url, discount_percentage"
+      "id, product_name, product_name_hebrew, price_usd, original_price_usd, rating, sales_30d, category_name_hebrew, tracking_link, image_url, discount_percentage, is_featured"
     )
     .eq("out_of_stock", false)
+    .eq("is_featured", true)
     .or(allConditions.join(","));
 
   if (params.max_budget_usd != null) query = query.lte("price_usd", params.max_budget_usd);
@@ -384,7 +385,8 @@ serve(async (req) => {
       shouldSearchIsrael ? searchIsrael(supabase, params) : Promise.resolve([]),
     ]);
 
-    console.log(`Results: Lazada=${lazadaResults.length}, AliExpress=${aliResults.length}, Israel=${israelResults.length}`);
+    const totalScanned = lazadaResults.length + aliResults.length + israelResults.length;
+    console.log(`Results: Lazada=${lazadaResults.length}, AliExpress=${aliResults.length}, Israel=${israelResults.length}, Total=${totalScanned}`);
 
     const allProducts = [...lazadaResults, ...aliResults, ...israelResults];
 
@@ -424,8 +426,31 @@ serve(async (req) => {
       allProducts.push(...broadResults);
     }
 
-    // Step E: AI Ranking
-    const ranked = await rankResults(allProducts, message, params);
+    // Step E: AI Ranking (with fallback if Gemini fails)
+    let ranked: any[];
+    try {
+      ranked = await rankResults(allProducts, message, params);
+    } catch (rankErr) {
+      console.error("Gemini ranking failed, using fallback:", rankErr);
+      // Fallback: sort by priority and pick top 3
+      const sorted = [...allProducts].sort((a, b) => {
+        if (params.priority === "price") return a.price_usd - b.price_usd;
+        if (params.priority === "popular") return b.sales_count - a.sales_count;
+        return b.rating - a.rating;
+      });
+      const labels = [
+        { label_hebrew: "הכי זול", label_color: "green" },
+        { label_hebrew: "הדירוג הכי גבוה", label_color: "blue" },
+        { label_hebrew: "התמורה הכי טובה", label_color: "orange" },
+      ];
+      ranked = sorted.slice(0, 3).map((p, i) => ({
+        rank: i + 1,
+        ...labels[i],
+        product_id: p.id,
+        platform: p.platform,
+        explanation_hebrew: `נבחר אוטומטית לפי ${params.priority === "price" ? "מחיר" : params.priority === "popular" ? "מכירות" : "דירוג"}`,
+      }));
+    }
 
     // Step F: Build final response
     const results = ranked.map((r: any) => {
@@ -473,6 +498,7 @@ serve(async (req) => {
           priority: params.priority,
         },
         results,
+        total_scanned: totalScanned,
         search_time_ms: Date.now() - startTime,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
