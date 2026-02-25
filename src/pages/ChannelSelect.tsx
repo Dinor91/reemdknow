@@ -1,7 +1,7 @@
 import { FacebookPixel, trackFBLead } from "@/components/FacebookPixel";
 import { trackEvent } from "@/lib/analytics";
 import { trackButtonClick } from "@/lib/trackClick";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import ramProfile from "@/assets/ram-profile.jpeg";
 
 /* ──────────── Inline SVG Icons ──────────── */
@@ -30,6 +30,12 @@ const TikTokIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
   </svg>
 );
 
+const FireIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-orange-400">
+    <path d="M12 23c-3.866 0-7-3.134-7-7 0-2.485 1.394-4.942 2.798-6.932.602-.854 1.243-1.636 1.808-2.298.39-.457.741-.85 1.017-1.17.138-.16.26-.298.362-.413l.015-.017c.456-.52 1-.52 1.456 0l.015.017c.102.115.224.253.362.413.276.32.627.713 1.017 1.17.565.662 1.206 1.444 1.808 2.298C16.606 11.058 18 13.515 18 16c0 3.866-3.134 7-7 7z"/>
+  </svg>
+);
+
 /* ──────────── Links Config ──────────── */
 
 const LINKS = {
@@ -40,109 +46,17 @@ const LINKS = {
   tiktok: "https://www.tiktok.com/@reemdknow?_r=1&_t=ZS-93B0gL6bFmK",
 };
 
-/* ──────────── Staggered animation CSS (injected once) ──────────── */
-
-const animationCSS = `
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes pulseGlow {
-  0%, 100% {
-    box-shadow: 0 0 0 0 hsla(142, 70%, 45%, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 18px 4px hsla(142, 70%, 45%, 0.25);
-  }
-}
-.anim-fade-in-up {
-  opacity: 0;
-  animation: fadeInUp 0.5s ease-out forwards;
-}
-.anim-pulse-glow {
-  animation: pulseGlow 2.4s ease-in-out infinite;
-}
-`;
-
-/* ──────────── Components ──────────── */
-
-interface LinkItemProps {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-  sublabel?: string;
-  badge?: string;
-  bgClass: string;
-  iconBg: string;
-  onClick?: () => void;
-  featured?: boolean;
-  delay: number;
-}
-
-const LinkItem = ({ href, icon, label, sublabel, badge, bgClass, iconBg, onClick, featured, delay }: LinkItemProps) => (
-  <a
-    href={href}
-    target="_blank"
-    rel="noopener noreferrer"
-    onClick={onClick}
-    className={`anim-fade-in-up group relative flex items-center gap-4 w-full px-4 py-4 rounded-2xl font-semibold text-[15px] transition-all duration-300 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] ${bgClass} ${featured ? 'anim-pulse-glow ring-2 ring-white/20' : ''}`}
-    style={{ animationDelay: `${delay}ms` }}
-  >
-    <div className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 ${iconBg}`}>
-      {icon}
-    </div>
-    <div className="flex flex-col min-w-0 flex-1">
-      <span className="text-white font-bold leading-tight">{label}</span>
-      {sublabel && <span className="text-white/60 text-[12px] font-normal leading-snug">{sublabel}</span>}
-      {badge && (
-        <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-emerald-200/90">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          {badge}
-        </span>
-      )}
-    </div>
-    <svg className="h-4 w-4 text-white/30 flex-shrink-0 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-    </svg>
-  </a>
-);
-
-interface SocialIconProps {
-  href: string;
-  icon: React.ReactNode;
-  bgClass: string;
-  label: string;
-  onClick?: () => void;
-  delay: number;
-}
-
-const SocialIcon = ({ href, icon, bgClass, label, onClick, delay }: SocialIconProps) => (
-  <a
-    href={href}
-    target="_blank"
-    rel="noopener noreferrer"
-    onClick={onClick}
-    aria-label={label}
-    className={`anim-fade-in-up w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-lg active:scale-95 ${bgClass}`}
-    style={{ animationDelay: `${delay}ms` }}
-  >
-    {icon}
-  </a>
-);
-
 /* ──────────── Page ──────────── */
 
 const ChannelSelect = () => {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    // Trigger animations after mount
+    const timer = setTimeout(() => setMounted(true), 50);
+
     document.title = "(D)Know - כל הלינקים | דילים מאליאקספרס";
 
-    // OG meta tags
     const setMeta = (property: string, content: string) => {
       let el = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement | null;
       if (!el) {
@@ -156,10 +70,7 @@ const ChannelSelect = () => {
     setMeta("og:description", "הצטרפו לקהילת הדילים הגדולה בישראל! מוצרים מאליאקספרס ולאזדה אחרי סינון ידני.");
     setMeta("og:type", "website");
 
-    const metaDesc = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
-    if (metaDesc) {
-      metaDesc.setAttribute("content", "הצטרפו לקהילת הדילים של (D)Know — דילים מאליאקספרס ולאזדה אחרי סינון קפדני.");
-    }
+    return () => clearTimeout(timer);
   }, []);
 
   const handleClick = (platform: string, source: string) => {
@@ -172,110 +83,167 @@ const ChannelSelect = () => {
     trackButtonClick(platform as any, source, "join");
   };
 
+  const anim = (delay: number) =>
+    `transition-all duration-700 ease-out ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`;
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8" dir="rtl">
+    <div className="min-h-dvh flex items-center justify-center px-4 py-6" dir="rtl">
       <FacebookPixel />
-      <style>{animationCSS}</style>
 
-      {/* Background */}
-      <div className="fixed inset-0 -z-10" style={{ background: 'linear-gradient(145deg, hsl(220 25% 8%) 0%, hsl(250 20% 12%) 40%, hsl(220 30% 10%) 100%)' }} />
-      <div className="fixed inset-0 -z-10 opacity-30" style={{ background: 'radial-gradient(circle at 50% 0%, hsl(260 60% 30%) 0%, transparent 50%)' }} />
+      {/* ── Animated background ── */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, hsl(230 30% 6%) 0%, hsl(260 25% 10%) 35%, hsl(280 20% 8%) 65%, hsl(230 30% 6%) 100%)' }} />
+        {/* Floating orbs */}
+        <div className="absolute top-[10%] right-[15%] w-[300px] h-[300px] rounded-full opacity-15 blur-[100px] animate-pulse" style={{ background: 'hsl(280 60% 50%)' }} />
+        <div className="absolute bottom-[20%] left-[10%] w-[250px] h-[250px] rounded-full opacity-10 blur-[80px] animate-pulse" style={{ background: 'hsl(142 70% 45%)', animationDelay: '1.5s' }} />
+        <div className="absolute top-[50%] left-[60%] w-[200px] h-[200px] rounded-full opacity-10 blur-[90px] animate-pulse" style={{ background: 'hsl(350 80% 55%)', animationDelay: '3s' }} />
+      </div>
 
-      <div className="max-w-md w-full space-y-5">
-        {/* ── Profile ── */}
-        <div className="anim-fade-in-up flex flex-col items-center gap-3" style={{ animationDelay: '0ms' }}>
-          <div className="relative">
-            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[hsl(280,60%,50%)] via-[hsl(350,80%,55%)] to-[hsl(30,90%,55%)] opacity-75 blur-sm animate-pulse" />
+      <div className="max-w-[400px] w-full space-y-5">
+
+        {/* ── Profile Section ── */}
+        <div
+          className={`flex flex-col items-center gap-2.5 ${anim(0)}`}
+          style={{ transitionDelay: '0ms' }}
+        >
+          <div className="relative group">
+            <div className="absolute -inset-1.5 rounded-full bg-gradient-to-br from-[hsl(280,60%,55%)] via-[hsl(350,80%,55%)] to-[hsl(30,90%,55%)] opacity-80 blur-md group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute -inset-1.5 rounded-full bg-gradient-to-br from-[hsl(280,60%,55%)] via-[hsl(350,80%,55%)] to-[hsl(30,90%,55%)] opacity-60 animate-spin" style={{ animationDuration: '8s' }} />
             <img
               src={ramProfile}
               alt="ראם - (D)Know"
               loading="eager"
-              className="relative w-20 h-20 rounded-full object-cover ring-4 ring-white/10 shadow-2xl"
+              className="relative w-[76px] h-[76px] rounded-full object-cover ring-[3px] ring-white/10 shadow-2xl"
             />
           </div>
-          <div className="text-center space-y-1">
-            <h1 className="text-2xl font-extrabold text-white tracking-tight">
+          <div className="text-center space-y-0.5">
+            <h1 className="text-[22px] font-extrabold text-white tracking-tight">
               ראם | <span dir="ltr">(D)Know</span>
             </h1>
-            <p className="text-[13px] text-white/50 leading-relaxed max-w-[280px]">
+            <p className="text-[12px] text-white/45 leading-relaxed">
               דילים שווים אחרי סינון קפדני 🔍
-              <br />
-              ישראל 🇮🇱 • תאילנד 🇹🇭
             </p>
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-white/35">
+              <span>ישראל 🇮🇱</span>
+              <span>•</span>
+              <span>תאילנד 🇹🇭</span>
+            </div>
           </div>
         </div>
 
         {/* ── Divider: Join ── */}
-        <div className="anim-fade-in-up flex items-center gap-3 px-1" style={{ animationDelay: '100ms' }}>
-          <div className="flex-1 h-px bg-white/10" />
-          <span className="text-[11px] text-white/30 font-medium tracking-wider uppercase">הצטרפו לקהילה</span>
-          <div className="flex-1 h-px bg-white/10" />
+        <div
+          className={`flex items-center gap-3 px-1 ${anim(100)}`}
+          style={{ transitionDelay: '100ms' }}
+        >
+          <div className="flex-1 h-px bg-gradient-to-l from-white/15 to-transparent" />
+          <span className="text-[10px] text-white/25 font-semibold tracking-[0.15em] uppercase">הצטרפו לקהילה</span>
+          <div className="flex-1 h-px bg-gradient-to-r from-white/15 to-transparent" />
         </div>
 
-        {/* ── WhatsApp CTAs ── */}
-        <div className="space-y-3">
-          <LinkItem
-            href={LINKS.whatsappIsrael}
-            icon={<WhatsAppIcon className="h-5 w-5 text-white" />}
-            label="וואטסאפ ישראל 🇮🇱"
-            sublabel="דילים מאליאקספרס אחרי סינון"
-            badge="1,200+ חברים בקבוצה"
-            bgClass="bg-[hsl(142,70%,33%)] hover:bg-[hsl(142,70%,38%)]"
-            iconBg="bg-white/20"
-            featured
-            delay={200}
-            onClick={() => handleClick("whatsapp", "join_linktree_israel")}
-          />
+        {/* ── WhatsApp Israel (PRIMARY CTA) ── */}
+        <a
+          href={LINKS.whatsappIsrael}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => handleClick("whatsapp", "join_linktree_israel")}
+          className={`group relative flex items-center gap-4 w-full px-5 py-4 rounded-2xl font-semibold transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] ${anim(200)}`}
+          style={{
+            transitionDelay: '200ms',
+            background: 'linear-gradient(135deg, hsl(142 72% 32%) 0%, hsl(142 65% 38%) 50%, hsl(152 60% 35%) 100%)',
+            boxShadow: '0 0 25px 3px hsla(142, 70%, 45%, 0.25), 0 8px 30px -5px hsla(142, 70%, 30%, 0.4)',
+          }}
+        >
+          {/* Shimmer effect */}
+          <div className="absolute inset-0 rounded-2xl overflow-hidden">
+            <div
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              style={{ background: 'linear-gradient(90deg, transparent 0%, hsla(0,0%,100%,0.08) 50%, transparent 100%)', transform: 'translateX(-100%)', animation: 'shimmer 2s infinite' }}
+            />
+          </div>
+          <style>{`@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
 
-          <LinkItem
-            href={LINKS.whatsappThailand}
-            icon={<WhatsAppIcon className="h-5 w-5 text-white" />}
-            label="וואטסאפ תאילנד 🇹🇭"
-            sublabel="דילים מלאזדה לגרים בתאילנד"
-            bgClass="bg-[hsl(142,70%,33%)] hover:bg-[hsl(142,70%,38%)]"
-            iconBg="bg-white/20"
-            delay={300}
-            onClick={() => handleClick("whatsapp", "join_linktree_thailand")}
-          />
-        </div>
+          <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-white/20 backdrop-blur-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+            <WhatsAppIcon className="h-6 w-6 text-white" />
+          </div>
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-white font-bold text-[16px] leading-tight">וואטסאפ ישראל 🇮🇱</span>
+            <span className="text-white/60 text-[12px] font-normal leading-snug mt-0.5">דילים מאליאקספרס אחרי סינון</span>
+            <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-200/90">
+              <FireIcon />
+              <span>1,200+ חברים בקבוצה</span>
+            </span>
+          </div>
+          <svg className="h-4 w-4 text-white/40 flex-shrink-0 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </a>
+
+        {/* ── WhatsApp Thailand ── */}
+        <a
+          href={LINKS.whatsappThailand}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => handleClick("whatsapp", "join_linktree_thailand")}
+          className={`group relative flex items-center gap-4 w-full px-5 py-3.5 rounded-2xl font-semibold transition-all duration-500 hover:scale-[1.02] active:scale-[0.97] border border-white/[0.06] ${anim(300)}`}
+          style={{
+            transitionDelay: '300ms',
+            background: 'linear-gradient(135deg, hsla(142,60%,35%,0.25) 0%, hsla(142,50%,30%,0.15) 100%)',
+            backdropFilter: 'blur(12px)',
+          }}
+        >
+          <div className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-[hsl(142,65%,35%)] transition-transform duration-300 group-hover:scale-110">
+            <WhatsAppIcon className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-white font-bold text-[15px] leading-tight">וואטסאפ תאילנד 🇹🇭</span>
+            <span className="text-white/50 text-[12px] font-normal leading-snug mt-0.5">דילים מלאזדה לגרים בתאילנד</span>
+          </div>
+          <svg className="h-4 w-4 text-white/25 flex-shrink-0 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </a>
 
         {/* ── Divider: Follow ── */}
-        <div className="anim-fade-in-up flex items-center gap-3 px-1" style={{ animationDelay: '400ms' }}>
-          <div className="flex-1 h-px bg-white/10" />
-          <span className="text-[11px] text-white/30 font-medium tracking-wider uppercase">עקבו אחריי</span>
-          <div className="flex-1 h-px bg-white/10" />
+        <div
+          className={`flex items-center gap-3 px-1 ${anim(400)}`}
+          style={{ transitionDelay: '400ms' }}
+        >
+          <div className="flex-1 h-px bg-gradient-to-l from-white/15 to-transparent" />
+          <span className="text-[10px] text-white/25 font-semibold tracking-[0.15em] uppercase">עקבו אחריי</span>
+          <div className="flex-1 h-px bg-gradient-to-r from-white/15 to-transparent" />
         </div>
 
         {/* ── Social Icons Row ── */}
-        <div className="flex items-center justify-center gap-4">
-          <SocialIcon
-            href={LINKS.instagram}
-            icon={<InstagramIcon className="h-5 w-5 text-white" />}
-            bgClass="bg-gradient-to-br from-[hsl(280,60%,45%)] via-[hsl(350,80%,50%)] to-[hsl(30,90%,55%)]"
-            label="Instagram"
-            delay={500}
-            onClick={() => handleClick("instagram", "join_linktree")}
-          />
-          <SocialIcon
-            href={LINKS.tiktok}
-            icon={<TikTokIcon className="h-5 w-5 text-white" />}
-            bgClass="bg-white/10 hover:bg-white/20 backdrop-blur-sm"
-            label="TikTok"
-            delay={560}
-            onClick={() => handleClick("tiktok", "join_linktree")}
-          />
-          <SocialIcon
-            href={LINKS.facebook}
-            icon={<FacebookIcon className="h-5 w-5 text-white" />}
-            bgClass="bg-[hsl(220,70%,45%)] hover:bg-[hsl(220,70%,52%)]"
-            label="Facebook"
-            delay={620}
-            onClick={() => handleClick("facebook", "join_linktree")}
-          />
+        <div
+          className={`flex items-center justify-center gap-5 ${anim(500)}`}
+          style={{ transitionDelay: '500ms' }}
+        >
+          {[
+            { href: LINKS.instagram, icon: <InstagramIcon className="h-5 w-5 text-white" />, bg: 'linear-gradient(135deg, hsl(280,60%,48%) 0%, hsl(350,80%,52%) 50%, hsl(30,90%,55%) 100%)', label: 'Instagram', platform: 'instagram' },
+            { href: LINKS.tiktok, icon: <TikTokIcon className="h-5 w-5 text-white" />, bg: 'hsla(0,0%,100%,0.08)', label: 'TikTok', platform: 'tiktok' },
+            { href: LINKS.facebook, icon: <FacebookIcon className="h-5 w-5 text-white" />, bg: 'hsl(220,70%,48%)', label: 'Facebook', platform: 'facebook' },
+          ].map(({ href, icon, bg, label, platform }) => (
+            <a
+              key={platform}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => handleClick(platform, "join_linktree")}
+              aria-label={label}
+              className="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-115 hover:shadow-lg active:scale-95 border border-white/[0.06]"
+              style={{ background: bg, backdropFilter: 'blur(8px)' }}
+            >
+              {icon}
+            </a>
+          ))}
         </div>
 
-        {/* Footer */}
-        <p className="anim-fade-in-up text-center text-[11px] text-white/20 pt-2" style={{ animationDelay: '700ms' }}>
+        {/* ── Footer ── */}
+        <p
+          className={`text-center text-[10px] text-white/15 pt-1 ${anim(600)}`}
+          style={{ transitionDelay: '600ms' }}
+        >
           © (D)Know — אחד שיודע
         </p>
       </div>
