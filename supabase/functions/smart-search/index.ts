@@ -37,6 +37,7 @@ interface NormalizedProduct {
   image_url: string;
   tracking_link: string;
   category: string | null;
+  is_featured: boolean;
 }
 
 async function callGemini(messages: { role: string; content: string }[]): Promise<string> {
@@ -178,6 +179,7 @@ async function searchLazada(
     image_url: p.image_url || "",
     tracking_link: p.tracking_link || "",
     category: p.category_name_hebrew,
+    is_featured: false,
   }));
 }
 
@@ -197,6 +199,7 @@ async function searchAliExpress(
 
   if (allConditions.length === 0) return [];
 
+  // Try featured first
   let query = supabase
     .from("aliexpress_feed_products")
     .select(
@@ -207,19 +210,38 @@ async function searchAliExpress(
     .or(allConditions.join(","));
 
   if (params.max_budget_usd != null) query = query.lte("price_usd", params.max_budget_usd);
-  // Rating filter only for AliExpress which has ratings populated
   if (params.min_rating && params.min_rating > 0) query = query.gte("rating", params.min_rating);
   if (params.brand) query = query.ilike("product_name", `%${params.brand}%`);
-
   query = query.order("rating", { ascending: false, nullsFirst: false }).order("sales_30d", { ascending: false, nullsFirst: false }).limit(10);
 
-  const { data, error } = await query;
-  if (error) {
-    console.error("AliExpress search error:", error);
-    return [];
+  const { data: featuredData, error: featuredErr } = await query;
+  if (featuredErr) console.error("AliExpress featured search error:", featuredErr);
+
+  let useData = featuredData || [];
+  let allFeatured = useData.length >= 3;
+
+  if (useData.length < 3) {
+    // Fallback: search all products
+    let fallbackQuery = supabase
+      .from("aliexpress_feed_products")
+      .select(
+        "id, product_name, product_name_hebrew, price_usd, original_price_usd, rating, sales_30d, category_name_hebrew, tracking_link, image_url, discount_percentage, is_featured"
+      )
+      .eq("out_of_stock", false)
+      .or(allConditions.join(","));
+
+    if (params.max_budget_usd != null) fallbackQuery = fallbackQuery.lte("price_usd", params.max_budget_usd);
+    if (params.min_rating && params.min_rating > 0) fallbackQuery = fallbackQuery.gte("rating", params.min_rating);
+    if (params.brand) fallbackQuery = fallbackQuery.ilike("product_name", `%${params.brand}%`);
+    fallbackQuery = fallbackQuery.order("rating", { ascending: false, nullsFirst: false }).order("sales_30d", { ascending: false, nullsFirst: false }).limit(10);
+
+    const { data: allData, error: allErr } = await fallbackQuery;
+    if (allErr) console.error("AliExpress fallback search error:", allErr);
+    useData = allData || [];
+    allFeatured = false;
   }
 
-  return (data || []).map((p: any) => ({
+  return useData.map((p: any) => ({
     id: p.id,
     platform: "aliexpress" as const,
     platform_label: "🇮🇱 AliExpress",
@@ -233,6 +255,7 @@ async function searchAliExpress(
     image_url: p.image_url || "",
     tracking_link: p.tracking_link || "",
     category: p.category_name_hebrew,
+    is_featured: p.is_featured || false,
   }));
 }
 
@@ -281,6 +304,7 @@ async function searchIsrael(
     image_url: p.image_url || "",
     tracking_link: p.tracking_link || "",
     category: p.category_name_hebrew,
+    is_featured: true, // israel_editor_products are all curated
   }));
 }
 
@@ -478,6 +502,7 @@ serve(async (req) => {
         image_url: product.image_url,
         tracking_link: product.tracking_link,
         category: product.category,
+        is_featured: product.is_featured,
         explanation_hebrew: r.explanation_hebrew,
       };
     }).filter(Boolean);

@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { trackButtonClick } from "@/lib/trackClick";
@@ -26,6 +27,7 @@ interface SearchResult {
   image_url: string;
   tracking_link: string;
   category: string | null;
+  is_featured: boolean;
   explanation_hebrew: string;
 }
 
@@ -298,9 +300,25 @@ const ProductSearch = () => {
                           <Badge className={colors.badge}>{result.label_hebrew}</Badge>
                         </div>
 
-                        <Badge variant="outline" className="text-xs">
-                          {result.platform_label}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {result.platform_label}
+                          </Badge>
+                          {result.is_featured && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="secondary" className="text-xs gap-1 cursor-help">
+                                    ⭐ נבחר
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>מוצר נבחר על ידי (D)Know</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
 
                         <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center overflow-hidden">
                           {result.image_url ? (
