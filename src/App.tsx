@@ -11,6 +11,7 @@ import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
 import Requests from "./pages/Requests";
 import NotFound from "./pages/NotFound";
+import ProductSearch from "./pages/ProductSearch";
 import { CountryProvider } from "./contexts/CountryContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LoadingScreen } from "./components/LoadingScreen";
@@ -68,6 +69,7 @@ const AppContent = () => {
         <Route path="/join" element={<ChannelSelect />} />
         <Route path="/thailand" element={<Thailand />} />
         <Route path="/requests" element={<Requests />} />
+        <Route path="/product-search" element={<ProtectedRoute><ProductSearch /></ProtectedRoute>} />
         <Route path="/auth" element={<Auth />} />
         <Route
           path="/admin"
