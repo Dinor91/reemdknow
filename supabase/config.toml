@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.smart-search]
 verify_jwt = false
+
+[functions.expand-lazada-db]
+verify_jwt = false

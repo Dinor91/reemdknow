@@ -1413,6 +1413,8 @@ const FeedTab = () => {
   const [aliexpressProducts, setAliexpressProducts] = useState<AliExpressFeedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [expanding, setExpanding] = useState(false);
+  const [expandProgress, setExpandProgress] = useState("");
   const [filter, setFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<"sales" | "commission" | "price">("sales");
@@ -1484,6 +1486,38 @@ const FeedTab = () => {
       toast.error("שגיאה בסינכרון - נסה שוב");
     }
     setSyncing(false);
+  };
+
+  const expandLazadaDb = async () => {
+    setExpanding(true);
+    setExpandProgress("מתחיל הרחבת מאגר...");
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        toast.error("יש להתחבר כאדמין");
+        setExpanding(false);
+        return;
+      }
+
+      toast.info("🔄 סורק 30 קטגוריות של Lazada... זה יכול לקחת 2-3 דקות");
+      setExpandProgress("סורק 30 קטגוריות...");
+
+      const { data, error } = await supabase.functions.invoke("expand-lazada-db", {
+        headers: { Authorization: `Bearer ${session.session.access_token}` },
+      });
+
+      if (error) throw error;
+
+      const msg = `✅ הרחבה הושלמה! ${data.initial_count} → ${data.final_count} מוצרים (+${data.new_products} חדשים)`;
+      toast.success(msg);
+      setExpandProgress(msg);
+      await fetchFeedProducts();
+    } catch (e) {
+      console.error("Error expanding DB:", e);
+      toast.error("שגיאה בהרחבת המאגר");
+      setExpandProgress("שגיאה בהרחבה");
+    }
+    setExpanding(false);
   };
 
   const toggleLazadaFeatured = async (product: LazadaFeedProduct) => {
@@ -1644,8 +1678,22 @@ const FeedTab = () => {
             <span className="hidden sm:inline">סנכרן מ-{platform === "lazada" ? "Lazada" : "AliExpress"}</span>
             <span className="sm:hidden">סנכרן</span>
           </Button>
+          {platform === "lazada" && (
+            <Button onClick={expandLazadaDb} disabled={expanding} className="bg-purple-600 hover:bg-purple-700 text-xs md:text-sm" size="sm">
+              <RefreshCw className={`h-3 w-3 md:h-4 md:w-4 ml-1 ${expanding ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">🔄 הרחב מאגר Lazada</span>
+              <span className="sm:hidden">הרחב DB</span>
+            </Button>
+          )}
         </div>
       </div>
+
+      {expandProgress && (
+        <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+          {expanding && <span className="animate-pulse">⏳ </span>}
+          {expandProgress}
+        </div>
+      )}
 
       {/* Filtering options */}
       <Card className="p-2 sm:p-3">
