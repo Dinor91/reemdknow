@@ -26,7 +26,7 @@ export const Header = () => {
               className={`transition-all hover:scale-105 text-xs ${location.pathname === "/product-search" ? "text-white" : ""}`}
               style={location.pathname === "/product-search" ? { backgroundColor: "#0F3460" } : { borderColor: "#0F3460", color: "#0F3460" }}
             >
-              Product Search
+              חיפוש מוצרים
             </Button>
           </Link>
           <Link to="/thailand" onClick={() => handleCountrySwitch('thailand')}>
