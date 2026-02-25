@@ -28,7 +28,7 @@ serve(async (req) => {
     }
 
     // Validate button_type is one of the allowed values
-    if (!['whatsapp', 'telegram'].includes(button_type)) {
+    if (!['whatsapp', 'telegram', 'instagram', 'facebook', 'tiktok'].includes(button_type)) {
       console.error('Invalid button_type:', button_type);
       return new Response(
         JSON.stringify({ error: 'Invalid button_type. Must be whatsapp or telegram' }),

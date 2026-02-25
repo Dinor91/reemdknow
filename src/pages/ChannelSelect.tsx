@@ -4,6 +4,8 @@ import { trackButtonClick } from "@/lib/trackClick";
 import { useEffect } from "react";
 import ramProfile from "@/assets/ram-profile.jpeg";
 
+/* ──────────── Inline SVG Icons ──────────── */
+
 const WhatsAppIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -28,6 +30,8 @@ const TikTokIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
   </svg>
 );
 
+/* ──────────── Links Config ──────────── */
+
 const LINKS = {
   whatsappIsrael: "https://chat.whatsapp.com/Dfcih86pI6D35dehovi5KN",
   whatsappThailand: "https://chat.whatsapp.com/LcjvMUEqxBqIEfh0bbPT1j",
@@ -36,42 +40,126 @@ const LINKS = {
   tiktok: "https://www.tiktok.com/@reemdknow?_r=1&_t=ZS-93B0gL6bFmK",
 };
 
+/* ──────────── Staggered animation CSS (injected once) ──────────── */
+
+const animationCSS = `
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsla(142, 70%, 45%, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 18px 4px hsla(142, 70%, 45%, 0.25);
+  }
+}
+.anim-fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+.anim-pulse-glow {
+  animation: pulseGlow 2.4s ease-in-out infinite;
+}
+`;
+
+/* ──────────── Components ──────────── */
+
 interface LinkItemProps {
   href: string;
   icon: React.ReactNode;
   label: string;
   sublabel?: string;
+  badge?: string;
   bgClass: string;
   iconBg: string;
   onClick?: () => void;
   featured?: boolean;
+  delay: number;
 }
 
-const LinkItem = ({ href, icon, label, sublabel, bgClass, iconBg, onClick, featured }: LinkItemProps) => (
+const LinkItem = ({ href, icon, label, sublabel, badge, bgClass, iconBg, onClick, featured, delay }: LinkItemProps) => (
   <a
     href={href}
     target="_blank"
     rel="noopener noreferrer"
     onClick={onClick}
-    className={`group relative flex items-center gap-4 w-full px-4 py-3.5 rounded-2xl font-semibold text-[15px] transition-all duration-300 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] ${bgClass} ${featured ? 'ring-2 ring-white/30 shadow-lg' : ''}`}
-    style={{ animationDelay: '0.1s' }}
+    className={`anim-fade-in-up group relative flex items-center gap-4 w-full px-4 py-4 rounded-2xl font-semibold text-[15px] transition-all duration-300 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] ${bgClass} ${featured ? 'anim-pulse-glow ring-2 ring-white/20' : ''}`}
+    style={{ animationDelay: `${delay}ms` }}
   >
-    <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 ${iconBg}`}>
+    <div className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 ${iconBg}`}>
       {icon}
     </div>
-    <div className="flex flex-col min-w-0">
+    <div className="flex flex-col min-w-0 flex-1">
       <span className="text-white font-bold leading-tight">{label}</span>
-      {sublabel && <span className="text-white/60 text-[12px] font-normal">{sublabel}</span>}
+      {sublabel && <span className="text-white/60 text-[12px] font-normal leading-snug">{sublabel}</span>}
+      {badge && (
+        <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-emerald-200/90">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          {badge}
+        </span>
+      )}
     </div>
-    <svg className="h-4 w-4 text-white/40 mr-auto flex-shrink-0 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <svg className="h-4 w-4 text-white/30 flex-shrink-0 transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
     </svg>
   </a>
 );
 
+interface SocialIconProps {
+  href: string;
+  icon: React.ReactNode;
+  bgClass: string;
+  label: string;
+  onClick?: () => void;
+  delay: number;
+}
+
+const SocialIcon = ({ href, icon, bgClass, label, onClick, delay }: SocialIconProps) => (
+  <a
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    onClick={onClick}
+    aria-label={label}
+    className={`anim-fade-in-up w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-lg active:scale-95 ${bgClass}`}
+    style={{ animationDelay: `${delay}ms` }}
+  >
+    {icon}
+  </a>
+);
+
+/* ──────────── Page ──────────── */
+
 const ChannelSelect = () => {
   useEffect(() => {
-    document.title = "(D)Know - כל הלינקים";
+    document.title = "(D)Know - כל הלינקים | דילים מאליאקספרס";
+
+    // OG meta tags
+    const setMeta = (property: string, content: string) => {
+      let el = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement | null;
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute("property", property);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+    setMeta("og:title", "(D)Know — דילים שווים אחרי סינון קפדני");
+    setMeta("og:description", "הצטרפו לקהילת הדילים הגדולה בישראל! מוצרים מאליאקספרס ולאזדה אחרי סינון ידני.");
+    setMeta("og:type", "website");
+
+    const metaDesc = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
+    if (metaDesc) {
+      metaDesc.setAttribute("content", "הצטרפו לקהילת הדילים של (D)Know — דילים מאליאקספרס ולאזדה אחרי סינון קפדני.");
+    }
   }, []);
 
   const handleClick = (platform: string, source: string) => {
@@ -87,27 +175,29 @@ const ChannelSelect = () => {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8" dir="rtl">
       <FacebookPixel />
+      <style>{animationCSS}</style>
 
-      {/* Animated gradient background */}
+      {/* Background */}
       <div className="fixed inset-0 -z-10" style={{ background: 'linear-gradient(145deg, hsl(220 25% 8%) 0%, hsl(250 20% 12%) 40%, hsl(220 30% 10%) 100%)' }} />
       <div className="fixed inset-0 -z-10 opacity-30" style={{ background: 'radial-gradient(circle at 50% 0%, hsl(260 60% 30%) 0%, transparent 50%)' }} />
 
-      <div className="max-w-md w-full space-y-6">
-        {/* Profile Avatar */}
-        <div className="flex flex-col items-center gap-3">
+      <div className="max-w-md w-full space-y-5">
+        {/* ── Profile ── */}
+        <div className="anim-fade-in-up flex flex-col items-center gap-3" style={{ animationDelay: '0ms' }}>
           <div className="relative">
-            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#F77737] opacity-75 blur-sm animate-pulse" />
-            <img 
-              src={ramProfile} 
-              alt="ראם - (D)Know" 
-              className="relative w-24 h-24 rounded-full object-cover ring-4 ring-white/10 shadow-2xl" 
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[hsl(280,60%,50%)] via-[hsl(350,80%,55%)] to-[hsl(30,90%,55%)] opacity-75 blur-sm animate-pulse" />
+            <img
+              src={ramProfile}
+              alt="ראם - (D)Know"
+              loading="eager"
+              className="relative w-20 h-20 rounded-full object-cover ring-4 ring-white/10 shadow-2xl"
             />
           </div>
           <div className="text-center space-y-1">
             <h1 className="text-2xl font-extrabold text-white tracking-tight">
               ראם | <span dir="ltr">(D)Know</span>
             </h1>
-            <p className="text-[14px] text-white/50 leading-relaxed max-w-[280px]">
+            <p className="text-[13px] text-white/50 leading-relaxed max-w-[280px]">
               דילים שווים אחרי סינון קפדני 🔍
               <br />
               ישראל 🇮🇱 • תאילנד 🇹🇭
@@ -115,23 +205,25 @@ const ChannelSelect = () => {
           </div>
         </div>
 
-        {/* Divider label */}
-        <div className="flex items-center gap-3 px-1">
+        {/* ── Divider: Join ── */}
+        <div className="anim-fade-in-up flex items-center gap-3 px-1" style={{ animationDelay: '100ms' }}>
           <div className="flex-1 h-px bg-white/10" />
           <span className="text-[11px] text-white/30 font-medium tracking-wider uppercase">הצטרפו לקהילה</span>
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        {/* Links */}
+        {/* ── WhatsApp CTAs ── */}
         <div className="space-y-3">
           <LinkItem
             href={LINKS.whatsappIsrael}
             icon={<WhatsAppIcon className="h-5 w-5 text-white" />}
             label="וואטסאפ ישראל 🇮🇱"
             sublabel="דילים מאליאקספרס אחרי סינון"
-            bgClass="bg-[hsl(142,70%,36%)] hover:bg-[hsl(142,70%,40%)]"
+            badge="1,200+ חברים בקבוצה"
+            bgClass="bg-[hsl(142,70%,33%)] hover:bg-[hsl(142,70%,38%)]"
             iconBg="bg-white/20"
             featured
+            delay={200}
             onClick={() => handleClick("whatsapp", "join_linktree_israel")}
           />
 
@@ -140,52 +232,50 @@ const ChannelSelect = () => {
             icon={<WhatsAppIcon className="h-5 w-5 text-white" />}
             label="וואטסאפ תאילנד 🇹🇭"
             sublabel="דילים מלאזדה לגרים בתאילנד"
-            bgClass="bg-[hsl(142,70%,36%)] hover:bg-[hsl(142,70%,40%)]"
+            bgClass="bg-[hsl(142,70%,33%)] hover:bg-[hsl(142,70%,38%)]"
             iconBg="bg-white/20"
+            delay={300}
             onClick={() => handleClick("whatsapp", "join_linktree_thailand")}
           />
         </div>
 
-        {/* Divider label */}
-        <div className="flex items-center gap-3 px-1">
+        {/* ── Divider: Follow ── */}
+        <div className="anim-fade-in-up flex items-center gap-3 px-1" style={{ animationDelay: '400ms' }}>
           <div className="flex-1 h-px bg-white/10" />
           <span className="text-[11px] text-white/30 font-medium tracking-wider uppercase">עקבו אחריי</span>
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        <div className="space-y-3">
-          <LinkItem
+        {/* ── Social Icons Row ── */}
+        <div className="flex items-center justify-center gap-4">
+          <SocialIcon
             href={LINKS.instagram}
             icon={<InstagramIcon className="h-5 w-5 text-white" />}
+            bgClass="bg-gradient-to-br from-[hsl(280,60%,45%)] via-[hsl(350,80%,50%)] to-[hsl(30,90%,55%)]"
             label="Instagram"
-            sublabel="@reemdknow"
-            bgClass="bg-gradient-to-r from-[hsl(280,60%,40%)] via-[hsl(350,80%,50%)] to-[hsl(30,90%,50%)]"
-            iconBg="bg-white/20"
+            delay={500}
             onClick={() => handleClick("instagram", "join_linktree")}
           />
-
-          <LinkItem
+          <SocialIcon
             href={LINKS.tiktok}
             icon={<TikTokIcon className="h-5 w-5 text-white" />}
+            bgClass="bg-white/10 hover:bg-white/20 backdrop-blur-sm"
             label="TikTok"
-            sublabel="@reemdknow"
-            bgClass="bg-white/10 hover:bg-white/15 backdrop-blur-sm"
-            iconBg="bg-white/10"
+            delay={560}
             onClick={() => handleClick("tiktok", "join_linktree")}
           />
-
-          <LinkItem
+          <SocialIcon
             href={LINKS.facebook}
             icon={<FacebookIcon className="h-5 w-5 text-white" />}
+            bgClass="bg-[hsl(220,70%,45%)] hover:bg-[hsl(220,70%,52%)]"
             label="Facebook"
-            bgClass="bg-[hsl(220,70%,45%)] hover:bg-[hsl(220,70%,50%)]"
-            iconBg="bg-white/20"
+            delay={620}
             onClick={() => handleClick("facebook", "join_linktree")}
           />
         </div>
 
         {/* Footer */}
-        <p className="text-center text-[11px] text-white/20 pt-3">
+        <p className="anim-fade-in-up text-center text-[11px] text-white/20 pt-2" style={{ animationDelay: '700ms' }}>
           © (D)Know — אחד שיודע
         </p>
       </div>
