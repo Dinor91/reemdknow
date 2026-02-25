@@ -1499,16 +1499,32 @@ const FeedTab = () => {
         return;
       }
 
-      toast.info("🔄 סורק 30 קטגוריות של Lazada... זה יכול לקחת 2-3 דקות");
-      setExpandProgress("סורק 30 קטגוריות...");
+      const totalBatches = 5; // 30 categories / 6 per batch
+      let totalNewProducts = 0;
+      let initialCount = 0;
+      let finalCount = 0;
 
-      const { data, error } = await supabase.functions.invoke("expand-lazada-db", {
-        headers: { Authorization: `Bearer ${session.session.access_token}` },
-      });
+      for (let batch = 0; batch < totalBatches; batch++) {
+        const fromCat = batch * 6 + 1;
+        const toCat = Math.min((batch + 1) * 6, 30);
+        setExpandProgress(`באצ' ${batch + 1}/${totalBatches} (קטגוריות ${fromCat}-${toCat} מתוך 30)...`);
+        toast.info(`🔄 באצ' ${batch + 1}/${totalBatches} - סורק קטגוריות ${fromCat}-${toCat}...`);
 
-      if (error) throw error;
+        const { data, error } = await supabase.functions.invoke("expand-lazada-db", {
+          headers: { Authorization: `Bearer ${session.session.access_token}` },
+          body: { batch },
+        });
 
-      const msg = `✅ הרחבה הושלמה! ${data.initial_count} → ${data.final_count} מוצרים (+${data.new_products} חדשים)`;
+        if (error) throw error;
+
+        totalNewProducts += data.new_products || 0;
+        if (batch === 0) initialCount = data.initial_count;
+        finalCount = data.final_count;
+
+        setExpandProgress(`באצ' ${batch + 1}/${totalBatches} הושלם: +${data.new_products} מוצרים`);
+      }
+
+      const msg = `✅ הרחבה הושלמה! ${initialCount} → ${finalCount} מוצרים (+${totalNewProducts} חדשים)`;
       toast.success(msg);
       setExpandProgress(msg);
       await fetchFeedProducts();
