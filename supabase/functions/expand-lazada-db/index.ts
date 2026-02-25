@@ -105,6 +105,23 @@ serve(async (req) => {
   }
 
   try {
+    // Parse batch parameter (default: process categories 0-4, then 5-9, etc.)
+    let batchIndex = 0
+    try {
+      const body = await req.json()
+      batchIndex = body?.batch || 0
+    } catch { /* no body = batch 0 */ }
+
+    const BATCH_SIZE = 6
+    const startIdx = batchIndex * BATCH_SIZE
+    const batchCategories = ALL_CATEGORIES.slice(startIdx, startIdx + BATCH_SIZE)
+    
+    if (batchCategories.length === 0) {
+      return new Response(
+        JSON.stringify({ message: 'All batches complete', batch: batchIndex }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
     // Verify admin authentication
     const authHeader = req.headers.get('Authorization')
     const authResult = await verifyAdminAuth(authHeader)
@@ -131,14 +148,14 @@ serve(async (req) => {
     const existingIds = new Set((existing || []).map(p => p.lazada_product_id))
     const initialCount = existingIds.size
 
-    console.log(`Starting expansion. Existing products: ${initialCount}`)
+    console.log(`Starting batch ${batchIndex} (categories ${startIdx+1}-${startIdx+batchCategories.length} of ${ALL_CATEGORIES.length}). Existing products: ${initialCount}`)
 
     let totalNew = 0
     let categoriesProcessed = 0
 
-    for (const categoryId of ALL_CATEGORIES) {
+    for (const categoryId of batchCategories) {
       categoriesProcessed++
-      console.log(`Processing category ${categoryId} (${categoriesProcessed}/${ALL_CATEGORIES.length})`)
+      console.log(`Processing category ${categoryId} (${startIdx + categoriesProcessed}/${ALL_CATEGORIES.length})`)
 
       try {
         const result = await callLazadaAPI('/marketing/product/feed', {
@@ -244,14 +261,19 @@ serve(async (req) => {
     }
 
     const finalCount = existingIds.size
+    const hasMore = startIdx + BATCH_SIZE < ALL_CATEGORIES.length
+    const nextBatch = hasMore ? batchIndex + 1 : null
 
     return new Response(
       JSON.stringify({
-        message: 'Expansion complete',
+        message: hasMore ? `Batch ${batchIndex} complete` : 'All batches complete',
+        batch: batchIndex,
+        next_batch: nextBatch,
         initial_count: initialCount,
         final_count: finalCount,
         new_products: totalNew,
         categories_processed: categoriesProcessed,
+        total_categories: ALL_CATEGORIES.length,
         translated: translatedCount,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
