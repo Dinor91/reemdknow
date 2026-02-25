@@ -416,6 +416,193 @@ async function searchAliExpressLive(params: ExtractedParams): Promise<Normalized
   }
 }
 
+// ========== Lazada LIVE Category Fallback ==========
+const LAZADA_APP_KEY = Deno.env.get("LAZADA_APP_KEY")?.trim();
+const LAZADA_APP_SECRET = Deno.env.get("LAZADA_APP_SECRET")?.trim();
+const LAZADA_USER_TOKEN = Deno.env.get("LAZADA_ACCESS_TOKEN")?.trim();
+const LAZADA_API_URL = "https://api.lazada.co.th/rest";
+
+const LAZADA_CATEGORY_MAP: Record<string, string> = {
+  "fashion": "3008", "clothing": "3008", "shoes": "3008", "bag": "3008", "jewelry": "3008",
+  "swimwear": "3008", "bikini": "3008", "dress": "3008", "shirt": "3008",
+  "health": "10100869", "medical": "10100869", "massage": "10100869", "vitamin": "10100869",
+  "kitchen": "3833", "appliance": "3833", "blender": "3833", "oven": "3833", "coffee": "3833",
+  "car": "8428", "auto": "8428", "vehicle": "8428", "tire": "8428", "motorcycle": "8428",
+  "tool": "11830", "drill": "11830", "screwdriver": "11830", "hammer": "11830",
+  "electronic": "42062201", "gadget": "42062201", "headphone": "42062201", "earbuds": "42062201",
+  "speaker": "42062201", "bluetooth": "42062201", "usb": "42062201", "charger": "42062201",
+  "sport": "5761", "outdoor": "5761", "camping": "5761", "hiking": "5761", "fitness": "5761",
+  "pet": "10100387", "dog": "10100387", "cat": "10100387",
+  "toy": "5090", "game": "5090", "puzzle": "5090", "lego": "5090",
+  "phone": "3835", "tablet": "3835", "case": "3835",
+  "computer": "3836", "laptop": "3836", "keyboard": "3836", "mouse": "3836",
+  "baby": "5095", "kid": "5095", "child": "5095", "stroller": "5095", "diaper": "5095",
+  "furniture": "62541004", "sofa": "62541004", "table": "62541004", "chair": "62541004",
+  "watch": "5955", "smartwatch": "5955",
+  "home": "11829", "decor": "11829", "storage": "11829", "pillow": "11829", "blanket": "11829",
+};
+
+async function generateLazadaSignature(apiPath: string, params: Record<string, string>, appSecret: string): Promise<string> {
+  const sortedParams = Object.keys(params).sort().map(k => `${k}${params[k]}`).join("");
+  const signStr = apiPath + sortedParams;
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(appSecret);
+  const messageData = encoder.encode(signStr);
+  const key = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", key, messageData);
+  return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+
+async function callLazadaLiveAPI(apiPath: string, additionalParams: Record<string, string> = {}) {
+  const params: Record<string, string> = {
+    app_key: LAZADA_APP_KEY!,
+    timestamp: Date.now().toString(),
+    sign_method: "sha256",
+    userToken: LAZADA_USER_TOKEN!,
+    ...additionalParams,
+  };
+  const signature = await generateLazadaSignature(apiPath, params, LAZADA_APP_SECRET!);
+  params.sign = signature;
+  const qs = Object.entries(params).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
+  const url = `${LAZADA_API_URL}${apiPath}?${qs}`;
+  const response = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json" } });
+  return await response.json();
+}
+
+async function searchLazadaLive(params: ExtractedParams, originalMessage: string): Promise<NormalizedProduct[]> {
+  if (!LAZADA_APP_KEY || !LAZADA_APP_SECRET || !LAZADA_USER_TOKEN) {
+    console.error("Lazada API credentials not configured for live search");
+    return [];
+  }
+
+  // Map keywords to categoryL1
+  const keywords = params.search_terms_english.join(" ").toLowerCase();
+  let categoryL1: string | null = null;
+  for (const [keyword, catId] of Object.entries(LAZADA_CATEGORY_MAP)) {
+    if (keywords.includes(keyword)) {
+      categoryL1 = catId;
+      break;
+    }
+  }
+
+  if (!categoryL1) {
+    // Ask Gemini to map
+    try {
+      const mapPrompt = `Map this product request to ONE Lazada categoryL1 ID.
+Available categories: ${JSON.stringify(Object.fromEntries([
+        ["3008","Fashion"],["10100869","Health"],["3833","Kitchen/Appliances"],["8428","Automotive"],
+        ["11830","Tools"],["42062201","Electronics"],["5761","Sports/Outdoor"],["10100387","Pet"],
+        ["5090","Toys"],["3835","Phones"],["3836","Computers"],["5095","Baby/Kids"],
+        ["62541004","Furniture"],["5955","Watches"],["11829","Home/Decor"]
+      ]))}
+Request: "${originalMessage}"
+Return ONLY the category ID number as a string, nothing else.`;
+      const mapped = await callGemini([
+        { role: "system", content: mapPrompt },
+        { role: "user", content: "Return the categoryL1 ID." },
+      ]);
+      const cleaned = mapped.trim().replace(/[^0-9]/g, "");
+      if (cleaned.length > 0) categoryL1 = cleaned;
+    } catch (e) {
+      console.error("Gemini category mapping failed:", e);
+    }
+  }
+
+  if (!categoryL1) {
+    console.log("Could not map to Lazada category, skipping live search");
+    return [];
+  }
+
+  console.log(`🔴 LIVE Lazada search: category ${categoryL1} for "${keywords}"`);
+
+  try {
+    // Fetch products from feed by category
+    const feedResult = await callLazadaLiveAPI("/marketing/product/feed", {
+      offerType: "1",
+      categoryL1,
+      page: "1",
+      limit: "20",
+    });
+
+    const products = feedResult?.result?.data || [];
+    if (products.length === 0) return [];
+
+    console.log(`Lazada live feed returned ${products.length} products for category ${categoryL1}`);
+
+    // Batch get tracking links
+    const productIds = products.map((p: any) => String(p.productId));
+    const linkMap = new Map<string, string>();
+    try {
+      const linkResult = await callLazadaLiveAPI("/marketing/getlink", {
+        inputType: "productId",
+        inputValue: productIds.join(","),
+      });
+      const links = linkResult?.result?.data?.productBatchGetLinkInfoList || [];
+      for (const link of links) {
+        if (link.productId && link.regularPromotionLink) {
+          linkMap.set(String(link.productId), link.regularPromotionLink);
+        }
+      }
+    } catch (e) {
+      console.error("Error getting Lazada tracking links:", e);
+    }
+
+    // Normalize products
+    const normalized: NormalizedProduct[] = products
+      .filter((p: any) => !p.outOfStock && p.discountPrice > 0 && p.pictures?.length > 0)
+      .map((p: any, i: number) => {
+        const pid = String(p.productId);
+        const price = parseFloat(p.discountPrice || "0");
+        const originalPrice = parseFloat(p.originalPrice || "0");
+        const discount = originalPrice > price && originalPrice > 0
+          ? Math.round(((originalPrice - price) / originalPrice) * 100)
+          : null;
+
+        return {
+          id: `live-laz-${pid}`,
+          platform: "lazada" as const,
+          platform_label: "🇹🇭 Lazada Live",
+          product_name: p.productName || "Unknown",
+          price_display: `฿${Math.round(price).toLocaleString()}`,
+          price_usd: price / RATES.USD_TO_THB,
+          original_price_display: originalPrice > price ? `฿${Math.round(originalPrice).toLocaleString()}` : null,
+          discount_percentage: discount,
+          rating: p.ratingScore || 0,
+          sales_count: p.sales7d || 0,
+          image_url: p.pictures?.[0] || "",
+          tracking_link: linkMap.get(pid) || `https://www.lazada.co.th/products/-i${pid}.html`,
+          category: null,
+          is_featured: false,
+          is_live_result: true,
+        };
+      });
+
+    // If we have enough results, ask Gemini to filter the most relevant ones
+    if (normalized.length > 5) {
+      try {
+        const filterPrompt = `From these ${normalized.length} products in category ${categoryL1}, select the 5 most relevant to: "${originalMessage}"
+Return ONLY a JSON array of product IDs (the "id" field): ["live-laz-123", ...]`;
+        const filterResult = await callGemini([
+          { role: "system", content: filterPrompt },
+          { role: "user", content: JSON.stringify(normalized.map(p => ({ id: p.id, name: p.product_name, price: p.price_display }))) },
+        ]);
+        const selectedIds = parseJsonFromAI(filterResult) as string[];
+        if (Array.isArray(selectedIds) && selectedIds.length > 0) {
+          const filtered = normalized.filter(p => selectedIds.includes(p.id));
+          if (filtered.length >= 3) return filtered;
+        }
+      } catch (e) {
+        console.error("Gemini filtering failed, returning all:", e);
+      }
+    }
+
+    return normalized.slice(0, 10);
+  } catch (error) {
+    console.error("Lazada live search error:", error);
+    return [];
+  }
+}
+
 function getSuggestion(params: ExtractedParams): string {
   if (params.brand) return `המותג ${params.brand} לא נמצא במאגר. נסה ללא מותג ספציפי`;
   if (params.max_budget_usd && params.max_budget_usd < 5) return "נסה להגדיל את התקציב";
@@ -545,6 +732,23 @@ serve(async (req) => {
       console.log(`Added ${liveAliResults.length} live AliExpress results, total now: ${allProducts.length}`);
     }
 
+    // Step C.6: Live API fallback for Lazada/Thailand when DB results < 3
+    const lazadaDbCount = lazadaResults.length;
+    const shouldLiveSearchLazada = (effectivePlatform === "all" || effectivePlatform === "lazada") && lazadaDbCount < 3;
+
+    let liveLazadaResults: NormalizedProduct[] = [];
+    if (shouldLiveSearchLazada) {
+      console.log(`📡 Thailand DB results (${lazadaDbCount}) < 3, triggering Lazada LIVE category search...`);
+      liveLazadaResults = await searchLazadaLive(params, message);
+
+      // Deduplicate
+      const existingNames = new Set(allProducts.map(p => p.product_name.toLowerCase().substring(0, 30)));
+      liveLazadaResults = liveLazadaResults.filter(p => !existingNames.has(p.product_name.toLowerCase().substring(0, 30)));
+
+      allProducts.push(...liveLazadaResults);
+      console.log(`Added ${liveLazadaResults.length} live Lazada results, total now: ${allProducts.length}`);
+    }
+
     // Step D: No results check
     if (allProducts.length < 3) {
       // Try a broader search with lower rating
@@ -560,6 +764,12 @@ serve(async (req) => {
         // Last resort: try live search even with broad params
         const liveBroad = await searchAliExpressLive(broadParams);
         broadResults.push(...liveBroad);
+      }
+
+      if (broadResults.length < 3 && liveLazadaResults.length === 0) {
+        // Last resort for Lazada too
+        const liveLazBroad = await searchLazadaLive(broadParams, message);
+        broadResults.push(...liveLazBroad);
       }
 
       if (broadResults.length < 3) {
@@ -662,7 +872,7 @@ serve(async (req) => {
         },
         results,
         total_scanned: totalScanned,
-        live_results_count: liveAliResults.length,
+        live_results_count: liveAliResults.length + liveLazadaResults.length,
         search_time_ms: Date.now() - startTime,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
