@@ -707,14 +707,15 @@ async function rankResults(
   originalMessage: string,
   params: ExtractedParams
 ): Promise<any[]> {
-  const systemPrompt = `From these products, select exactly 3 that best match this customer request: "${originalMessage}"
+  const pickCount = Math.min(3, allProducts.length);
+  const systemPrompt = `From these products, select exactly ${pickCount} that best match this customer request: "${originalMessage}"
 
 Extracted parameters: ${JSON.stringify(params)}
 
 Available products:
 ${JSON.stringify(allProducts.map((p) => ({ id: p.id, platform: p.platform, name: p.product_name, price_usd: p.price_usd, price_display: p.price_display, rating: p.rating, sales: p.sales_count })), null, 2)}
 
-Return ONLY a valid JSON array of exactly 3 items:
+Return ONLY a valid JSON array of exactly ${pickCount} items:
 [
   {
     "rank": 1,
@@ -861,8 +862,17 @@ serve(async (req) => {
       }
     }
 
-    // Step D: No results check
-    if (allProducts.length < 3) {
+    // Deduplicate by product name (first 40 chars lowercase) before ranking
+    const seen = new Map<string, NormalizedProduct>();
+    for (const p of allProducts) {
+      const key = p.product_name.toLowerCase().substring(0, 40);
+      if (!seen.has(key)) seen.set(key, p);
+    }
+    allProducts = Array.from(seen.values());
+    console.log(`After deduplication: ${allProducts.length} unique products`);
+
+    // Step D: No results check — only fail if truly 0
+    if (allProducts.length === 0) {
       return new Response(
         JSON.stringify({
           success: false,
@@ -899,7 +909,7 @@ serve(async (req) => {
         { label_hebrew: "הדירוג הכי גבוה", label_color: "blue" },
         { label_hebrew: "התמורה הכי טובה", label_color: "orange" },
       ];
-      ranked = sorted.slice(0, 3).map((p, i) => ({
+      ranked = sorted.slice(0, Math.min(3, sorted.length)).map((p, i) => ({
         rank: i + 1,
         ...labels[i],
         product_id: p.id,
@@ -908,16 +918,16 @@ serve(async (req) => {
       }));
     }
 
-    // Step F: Build final response
+    // Step F: Build final response (deduplicate by product_id)
+    const usedProductIds = new Set<string>();
     const results = ranked.map((r: any) => {
-      const product = allProducts.find((p) => p.id === r.product_id);
+      let product = allProducts.find((p) => p.id === r.product_id && !usedProductIds.has(p.id));
       if (!product) {
         // Fallback: pick a product not yet used
-        const usedIds = ranked.filter((x: any) => x !== r).map((x: any) => x.product_id);
-        const fallback = allProducts.find((p) => !usedIds.includes(p.id));
-        if (!fallback) return null;
-        return { ...r, ...fallback };
+        product = allProducts.find((p) => !usedProductIds.has(p.id));
+        if (!product) return null;
       }
+      usedProductIds.add(product.id);
       return {
         rank: r.rank,
         label_hebrew: r.label_hebrew,
