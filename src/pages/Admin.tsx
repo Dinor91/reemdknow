@@ -2623,10 +2623,17 @@ const Admin = () => {
               <span className="text-sm text-muted-foreground hidden md:inline">({user.email})</span>
             )}
           </div>
-          <Button onClick={handleSignOut} variant="outline" size="sm">
-            <LogOut className="h-4 w-4 ml-2" />
-            התנתק
-          </Button>
+          <div className="flex gap-2">
+            <Link to="/daily-deals">
+              <Button variant="outline" size="sm" className="gap-1">
+                📦 Daily Deals
+              </Button>
+            </Link>
+            <Button onClick={handleSignOut} variant="outline" size="sm">
+              <LogOut className="h-4 w-4 ml-2" />
+              התנתק
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="stats" className="w-full" dir="rtl">
