@@ -13,6 +13,14 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Append affiliate tracking params to AliExpress links
+    const TRACKING_ID = Deno.env.get("ALIEXPRESS_TRACKING_ID");
+    let productUrl = product.url || "";
+    if (productUrl.includes("aliexpress.com") && TRACKING_ID) {
+      const separator = productUrl.includes("?") ? "&" : "?";
+      productUrl = `${productUrl}${separator}aff_fcid=${TRACKING_ID}&aff_platform=portals-tool`;
+    }
+
     const systemPrompt = `You are writing a WhatsApp message in Hebrew for a deals community of 1,200 members.
 
 Write the message using EXACTLY this structure:
@@ -63,7 +71,7 @@ Rating: ${product.rating}
 Sales: ${product.sales}
 Brand: ${product.brand || "לא ידוע"}
 Category: ${product.category || "כללי"}
-URL: ${product.url}
+URL: ${productUrl}
 Coupon: ${coupon || "NONE - do NOT include any coupon line"}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
