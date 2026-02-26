@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, Package, RotateCcw, X, ExternalLink, Loader2, AlertCircle, Copy, Check } from "lucide-react";
+import { Search, Package, RotateCcw, X, ExternalLink, Loader2, AlertCircle, Copy, Check, AlertTriangle, SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,6 +48,7 @@ interface SearchResponse {
   total_scanned?: number;
   live_results_count?: number;
   search_time_ms?: number;
+  search_tier?: 1 | 2 | 3;
 }
 
 const LOADING_MESSAGES = [
@@ -69,6 +70,7 @@ const ProductSearch = () => {
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   const [response, setResponse] = useState<SearchResponse | null>(null);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [tierBannerDismissed, setTierBannerDismissed] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const handleCopyWhatsApp = useCallback((result: SearchResult, idx: number) => {
@@ -80,7 +82,7 @@ const ProductSearch = () => {
       `\n🔗 לינק למוצר:\n${result.tracking_link}`;
     navigator.clipboard.writeText(text);
     setCopiedIdx(idx);
-    setTimeout(() => setCopiedIdx(null), 2000);
+    setTimeout(() => setCopiedIdx(null), 3000);
     trackButtonClick("whatsapp_copy", `product_search_${result.platform}`);
   }, []);
 
@@ -98,6 +100,7 @@ const ProductSearch = () => {
     setIsLoading(true);
     setLoadingMsgIdx(0);
     setResponse(null);
+    setTierBannerDismissed(false);
 
     try {
       const { data, error } = await supabase.functions.invoke("smart-search", {
@@ -294,6 +297,23 @@ const ProductSearch = () => {
           {/* Success State – Result Cards */}
           {!isLoading && response?.success && response.results && (
             <>
+              {/* Tier Banner */}
+              {!tierBannerDismissed && response.search_tier && response.search_tier === 2 && (
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+                  <span>⚠️ התאמה חלקית – לא נמצאו מספיק תוצאות מדויקות</span>
+                  <button onClick={() => setTierBannerDismissed(true)} className="text-yellow-600 hover:text-yellow-800">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              {!tierBannerDismissed && response.search_tier && response.search_tier === 3 && (
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+                  <span>🔍 תוצאה מורחבת – הורחבנו את החיפוש כדי למצוא אלטרנטיבות</span>
+                  <button onClick={() => setTierBannerDismissed(true)} className="text-orange-600 hover:text-orange-800">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {response.results.map((result, i) => {
                   const colors = LABEL_COLORS[result.label_color] || LABEL_COLORS.blue;
