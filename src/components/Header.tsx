@@ -20,14 +20,6 @@ export const Header = () => {
     <header dir="ltr" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex gap-2">
-          <Link to="/daily-deals">
-            <Button 
-              variant={location.pathname === "/daily-deals" ? "default" : "outline"}
-              className="transition-all hover:scale-105 text-xs px-2"
-            >
-              📦 Deals
-            </Button>
-          </Link>
           <Link to="/thailand" onClick={() => handleCountrySwitch('thailand')}>
             <Button 
               variant={isThailand ? "default" : "outline"}
