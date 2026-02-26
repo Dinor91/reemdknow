@@ -1,6 +1,6 @@
 import { Info } from "lucide-react";
 import { Link } from "react-router-dom";
-import logo from "@/assets/logo.jpg";
+import logo from "@/assets/dknow-logo.png";
 export const Footer = () => {
   return <footer className="bg-muted py-12">
       <div className="container mx-auto px-4">
