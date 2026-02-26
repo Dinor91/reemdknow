@@ -100,7 +100,7 @@ const DailyDeals = () => {
       } else {
         let query = supabase
           .from("aliexpress_feed_products")
-          .select("id, product_name, product_name_hebrew, image_url, price_usd, original_price_usd, sales_30d, rating, category_name_hebrew, tracking_link, discount_percentage, category_id")
+          .select("id, aliexpress_product_id, product_name, product_name_hebrew, image_url, price_usd, original_price_usd, sales_30d, rating, category_name_hebrew, tracking_link, discount_percentage, category_id")
           .eq("out_of_stock", false);
 
         if (cat.filterValues !== "all") {
@@ -110,19 +110,22 @@ const DailyDeals = () => {
         const { data, error } = await query.order("sales_30d", { ascending: false, nullsFirst: false }).limit(5);
         if (error) throw error;
 
-        items = (data || []).map((p) => ({
-          id: p.id,
-          name: p.product_name_hebrew || p.product_name,
-          image_url: p.image_url,
-          price: p.price_usd,
-          original_price: p.original_price_usd,
-          sales: p.sales_30d,
-          rating: p.rating,
-          brand: null,
-          category: p.category_name_hebrew,
-          tracking_link: p.tracking_link,
-          discount_percentage: p.discount_percentage,
-        }));
+        items = (data || []).map((p) => {
+          const shortLink = `https://www.aliexpress.com/item/${p.aliexpress_product_id}.html`;
+          return {
+            id: p.id,
+            name: p.product_name_hebrew || p.product_name,
+            image_url: p.image_url,
+            price: p.price_usd,
+            original_price: p.original_price_usd,
+            sales: p.sales_30d,
+            rating: p.rating,
+            brand: null,
+            category: p.category_name_hebrew,
+            tracking_link: shortLink,
+            discount_percentage: p.discount_percentage,
+          };
+        });
       }
 
       setProducts(items);
