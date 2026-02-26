@@ -2629,7 +2629,7 @@ const Admin = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="stats" className="w-full">
+        <Tabs defaultValue="stats" className="w-full" dir="rtl">
           <TabsList className="flex w-full overflow-x-auto mb-6 gap-1 h-auto flex-wrap md:flex-nowrap">
             <TabsTrigger value="stats" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
               <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
