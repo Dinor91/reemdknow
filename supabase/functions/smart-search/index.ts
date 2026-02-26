@@ -142,10 +142,15 @@ function buildOrFilter(fields: string[], terms: string[]): string {
 
 async function searchLazada(
   supabase: any,
-  params: ExtractedParams
+  params: ExtractedParams,
+  tier: 1 | 2 | 3 = 1
 ): Promise<NormalizedProduct[]> {
   const terms = [...params.search_terms_english, ...params.search_terms_thai];
   if (terms.length === 0) return [];
+
+  const budgetThb = tier === 3 && params.max_budget_thb
+    ? Math.round(params.max_budget_thb * 1.2) // Tier 3: expand budget +20%
+    : params.max_budget_thb;
 
   let query = supabase
     .from("feed_products")
@@ -155,17 +160,31 @@ async function searchLazada(
     .eq("out_of_stock", false)
     .or(buildOrFilter(["product_name"], terms));
 
-  if (params.max_budget_thb != null) query = query.lte("price_thb", params.max_budget_thb);
-  // Don't filter by rating - most Lazada products have null ratings
-  if (params.brand) query = query.ilike("brand_name", `%${params.brand}%`);
+  if (budgetThb != null) query = query.lte("price_thb", budgetThb);
+
+  // Tier 1: rating >= 4.0 + sales >= 100 + brand filter (strict)
+  // Tier 2: rating >= 3.5 + no sales filter + brand filter (relaxed)
+  // Tier 3: no rating/sales/brand filters
+  // NOTE: Lazada data currently has very sparse rating/sales, so tiers degrade gracefully
+  if (tier === 1) {
+    query = query.gte("rating", 4.0);
+    query = query.gte("sales_7d", 100);
+    if (params.brand) query = query.ilike("brand_name", `%${params.brand}%`);
+  } else if (tier === 2) {
+    query = query.gte("rating", 3.5);
+    if (params.brand) query = query.ilike("brand_name", `%${params.brand}%`);
+  }
+  // Tier 3: no extra filters
 
   query = query.order("rating", { ascending: false, nullsFirst: false }).order("sales_7d", { ascending: false, nullsFirst: false }).limit(10);
 
   const { data, error } = await query;
   if (error) {
-    console.error("Lazada search error:", error);
+    console.error(`Lazada search (tier ${tier}) error:`, error);
     return [];
   }
+
+  console.log(`Lazada tier ${tier}: ${(data || []).length} results`);
 
   return (data || []).map((p: any) => ({
     id: p.id,
@@ -182,12 +201,14 @@ async function searchLazada(
     tracking_link: p.tracking_link || "",
     category: p.category_name_hebrew,
     is_featured: false,
+    search_tier: tier,
   }));
 }
 
 async function searchAliExpress(
   supabase: any,
-  params: ExtractedParams
+  params: ExtractedParams,
+  tier: 1 | 2 | 3 = 1
 ): Promise<NormalizedProduct[]> {
   const nameTerms = splitTerms([...params.search_terms_english]);
   const hebrewTerms = splitTerms([...params.search_terms_hebrew]);
@@ -201,49 +222,67 @@ async function searchAliExpress(
 
   if (allConditions.length === 0) return [];
 
-  // Try featured first
-  let query = supabase
-    .from("aliexpress_feed_products")
-    .select(
-      "id, product_name, product_name_hebrew, price_usd, original_price_usd, rating, sales_30d, category_name_hebrew, tracking_link, image_url, discount_percentage, is_featured"
-    )
-    .eq("out_of_stock", false)
-    .eq("is_featured", true)
-    .or(allConditions.join(","));
+  const budgetUsd = tier === 3 && params.max_budget_usd
+    ? Math.round(params.max_budget_usd * 1.2) // Tier 3: expand budget +20%
+    : params.max_budget_usd;
 
-  if (params.max_budget_usd != null) query = query.lte("price_usd", params.max_budget_usd);
-  if (params.min_rating && params.min_rating > 0) query = query.gte("rating", params.min_rating);
-  if (params.brand) query = query.ilike("product_name", `%${params.brand}%`);
-  query = query.order("rating", { ascending: false, nullsFirst: false }).order("sales_30d", { ascending: false, nullsFirst: false }).limit(10);
-
-  const { data: featuredData, error: featuredErr } = await query;
-  if (featuredErr) console.error("AliExpress featured search error:", featuredErr);
-
-  let useData = featuredData || [];
-  let allFeatured = useData.length >= 3;
-
-  if (useData.length < 3) {
-    // Fallback: search all products
-    let fallbackQuery = supabase
+  // Try featured first (only in tier 1)
+  if (tier === 1) {
+    let query = supabase
       .from("aliexpress_feed_products")
       .select(
         "id, product_name, product_name_hebrew, price_usd, original_price_usd, rating, sales_30d, category_name_hebrew, tracking_link, image_url, discount_percentage, is_featured"
       )
       .eq("out_of_stock", false)
+      .eq("is_featured", true)
       .or(allConditions.join(","));
 
-    if (params.max_budget_usd != null) fallbackQuery = fallbackQuery.lte("price_usd", params.max_budget_usd);
-    if (params.min_rating && params.min_rating > 0) fallbackQuery = fallbackQuery.gte("rating", params.min_rating);
-    if (params.brand) fallbackQuery = fallbackQuery.ilike("product_name", `%${params.brand}%`);
-    fallbackQuery = fallbackQuery.order("rating", { ascending: false, nullsFirst: false }).order("sales_30d", { ascending: false, nullsFirst: false }).limit(10);
+    if (budgetUsd != null) query = query.lte("price_usd", budgetUsd);
+    query = query.gte("rating", 4.0);
+    query = query.gte("sales_30d", 500);
+    if (params.brand) query = query.ilike("product_name", `%${params.brand}%`);
+    query = query.order("rating", { ascending: false, nullsFirst: false }).order("sales_30d", { ascending: false, nullsFirst: false }).limit(10);
 
-    const { data: allData, error: allErr } = await fallbackQuery;
-    if (allErr) console.error("AliExpress fallback search error:", allErr);
-    useData = allData || [];
-    allFeatured = false;
+    const { data: featuredData, error: featuredErr } = await query;
+    if (featuredErr) console.error("AliExpress featured search error:", featuredErr);
+
+    if (featuredData && featuredData.length >= 3) {
+      console.log(`AliExpress tier 1 (featured): ${featuredData.length} results`);
+      return normalizeAliProducts(featuredData);
+    }
   }
 
-  return useData.map((p: any) => ({
+  // Broader query with tier-based filters
+  let fallbackQuery = supabase
+    .from("aliexpress_feed_products")
+    .select(
+      "id, product_name, product_name_hebrew, price_usd, original_price_usd, rating, sales_30d, category_name_hebrew, tracking_link, image_url, discount_percentage, is_featured"
+    )
+    .eq("out_of_stock", false)
+    .or(allConditions.join(","));
+
+  if (budgetUsd != null) fallbackQuery = fallbackQuery.lte("price_usd", budgetUsd);
+
+  if (tier === 1) {
+    fallbackQuery = fallbackQuery.gte("rating", 4.0).gte("sales_30d", 500);
+    if (params.brand) fallbackQuery = fallbackQuery.ilike("product_name", `%${params.brand}%`);
+  } else if (tier === 2) {
+    fallbackQuery = fallbackQuery.gte("rating", 3.5);
+    if (params.brand) fallbackQuery = fallbackQuery.ilike("product_name", `%${params.brand}%`);
+  }
+  // Tier 3: no extra filters
+
+  fallbackQuery = fallbackQuery.order("rating", { ascending: false, nullsFirst: false }).order("sales_30d", { ascending: false, nullsFirst: false }).limit(10);
+
+  const { data: allData, error: allErr } = await fallbackQuery;
+  if (allErr) console.error(`AliExpress tier ${tier} search error:`, allErr);
+
+  console.log(`AliExpress tier ${tier}: ${(allData || []).length} results`);
+  return normalizeAliProducts(allData || []);
+}
+
+function normalizeAliProducts(data: any[]): NormalizedProduct[] {
+  return data.map((p: any) => ({
     id: p.id,
     platform: "aliexpress" as const,
     platform_label: "🇮🇱 AliExpress",
@@ -263,13 +302,18 @@ async function searchAliExpress(
 
 async function searchIsrael(
   supabase: any,
-  params: ExtractedParams
+  params: ExtractedParams,
+  tier: 1 | 2 | 3 = 1
 ): Promise<NormalizedProduct[]> {
   const hebrewConds = splitTerms(params.search_terms_hebrew).map((t) => `product_name_hebrew.ilike.%${t}%`);
   const engConds = splitTerms(params.search_terms_english).map((t) => `product_name_english.ilike.%${t}%`);
   const allConditions = [...hebrewConds, ...engConds];
 
   if (allConditions.length === 0) return [];
+
+  const budgetUsd = tier === 3 && params.max_budget_usd
+    ? Math.round(params.max_budget_usd * 1.2)
+    : params.max_budget_usd;
 
   let query = supabase
     .from("israel_editor_products")
@@ -280,17 +324,25 @@ async function searchIsrael(
     .eq("is_active", true)
     .or(allConditions.join(","));
 
-  if (params.max_budget_usd != null) query = query.lte("price_usd", params.max_budget_usd);
-  // Don't filter by rating - most Israel products have null ratings
-  if (params.brand) query = query.ilike("product_name_english", `%${params.brand}%`);
+  if (budgetUsd != null) query = query.lte("price_usd", budgetUsd);
+
+  // Israel editor products are curated, so tier filters are lighter
+  if (tier === 1) {
+    if (params.brand) query = query.ilike("product_name_english", `%${params.brand}%`);
+  } else if (tier === 2) {
+    if (params.brand) query = query.ilike("product_name_english", `%${params.brand}%`);
+  }
+  // Tier 3: no brand filter
 
   query = query.order("rating", { ascending: false, nullsFirst: false }).order("sales_count", { ascending: false, nullsFirst: false }).limit(10);
 
   const { data, error } = await query;
   if (error) {
-    console.error("Israel search error:", error);
+    console.error(`Israel search (tier ${tier}) error:`, error);
     return [];
   }
+
+  console.log(`Israel tier ${tier}: ${(data || []).length} results`);
 
   return (data || []).map((p: any) => ({
     id: p.id,
@@ -306,7 +358,7 @@ async function searchIsrael(
     image_url: p.image_url || "",
     tracking_link: p.tracking_link || "",
     category: p.category_name_hebrew,
-    is_featured: true, // israel_editor_products are all curated
+    is_featured: true,
   }));
 }
 
@@ -746,97 +798,89 @@ serve(async (req) => {
     const shouldSearchAli = effectivePlatform === "all" || effectivePlatform === "aliexpress" || effectivePlatform === "israel";
     const shouldSearchIsrael = effectivePlatform === "all" || effectivePlatform === "israel" || effectivePlatform === "aliexpress";
 
-    const [lazadaResults, aliResults, israelResults] = await Promise.all([
-      shouldSearchLazada ? searchLazada(supabase, params) : Promise.resolve([]),
-      shouldSearchAli ? searchAliExpress(supabase, params) : Promise.resolve([]),
-      shouldSearchIsrael ? searchIsrael(supabase, params) : Promise.resolve([]),
-    ]);
+    // ════════════════════════════════════════════
+    // 3-TIER DB SEARCH SYSTEM
+    // Tier 1: strict (rating 4+, high sales, brand)
+    // Tier 2: relaxed (rating 3.5+, no sales/mall)
+    // Tier 3: minimum (out_of_stock only, budget +20%)
+    // ════════════════════════════════════════════
+    let allProducts: NormalizedProduct[] = [];
+    let searchTier: 1 | 2 | 3 = 1;
+    let totalScanned = 0;
 
-    const totalScanned = lazadaResults.length + aliResults.length + israelResults.length;
-    console.log(`Results: Lazada=${lazadaResults.length}, AliExpress=${aliResults.length}, Israel=${israelResults.length}, Total=${totalScanned}`);
+    for (const tier of [1, 2, 3] as const) {
+      searchTier = tier;
+      console.log(`\n🔍 === TIER ${tier} SEARCH ===`);
 
-    const allProducts = [...lazadaResults, ...aliResults, ...israelResults];
+      const [lazadaResults, aliResults, israelResults] = await Promise.all([
+        shouldSearchLazada ? searchLazada(supabase, params, tier) : Promise.resolve([]),
+        shouldSearchAli ? searchAliExpress(supabase, params, tier) : Promise.resolve([]),
+        shouldSearchIsrael ? searchIsrael(supabase, params, tier) : Promise.resolve([]),
+      ]);
 
-    // Step C.5: Live API fallback for Israel/AliExpress when DB results < 3
-    const israelDbCount = aliResults.length + israelResults.length;
-    const shouldLiveSearchAli = (effectivePlatform === "all" || effectivePlatform === "israel" || effectivePlatform === "aliexpress") && israelDbCount < 3;
-    
-    let liveAliResults: NormalizedProduct[] = [];
-    if (shouldLiveSearchAli) {
-      console.log(`📡 Israel DB results (${israelDbCount}) < 3, triggering AliExpress LIVE search...`);
-      liveAliResults = await searchAliExpressLive(params);
-      
-      // Deduplicate: remove live results that match existing DB products by name similarity
-      const existingNames = new Set(allProducts.map(p => p.product_name.toLowerCase().substring(0, 30)));
-      liveAliResults = liveAliResults.filter(p => !existingNames.has(p.product_name.toLowerCase().substring(0, 30)));
-      
-      allProducts.push(...liveAliResults);
-      console.log(`Added ${liveAliResults.length} live AliExpress results, total now: ${allProducts.length}`);
+      totalScanned = lazadaResults.length + aliResults.length + israelResults.length;
+      console.log(`Tier ${tier} results: Lazada=${lazadaResults.length}, AliExpress=${aliResults.length}, Israel=${israelResults.length}, Total=${totalScanned}`);
+
+      allProducts = [...lazadaResults, ...aliResults, ...israelResults];
+
+      // Tier 1 needs >= 3 results to stop
+      if (tier === 1 && allProducts.length >= 3) break;
+      // Tier 2 needs >= 2 results to stop
+      if (tier === 2 && allProducts.length >= 2) break;
+      // Tier 3 always continues to live fallback if needed
     }
 
-    // Step C.6: Live API fallback for Lazada/Thailand when DB results < 3
-    const lazadaDbCount = lazadaResults.length;
-    const shouldLiveSearchLazada = (effectivePlatform === "all" || effectivePlatform === "lazada") && lazadaDbCount < 3;
+    console.log(`DB search completed at tier ${searchTier} with ${allProducts.length} results`);
 
+    // ════════════════════════════════════════════
+    // LIVE API FALLBACK (only if all DB tiers < 3)
+    // ════════════════════════════════════════════
+    let liveAliResults: NormalizedProduct[] = [];
     let liveLazadaResults: NormalizedProduct[] = [];
-    if (shouldLiveSearchLazada) {
-      console.log(`📡 Thailand DB results (${lazadaDbCount}) < 3, triggering Lazada LIVE category search...`);
-      liveLazadaResults = await searchLazadaLive(params, message);
 
-      // Deduplicate
-      const existingNames = new Set(allProducts.map(p => p.product_name.toLowerCase().substring(0, 30)));
-      liveLazadaResults = liveLazadaResults.filter(p => !existingNames.has(p.product_name.toLowerCase().substring(0, 30)));
+    if (allProducts.length < 3) {
+      // Live AliExpress fallback
+      const israelDbCount = allProducts.filter(p => p.platform === "aliexpress").length;
+      if ((shouldSearchAli || shouldSearchIsrael) && israelDbCount < 3) {
+        console.log(`📡 Israel DB results (${israelDbCount}) < 3 after all tiers, triggering AliExpress LIVE search...`);
+        liveAliResults = await searchAliExpressLive(params);
+        const existingNames = new Set(allProducts.map(p => p.product_name.toLowerCase().substring(0, 30)));
+        liveAliResults = liveAliResults.filter(p => !existingNames.has(p.product_name.toLowerCase().substring(0, 30)));
+        allProducts.push(...liveAliResults);
+        console.log(`Added ${liveAliResults.length} live AliExpress results, total now: ${allProducts.length}`);
+      }
 
-      allProducts.push(...liveLazadaResults);
-      console.log(`Added ${liveLazadaResults.length} live Lazada results, total now: ${allProducts.length}`);
+      // Live Lazada fallback
+      const lazadaDbCount = allProducts.filter(p => p.platform === "lazada" && !p.is_live_result).length;
+      if (shouldSearchLazada && lazadaDbCount < 3) {
+        console.log(`📡 Thailand DB results (${lazadaDbCount}) < 3 after all tiers, triggering Lazada LIVE category search...`);
+        liveLazadaResults = await searchLazadaLive(params, message);
+        const existingNames = new Set(allProducts.map(p => p.product_name.toLowerCase().substring(0, 30)));
+        liveLazadaResults = liveLazadaResults.filter(p => !existingNames.has(p.product_name.toLowerCase().substring(0, 30)));
+        allProducts.push(...liveLazadaResults);
+        console.log(`Added ${liveLazadaResults.length} live Lazada results, total now: ${allProducts.length}`);
+      }
     }
 
     // Step D: No results check
     if (allProducts.length < 3) {
-      // Try a broader search with lower rating
-      const broadParams = { ...params, min_rating: 0, brand: null };
-      const [bLazada, bAli, bIsrael] = await Promise.all([
-        shouldSearchLazada ? searchLazada(supabase, broadParams) : Promise.resolve([]),
-        shouldSearchAli ? searchAliExpress(supabase, broadParams) : Promise.resolve([]),
-        shouldSearchIsrael ? searchIsrael(supabase, broadParams) : Promise.resolve([]),
-      ]);
-      const broadResults = [...bLazada, ...bAli, ...bIsrael];
-
-      if (broadResults.length < 3 && liveAliResults.length === 0) {
-        // Last resort: try live search even with broad params
-        const liveBroad = await searchAliExpressLive(broadParams);
-        broadResults.push(...liveBroad);
-      }
-
-      if (broadResults.length < 3 && liveLazadaResults.length === 0) {
-        // Last resort for Lazada too
-        const liveLazBroad = await searchLazadaLive(broadParams, message);
-        broadResults.push(...liveLazBroad);
-      }
-
-      if (broadResults.length < 3) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: "לא נמצאו מוצרים מתאימים לבקשה",
-            suggestion: getSuggestion(params),
-            extracted_params: {
-              product: params.search_terms_hebrew[0] || params.search_terms_english[0] || "—",
-              budget: params.max_budget_usd ? `$${params.max_budget_usd.toFixed(0)}` : "ללא הגבלה",
-              rating: `${params.min_rating}+`,
-              brand: params.brand || null,
-              platform: params.platform,
-              priority: params.priority,
-            },
-            search_time_ms: Date.now() - startTime,
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Use broad results instead
-      allProducts.length = 0;
-      allProducts.push(...broadResults);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "לא נמצאו מוצרים מתאימים לבקשה",
+          suggestion: getSuggestion(params),
+          extracted_params: {
+            product: params.search_terms_hebrew[0] || params.search_terms_english[0] || "—",
+            budget: params.max_budget_usd ? `$${params.max_budget_usd.toFixed(0)}` : "ללא הגבלה",
+            rating: `${params.min_rating}+`,
+            brand: params.brand || null,
+            platform: params.platform,
+            priority: params.priority,
+          },
+          search_time_ms: Date.now() - startTime,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Step E: AI Ranking (with fallback if Gemini fails)
@@ -914,6 +958,7 @@ serve(async (req) => {
         },
         results,
         total_scanned: totalScanned,
+        search_tier: searchTier,
         live_results_count: liveAliResults.length + liveLazadaResults.length,
         search_time_ms: Date.now() - startTime,
       }),
