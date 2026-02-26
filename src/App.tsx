@@ -69,7 +69,7 @@ const AppContent = () => {
         <Route path="/join" element={<ChannelSelect />} />
         <Route path="/thailand" element={<Thailand />} />
         <Route path="/requests" element={<Requests />} />
-        <Route path="/product-search" element={<ProtectedRoute><ProductSearch /></ProtectedRoute>} />
+        <Route path="/product-search" element={<ProductSearch />} />
         <Route path="/auth" element={<Auth />} />
         <Route
           path="/admin"
