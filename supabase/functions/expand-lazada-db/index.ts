@@ -218,6 +218,8 @@ serve(async (req) => {
               brand_name: product.brandName,
               tracking_link: trackingLinks.get(pid) || `https://www.lazada.co.th/products/-i${pid}.html`,
               out_of_stock: false,
+              seller_name: product.sellerName || null,
+              stock: product.stock || null,
               updated_at: new Date().toISOString(),
             }, { onConflict: 'lazada_product_id' })
 

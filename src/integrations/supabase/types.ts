@@ -322,6 +322,8 @@ export type Database = {
           rating: number | null
           reviews_count: number | null
           sales_7d: number | null
+          seller_name: string | null
+          stock: number | null
           tracking_link: string | null
           updated_at: string
         }
@@ -344,6 +346,8 @@ export type Database = {
           rating?: number | null
           reviews_count?: number | null
           sales_7d?: number | null
+          seller_name?: string | null
+          stock?: number | null
           tracking_link?: string | null
           updated_at?: string
         }
@@ -366,6 +370,8 @@ export type Database = {
           rating?: number | null
           reviews_count?: number | null
           sales_7d?: number | null
+          seller_name?: string | null
+          stock?: number | null
           tracking_link?: string | null
           updated_at?: string
         }
