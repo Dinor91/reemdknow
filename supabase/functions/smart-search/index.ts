@@ -162,16 +162,15 @@ async function searchLazada(
 
   if (budgetThb != null) query = query.lte("price_thb", budgetThb);
 
-  // Tier 1: rating >= 4.0 + sales >= 100 + brand filter (strict)
-  // Tier 2: rating >= 3.5 + no sales filter + brand filter (relaxed)
-  // Tier 3: no rating/sales/brand filters
-  // NOTE: Lazada data currently has very sparse rating/sales, so tiers degrade gracefully
+  // Lazada tiers use sales_7d only (no rating/mall data from API)
+  // Tier 1: sales_7d >= 5 + brand filter
+  // Tier 2: sales_7d >= 1 + brand filter
+  // Tier 3: no extra filters, budget +20%
   if (tier === 1) {
-    query = query.gte("rating", 4.0);
-    query = query.gte("sales_7d", 100);
+    query = query.gte("sales_7d", 5);
     if (params.brand) query = query.ilike("brand_name", `%${params.brand}%`);
   } else if (tier === 2) {
-    query = query.gte("rating", 3.5);
+    query = query.gte("sales_7d", 1);
     if (params.brand) query = query.ilike("brand_name", `%${params.brand}%`);
   }
   // Tier 3: no extra filters
