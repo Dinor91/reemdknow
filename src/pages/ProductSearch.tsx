@@ -49,6 +49,7 @@ interface SearchResponse {
   live_results_count?: number;
   search_time_ms?: number;
   search_tier?: 1 | 2 | 3;
+  unique_count?: number;
 }
 
 const LOADING_MESSAGES = [
@@ -412,6 +413,14 @@ const ProductSearch = () => {
                   );
                 })}
               </div>
+
+              {response.unique_count !== undefined && response.unique_count < 3 && (
+                <p className="text-sm text-center text-muted-foreground">
+                  {response.unique_count === 1
+                    ? "נמצא מוצר אחד מתאים לחיפוש זה"
+                    : `נמצאו ${response.unique_count} מוצרים מתאימים לחיפוש זה`}
+                </p>
+              )}
 
               <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground gap-2 pt-2">
                 <span>החיפוש הושלם תוך {((response.search_time_ms || 0) / 1000).toFixed(1)} שניות</span>
