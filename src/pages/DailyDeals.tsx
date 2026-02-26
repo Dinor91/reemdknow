@@ -206,11 +206,11 @@ const DailyDeals = () => {
         </div>
 
         {/* Platform Selector */}
-        <div className="flex gap-3 justify-center mb-8">
+        <div className="grid grid-cols-2 gap-3 mb-8 max-w-md mx-auto">
           <Button
             size="lg"
             variant={platform === "lazada" ? "default" : "outline"}
-            className={`text-lg px-6 py-6 transition-all ${platform === "lazada" ? "bg-orange-500 hover:bg-orange-600 text-white" : "border-orange-500 text-orange-500 hover:bg-orange-50"}`}
+            className={`text-sm sm:text-lg px-3 sm:px-6 py-6 transition-all w-full ${platform === "lazada" ? "bg-orange-500 hover:bg-orange-600 text-white" : "border-orange-500 text-orange-500 hover:bg-orange-50"}`}
             onClick={() => handlePlatformSwitch("lazada")}
           >
             🇹🇭 Lazada Thailand
@@ -218,7 +218,7 @@ const DailyDeals = () => {
           <Button
             size="lg"
             variant={platform === "aliexpress" ? "default" : "outline"}
-            className={`text-lg px-6 py-6 transition-all ${platform === "aliexpress" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-blue-600 text-blue-600 hover:bg-blue-50"}`}
+            className={`text-sm sm:text-lg px-3 sm:px-6 py-6 transition-all w-full ${platform === "aliexpress" ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-blue-600 text-blue-600 hover:bg-blue-50"}`}
             onClick={() => handlePlatformSwitch("aliexpress")}
           >
             🇮🇱 AliExpress Israel
@@ -255,38 +255,41 @@ const DailyDeals = () => {
                 className={`cursor-pointer transition-all hover:shadow-md ${selectedProduct?.id === product.id ? "ring-2 ring-primary" : ""}`}
                 onClick={() => { setSelectedProduct(product); setGeneratedMessage(""); setIsEditing(false); }}
               >
-                <CardContent className="flex gap-4 p-4 items-center">
-                  {product.image_url && (
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-20 h-20 object-contain rounded-md bg-muted flex-shrink-0"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground line-clamp-2 text-sm mb-1">{product.name}</p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {product.price != null && product.price > 0 && (
-                        <Badge variant="secondary" className="text-sm font-bold">
-                          {platform === "lazada" ? `฿${product.price}` : `$${product.price}`}
-                        </Badge>
-                      )}
-                      {product.discount_percentage != null && product.discount_percentage > 0 && (
-                        <Badge variant="destructive" className="text-xs">-{product.discount_percentage}%</Badge>
-                      )}
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex gap-3 items-start">
+                    {product.image_url && (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-md bg-muted flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground line-clamp-2 text-sm mb-1">{product.name}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {product.price != null && product.price > 0 && (
+                          <Badge variant="secondary" className="text-sm font-bold">
+                            {platform === "lazada" ? `฿${product.price}` : `$${product.price}`}
+                          </Badge>
+                        )}
+                        {product.discount_percentage != null && product.discount_percentage > 0 && (
+                          <Badge variant="destructive" className="text-xs">-{product.discount_percentage}%</Badge>
+                        )}
+                      </div>
                       {product.sales != null && product.sales > 0 && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground block mt-1">
                           🔥 נמכר {product.sales} פעמים {platform === "lazada" ? "השבוע" : "החודש"}
                         </span>
                       )}
+                      {product.brand && (
+                        <p className="text-xs text-muted-foreground mt-1">{product.brand}</p>
+                      )}
                     </div>
-                    {product.brand && (
-                      <p className="text-xs text-muted-foreground mt-1">{product.brand}</p>
-                    )}
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
+                    className="w-full mt-3"
                     onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); setGeneratedMessage(""); setIsEditing(false); }}
                   >
                     ✍️ צור הודעה
