@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/logo.jpg";
+import logo from "@/assets/dknow-logo.png";
 import { trackEvent } from "@/lib/analytics";
 
 export const Header = () => {
