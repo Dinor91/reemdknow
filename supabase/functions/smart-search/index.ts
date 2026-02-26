@@ -436,31 +436,34 @@ async function searchAliExpressLive(params: ExtractedParams): Promise<Normalized
 
     console.log(`AliExpress live returned ${products.length} products`);
 
-    return products.map((p: any, i: number) => {
-      const salePrice = parseFloat(p.target_sale_price || p.target_original_price || "0");
-      const originalPrice = parseFloat(p.target_original_price || "0");
-      const discount = originalPrice > salePrice && originalPrice > 0
-        ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
-        : null;
+    // Filter out products without affiliate tracking links
+    return products
+      .filter((p: any) => p.promotion_link && p.promotion_link.trim() !== "")
+      .map((p: any, i: number) => {
+        const salePrice = parseFloat(p.target_sale_price || p.target_original_price || "0");
+        const originalPrice = parseFloat(p.target_original_price || "0");
+        const discount = originalPrice > salePrice && originalPrice > 0
+          ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
+          : null;
 
-      return {
-        id: `live-ali-${p.product_id || i}`,
-        platform: "aliexpress" as const,
-        platform_label: "🇮🇱 AliExpress Live",
-        product_name: p.product_title || "Unknown",
-        price_display: `$${salePrice.toFixed(2)}`,
-        price_usd: salePrice,
-        original_price_display: originalPrice > salePrice ? `$${originalPrice.toFixed(2)}` : null,
-        discount_percentage: discount,
-        rating: parseFloat(p.evaluate_rate?.replace("%", "") || "0") / 20, // convert % to 5-star
-        sales_count: parseInt(p.lastest_volume || "0"),
-        image_url: p.product_main_image_url || "",
-        tracking_link: p.promotion_link || p.product_detail_url || "",
-        category: null,
-        is_featured: false,
-        is_live_result: true,
-      };
-    });
+        return {
+          id: `live-ali-${p.product_id || i}`,
+          platform: "aliexpress" as const,
+          platform_label: "🇮🇱 AliExpress Live",
+          product_name: p.product_title || "Unknown",
+          price_display: `$${salePrice.toFixed(2)}`,
+          price_usd: salePrice,
+          original_price_display: originalPrice > salePrice ? `$${originalPrice.toFixed(2)}` : null,
+          discount_percentage: discount,
+          rating: parseFloat(p.evaluate_rate?.replace("%", "") || "0") / 20,
+          sales_count: parseInt(p.lastest_volume || "0"),
+          image_url: p.product_main_image_url || "",
+          tracking_link: p.promotion_link,
+          category: null,
+          is_featured: false,
+          is_live_result: true,
+        };
+      });
   } catch (error) {
     console.error("AliExpress live search error:", error);
     return [];
@@ -640,9 +643,10 @@ Return ONLY the category ID number as a string, nothing else.`;
       console.error("Error getting Lazada tracking links:", e);
     }
 
-    // Normalize products
+    // Normalize products - ONLY include those with valid affiliate tracking links
     const normalized: NormalizedProduct[] = products
       .filter((p: any) => !p.outOfStock && p.discountPrice > 0 && p.pictures?.length > 0)
+      .filter((p: any) => linkMap.has(String(p.productId))) // Remove products without affiliate links
       .map((p: any, i: number) => {
         const pid = String(p.productId);
         const price = parseFloat(p.discountPrice || "0");
@@ -663,12 +667,14 @@ Return ONLY the category ID number as a string, nothing else.`;
           rating: p.ratingScore || 0,
           sales_count: p.sales7d || 0,
           image_url: p.pictures?.[0] || "",
-          tracking_link: linkMap.get(pid) || `https://www.lazada.co.th/products/-i${pid}.html`,
+          tracking_link: linkMap.get(pid)!,
           category: null,
           is_featured: false,
           is_live_result: true,
         };
       });
+
+    console.log(`Lazada live: ${products.length} fetched, ${normalized.length} with affiliate links`);
 
     // If we have enough results, ask Gemini to filter the most relevant ones
     if (normalized.length > 5) {
