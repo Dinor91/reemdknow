@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter, Link2 } from "lucide-react";
+import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter, Link2, Search } from "lucide-react";
 import { LinkConverter } from "@/components/admin/LinkConverter";
+import { ProductSearchTab } from "@/components/admin/ProductSearchTab";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import dknowLogo from "@/assets/dknow-logo.png";
@@ -2654,6 +2655,11 @@ const Admin = () => {
               <MessageSquare className="h-3 w-3 md:h-4 md:w-4" />
               פניות
             </TabsTrigger>
+            <TabsTrigger value="smart-search" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <Search className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">חיפוש חכם</span>
+              <span className="sm:hidden">חיפוש</span>
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="stats">
             <StatsTab />
@@ -2669,6 +2675,9 @@ const Admin = () => {
           </TabsContent>
           <TabsContent value="requests">
             <RequestsTab />
+          </TabsContent>
+          <TabsContent value="smart-search">
+            <ProductSearchTab />
           </TabsContent>
         </Tabs>
       </div>
