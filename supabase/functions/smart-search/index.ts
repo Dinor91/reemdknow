@@ -918,16 +918,16 @@ serve(async (req) => {
       }));
     }
 
-    // Step F: Build final response (deduplicate by product_id)
+    // Step F: Build final response – deduplicate by product_id AND name
     const usedProductIds = new Set<string>();
+    const usedNameKeys = new Set<string>();
     const results = ranked.map((r: any) => {
-      let product = allProducts.find((p) => p.id === r.product_id && !usedProductIds.has(p.id));
-      if (!product) {
-        // Fallback: pick a product not yet used
-        product = allProducts.find((p) => !usedProductIds.has(p.id));
-        if (!product) return null;
-      }
+      const product = allProducts.find((p) => p.id === r.product_id);
+      if (!product) return null;
+      const nameKey = product.product_name.toLowerCase().substring(0, 40);
+      if (usedProductIds.has(product.id) || usedNameKeys.has(nameKey)) return null;
       usedProductIds.add(product.id);
+      usedNameKeys.add(nameKey);
       return {
         rank: r.rank,
         label_hebrew: r.label_hebrew,
@@ -949,6 +949,8 @@ serve(async (req) => {
         explanation_hebrew: r.explanation_hebrew,
       };
     }).filter(Boolean);
+    // Re-number ranks sequentially
+    results.forEach((r: any, i: number) => { r.rank = i + 1; });
 
     return new Response(
       JSON.stringify({
@@ -966,6 +968,7 @@ serve(async (req) => {
           priority: params.priority,
         },
         results,
+        unique_count: results.length,
         total_scanned: totalScanned,
         search_tier: searchTier,
         live_results_count: liveAliResults.length + liveLazadaResults.length,
