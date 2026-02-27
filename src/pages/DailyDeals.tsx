@@ -18,10 +18,14 @@ interface CategoryOption {
   filterValues: string[] | number[] | "all";
 }
 
-const LAZADA_CATEGORIES: CategoryOption[] = [
-  { label: "Games & Kids", emoji: "🎮", filterValues: [5090, 5095] },
-  { label: "Gadgets", emoji: "📱", filterValues: [42062201] },
-  { label: "Small Appliances", emoji: "🏠", filterValues: [3833] },
+interface LazadaCategoryOption extends CategoryOption {
+  curatedCategories?: string[];
+}
+
+const LAZADA_CATEGORIES: LazadaCategoryOption[] = [
+  { label: "Games & Kids", emoji: "🎮", filterValues: [5090, 5095], curatedCategories: ["ילדים"] },
+  { label: "Gadgets", emoji: "📱", filterValues: [42062201], curatedCategories: ["גאדג׳טים", "בית חכם", "כלי עבודה"] },
+  { label: "Small Appliances", emoji: "🏠", filterValues: [3833], curatedCategories: ["בית", "בית חכם"] },
   { label: "Best Sellers", emoji: "⭐", filterValues: "all" },
 ];
 
@@ -44,6 +48,7 @@ interface ProductItem {
   category: string | null;
   tracking_link: string | null;
   discount_percentage: number | null;
+  source?: "feed" | "curated";
 }
 
 const DailyDeals = () => {
@@ -72,19 +77,33 @@ const DailyDeals = () => {
       let items: ProductItem[] = [];
 
       if (platform === "lazada") {
-        let query = supabase
+        const lazadaCat = cat as LazadaCategoryOption;
+
+        // Query feed_products
+        let feedQuery = supabase
           .from("feed_products")
           .select("id, product_name, image_url, price_thb, original_price_thb, sales_7d, rating, brand_name, category_name_hebrew, tracking_link, discount_percentage, category_l1")
           .eq("out_of_stock", false);
-
         if (cat.filterValues !== "all") {
-          query = query.in("category_l1", cat.filterValues as number[]);
+          feedQuery = feedQuery.in("category_l1", cat.filterValues as number[]);
         }
+        feedQuery = feedQuery.order("sales_7d", { ascending: false, nullsFirst: false }).limit(10);
 
-        const { data, error } = await query.order("sales_7d", { ascending: false, nullsFirst: false }).limit(5);
-        if (error) throw error;
+        // Query category_products (curated)
+        let curatedQuery = supabase
+          .from("category_products")
+          .select("id, name_hebrew, name_english, price_thb, image_url, affiliate_link, category, rating, sales_count")
+          .eq("is_active", true);
+        if (lazadaCat.curatedCategories) {
+          curatedQuery = curatedQuery.in("category", lazadaCat.curatedCategories);
+        }
+        curatedQuery = curatedQuery.order("sales_count", { ascending: false, nullsFirst: false }).limit(10);
 
-        items = (data || []).map((p) => ({
+        const [feedRes, curatedRes] = await Promise.all([feedQuery, curatedQuery]);
+        if (feedRes.error) throw feedRes.error;
+        if (curatedRes.error) throw curatedRes.error;
+
+        const feedItems: ProductItem[] = (feedRes.data || []).map((p) => ({
           id: p.id,
           name: p.product_name,
           image_url: p.image_url,
@@ -96,17 +115,46 @@ const DailyDeals = () => {
           category: p.category_name_hebrew,
           tracking_link: p.tracking_link,
           discount_percentage: p.discount_percentage,
+          source: "feed" as const,
         }));
+
+        const curatedItems: ProductItem[] = (curatedRes.data || []).map((p) => ({
+          id: `curated-${p.id}`,
+          name: p.name_hebrew || p.name_english || "Unknown",
+          image_url: p.image_url,
+          price: p.price_thb,
+          original_price: null,
+          sales: p.sales_count,
+          rating: p.rating,
+          brand: null,
+          category: p.category,
+          tracking_link: p.affiliate_link,
+          discount_percentage: null,
+          source: "curated" as const,
+        }));
+
+        // Merge, deduplicate by first 40 chars of name, sort by sales, limit 5
+        const merged = [...curatedItems, ...feedItems];
+        const seen = new Set<string>();
+        const deduped: ProductItem[] = [];
+        for (const item of merged) {
+          const key = (item.name || "").substring(0, 40).toLowerCase().trim();
+          if (!seen.has(key)) {
+            seen.add(key);
+            deduped.push(item);
+          }
+        }
+        deduped.sort((a, b) => (b.sales || 0) - (a.sales || 0));
+        items = deduped.slice(0, 5);
+
       } else {
         let query = supabase
           .from("aliexpress_feed_products")
           .select("id, aliexpress_product_id, product_name, product_name_hebrew, image_url, price_usd, original_price_usd, sales_30d, rating, category_name_hebrew, tracking_link, discount_percentage, category_id")
           .eq("out_of_stock", false);
-
         if (cat.filterValues !== "all") {
           query = query.in("category_id", cat.filterValues as string[]);
         }
-
         const { data, error } = await query.order("sales_30d", { ascending: false, nullsFirst: false }).limit(5);
         if (error) throw error;
 
