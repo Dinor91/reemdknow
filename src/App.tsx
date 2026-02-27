@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import { CountryProvider } from "./contexts/CountryContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LoadingScreen } from "./components/LoadingScreen";
+import DinoChat from "./components/DinoChat";
 import { useState, useEffect } from "react";
 
 const queryClient = new QueryClient();
@@ -97,6 +98,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AppContent />
+            <DinoChat />
           </BrowserRouter>
         </TooltipProvider>
       </CountryProvider>
