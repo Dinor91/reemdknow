@@ -39,7 +39,11 @@ Always adapt the hook to the specific product. Never use a generic hook.]
 [Product name in Hebrew if possible]
 [1-2 lines describing what the product does in simple conversational Hebrew]
 
-⭐ דירוג [rating or "חדש"] | [sales] קונים מרוצים
+[IF rating exists and > 0: ⭐ דירוג [rating]]
+[IF rating is null, 0, or "חדש" → skip rating line entirely, do NOT show any rating line]
+
+[IF sales_7d exists and > 0: 🔥 נמכר [sales_7d] פעמים השבוע]
+[IF sales_7d is 0 or null → skip sales line entirely]
 
 ✨ למה זאת הבחירה שלי?
 • [benefit 1 – functional/practical]
@@ -49,6 +53,7 @@ Always adapt the hook to the specific product. Never use a generic hook.]
 (MINIMUM 2 bullets, MAXIMUM 4 bullets)
 
 💰 החל מ-[price] [currency symbol]
+📦 המחיר באתר עשוי להשתנות
 [IF coupon: 🎟️ לא לשכוח להכניס קופון: [COUPON]]
 [IF no coupon → skip entirely, do NOT add any coupon line]
 
@@ -61,14 +66,20 @@ RULES:
 - Benefits sound like personal recommendations
 - Never exceed 4 bullets
 - Never add coupon line if no coupon given
+- NEVER show rating line if rating is null, 0, or "חדש"
+- NEVER show sales line if sales_7d is 0 or null
+- ALWAYS add "📦 המחיר באתר עשוי להשתנות" right after the price line
 - Total message under 200 words`;
+
+    const ratingValue = product.rating && product.rating !== "חדש" && Number(product.rating) > 0 ? product.rating : null;
+    const salesValue = product.sales_7d && Number(product.sales_7d) > 0 ? product.sales_7d : null;
 
     const userPrompt = `Generate a WhatsApp deal message for this product:
 
 Name: ${product.name}
 Price: ${product.price}
-Rating: ${product.rating}
-Sales: ${product.sales}
+Rating: ${ratingValue ? ratingValue : "NONE - do NOT include any rating line"}
+Sales_7d: ${salesValue ? salesValue : "NONE - do NOT include any sales line"}
 Brand: ${product.brand || "לא ידוע"}
 Category: ${product.category || "כללי"}
 URL: ${productUrl}
