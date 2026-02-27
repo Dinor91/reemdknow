@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import dinoAvatar from "@/assets/dino-avatar.jpeg";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -260,10 +261,10 @@ const DinoChat = () => {
       {!isOpen && (
         <button
           onClick={handleOpen}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-teal-500 hover:bg-teal-600 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center text-2xl animate-in fade-in slide-in-from-bottom-4"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center overflow-hidden animate-in fade-in slide-in-from-bottom-4 ring-2 ring-teal-400 hover:ring-teal-300"
           aria-label="פתח את דינו"
         >
-          🦕
+          <img src={dinoAvatar} alt="דינו" className="w-full h-full object-cover" />
         </button>
       )}
 
@@ -273,7 +274,7 @@ const DinoChat = () => {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-teal-500 rounded-t-2xl">
             <div className="flex items-center gap-2">
-              <span className="text-xl">🦕</span>
+              <img src={dinoAvatar} alt="דינו" className="w-8 h-8 rounded-full object-cover" />
               <span className="font-bold text-white text-lg">דינו</span>
               <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse" />
             </div>
