@@ -40,6 +40,7 @@ interface NormalizedProduct {
   category: string | null;
   is_featured: boolean;
   is_live_result?: boolean;
+  source?: "feed" | "curated" | "live";
 }
 
 async function callGemini(messages: { role: string; content: string }[]): Promise<string> {
@@ -200,7 +201,66 @@ async function searchLazada(
     tracking_link: p.tracking_link || "",
     category: p.category_name_hebrew,
     is_featured: false,
+    source: "feed" as const,
     search_tier: tier,
+  }));
+}
+
+// ========== Curated category_products search (Thailand manual DB) ==========
+async function searchCurated(
+  supabase: any,
+  params: ExtractedParams
+): Promise<NormalizedProduct[]> {
+  const terms = [...params.search_terms_english, ...params.search_terms_hebrew];
+  if (terms.length === 0) return [];
+
+  const budgetThb = params.max_budget_thb;
+
+  // Build OR filter across name_hebrew, name_english, and category
+  const expanded = splitTerms(terms);
+  const conditions: string[] = [];
+  for (const term of expanded) {
+    conditions.push(`name_hebrew.ilike.%${term}%`);
+    conditions.push(`name_english.ilike.%${term}%`);
+    conditions.push(`category.ilike.%${term}%`);
+  }
+
+  let query = supabase
+    .from("category_products")
+    .select("id, name_hebrew, name_english, price_thb, image_url, affiliate_link, category, rating, sales_count, lazada_product_id")
+    .eq("is_active", true)
+    .or(conditions.join(","));
+
+  if (budgetThb != null) query = query.lte("price_thb", budgetThb);
+
+  query = query.order("rating", { ascending: false, nullsFirst: false })
+    .order("sales_count", { ascending: false, nullsFirst: false })
+    .limit(10);
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("Curated search error:", error);
+    return [];
+  }
+
+  console.log(`Curated (category_products): ${(data || []).length} results`);
+
+  return (data || []).map((p: any) => ({
+    id: `curated-${p.id}`,
+    platform: "lazada" as const,
+    platform_label: "🇹🇭 Lazada",
+    product_name: p.name_hebrew || p.name_english || "Unknown",
+    price_display: `฿${Math.round(p.price_thb || 0).toLocaleString()}`,
+    price_usd: (p.price_thb || 0) / RATES.USD_TO_THB,
+    original_price_display: null,
+    discount_percentage: null,
+    rating: p.rating || 0,
+    sales_count: p.sales_count || 0,
+    image_url: p.image_url || "",
+    tracking_link: p.affiliate_link || "",
+    category: p.category,
+    is_featured: true, // curated = featured quality
+    source: "curated" as const,
   }));
 }
 
@@ -814,6 +874,12 @@ serve(async (req) => {
     let searchTier: 1 | 2 | 3 = 1;
     let totalScanned = 0;
 
+    // Search curated products once (they always qualify as Tier 1)
+    let curatedResults: NormalizedProduct[] = [];
+    if (shouldSearchLazada) {
+      curatedResults = await searchCurated(supabase, params);
+    }
+
     for (const tier of [1, 2, 3] as const) {
       searchTier = tier;
       console.log(`\n🔍 === TIER ${tier} SEARCH ===`);
@@ -824,10 +890,11 @@ serve(async (req) => {
         shouldSearchIsrael ? searchIsrael(supabase, params, tier) : Promise.resolve([]),
       ]);
 
-      totalScanned = lazadaResults.length + aliResults.length + israelResults.length;
-      console.log(`Tier ${tier} results: Lazada=${lazadaResults.length}, AliExpress=${aliResults.length}, Israel=${israelResults.length}, Total=${totalScanned}`);
+      totalScanned = lazadaResults.length + aliResults.length + israelResults.length + curatedResults.length;
+      console.log(`Tier ${tier} results: Lazada=${lazadaResults.length}, Curated=${curatedResults.length}, AliExpress=${aliResults.length}, Israel=${israelResults.length}, Total=${totalScanned}`);
 
-      allProducts = [...lazadaResults, ...aliResults, ...israelResults];
+      // Curated products go first (higher priority), then feed results
+      allProducts = [...curatedResults, ...lazadaResults, ...aliResults, ...israelResults];
 
       // Tier 1 needs >= 3 results to stop
       if (tier === 1 && allProducts.length >= 3) break;
@@ -952,6 +1019,7 @@ serve(async (req) => {
         category: product.category,
         is_featured: product.is_featured,
         is_live_result: product.is_live_result || false,
+        source: product.source || "feed",
         explanation_hebrew: r.explanation_hebrew,
       };
     }).filter(Boolean);
