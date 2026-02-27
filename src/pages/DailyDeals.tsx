@@ -152,8 +152,8 @@ const DailyDeals = () => {
           product: {
             name: selectedProduct.name,
             price: priceStr,
-            rating: selectedProduct.rating ?? "חדש",
-            sales: selectedProduct.sales ?? 0,
+            rating: selectedProduct.rating ?? null,
+            sales_7d: selectedProduct.sales ?? 0,
             brand: selectedProduct.brand || "",
             category: selectedProduct.category || "",
             url: selectedProduct.tracking_link || "",
