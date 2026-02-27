@@ -434,6 +434,27 @@ export type Database = {
         }
         Relationships: []
       }
+      message_templates: {
+        Row: {
+          content: string
+          id: string
+          template_name: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          id?: string
+          template_name: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          id?: string
+          template_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
