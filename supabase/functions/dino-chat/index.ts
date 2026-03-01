@@ -282,18 +282,69 @@ serve(async (req) => {
       });
     }
 
-    // Chat mode - detect intent and respond
-    if (action === "chat") {
-      const { intent, params: intentParams } = await detectIntent(messages);
+    if (action === "fetch_template") {
+      const { data, error } = await supabase
+        .from("message_templates")
+        .select("content")
+        .eq("template_name", params.template_name)
+        .maybeSingle();
+      if (error) {
+        console.error("Fetch template error:", error);
+        return new Response(JSON.stringify({ error: "שגיאה בטעינת התבנית" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ content: data?.content || "" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
+    if (action === "generate_summary") {
+      // Generate weekly summary using template + product names
+      const template = params.template || "";
+      const productNames = params.product_names || [];
+      const summaryPrompt = `אתה כותב סיכום שבועי לקהילת דילים בוואטסאפ בעברית.
+השתמש בתבנית הבאה כבסיס:
+${template}
+
+המוצרים של השבוע:
+${productNames.map((n: string, i: number) => `${i + 1}. ${n}`).join("\n")}
+
+כתוב הודעה חמה וקצרה בעברית, עם אימוג׳ים בחסכנות.
+שמור על הפורמט של התבנית.`;
+
+      const raw = await callGemini([
+        { role: "system", content: "אתה כותב תוכן שיווקי בעברית לקהילת דילים." },
+        { role: "user", content: summaryPrompt },
+      ]);
+      return new Response(JSON.stringify({ message: raw }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "list_templates") {
+      const { data, error } = await supabase
+        .from("message_templates")
+        .select("template_name, content");
+      if (error) {
+        return new Response(JSON.stringify({ error: "שגיאה בטעינת תבניות" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ templates: data || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Chat mode - streaming AI
+    if (action === "chat") {
       const dinoSystemPrompt = `אתה דינו 🦕, עוזר AI ידידותי של צוות DKNOW.
 אתה מדבר בעברית בלבד, בגובה העיניים, קצר וחם.
 אתה מכיר את המערכת: מוצרים מ-Lazada (תאילנד) ו-AliExpress (ישראל), מאגר curated, כלי דילים, וסטטיסטיקות.
-תמיד תענה בקצרה וישירות. השתמש באימוג'ים בחסכנות.
-אם שואלים על מוצר - תמיד תשאל קודם "🇮🇱 ישראל או 🇹🇭 תאילנד?"
-אחרי תשובה כללית, תציע: "רוצה שאחפש את זה במאגר שלך?"`;
+תמיד תענה בקצרה וישירות. השתמש באימוג'ים בחסכנות.`;
 
-      // For general chat, use streaming
       const response = await callGemini(
         [
           { role: "system", content: dinoSystemPrompt },
