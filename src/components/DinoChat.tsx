@@ -102,12 +102,17 @@ const BACK_KEYWORDS = ["חזרה", "תפריט", "ביטול", "back", "cancel",
 
 // ────────────────── Helpers ──────────────────
 
-function detectIntentLocally(text: string): { intent: FlowType | "stats" | "chat"; searchQuery?: string } {
+function detectIntentLocally(text: string): { intent: FlowType | "stats" | "tasks" | "chat"; searchQuery?: string } {
   const lower = text.trim().toLowerCase();
 
   // Check for back/cancel commands
   if (BACK_KEYWORDS.some(k => lower === k || lower === `/${k}`)) {
     return { intent: "chat" }; // Will be handled separately
+  }
+
+  // Tasks / onboarding keyword
+  if (lower === "משימות" || lower === "פתיחה" || lower === "onboarding") {
+    return { intent: "tasks" };
   }
 
   // Statistics
@@ -309,43 +314,60 @@ const DinoChat = () => {
       setFlowHighCommission(true);
       addUser("🔥 עמלה גבוהה");
       
-      // Check campaign product count
       setIsLoading(true);
       try {
-        const { count, error } = await supabase
-          .from("aliexpress_feed_products")
-          .select("*", { count: "exact", head: true })
-          .eq("is_campaign_product", true)
-          .eq("out_of_stock", false);
-        
-        const campaignCount = count || 0;
-        
-        if (campaignCount === 0) {
-          // Try to check if campaigns exist via API
-          addAssistant("❌ אין קמפיינים רשומים", {
-            type: "buttons",
-            buttons: [
-              { label: "🌐 פתח פורטל", value: "open_affiliate_portal" },
-              { label: "🚀 ייבא קמפיינים", value: "trigger_sync" },
-            ],
-          });
-          setIsLoading(false);
-          return;
-        } else if (campaignCount < 10) {
-          addAssistant(`⚠️ יש רק ${campaignCount} מוצרי קמפיין, לייבא עוד?`, {
-            type: "buttons",
-            buttons: [
-              { label: "🚀 ייבא עכשיו", value: "trigger_sync" },
-              { label: "▶️ המשך עם מה שיש", value: "continue_categories" },
-            ],
-          });
-          setIsLoading(false);
-          return;
+        if (flowPlatform === "israel") {
+          // Check AliExpress campaign product count
+          const { count } = await supabase
+            .from("aliexpress_feed_products")
+            .select("*", { count: "exact", head: true })
+            .eq("is_campaign_product", true)
+            .eq("out_of_stock", false);
+          
+          const campaignCount = count || 0;
+          
+          if (campaignCount === 0) {
+            addAssistant("❌ אין קמפיינים רשומים", {
+              type: "buttons",
+              buttons: [
+                { label: "🌐 פתח פורטל", value: "open_affiliate_portal" },
+                { label: "🚀 ייבא קמפיינים", value: "trigger_sync" },
+              ],
+            });
+            setIsLoading(false);
+            return;
+          } else if (campaignCount < 10) {
+            addAssistant(`⚠️ יש רק ${campaignCount} מוצרי קמפיין, לייבא עוד?`, {
+              type: "buttons",
+              buttons: [
+                { label: "🚀 ייבא עכשיו", value: "trigger_sync" },
+                { label: "▶️ המשך עם מה שיש", value: "continue_categories" },
+              ],
+            });
+            setIsLoading(false);
+            return;
+          } else {
+            addAssistant(`✅ ${campaignCount} מוצרים זמינים`);
+          }
         } else {
-          addAssistant(`✅ ${campaignCount} מוצרים זמינים`);
+          // Check Lazada high commission product count
+          const { count } = await supabase
+            .from("feed_products")
+            .select("*", { count: "exact", head: true })
+            .gte("commission_rate", 0.15)
+            .eq("out_of_stock", false);
+          
+          const hcCount = count || 0;
+          
+          if (hcCount === 0) {
+            addAssistant("❌ אין מוצרים עם עמלה גבוהה כרגע");
+            setFlowHighCommission(false);
+          } else {
+            addAssistant(`✅ ${hcCount} מוצרים עם עמלה גבוהה זמינים`);
+          }
         }
       } catch (e) {
-        console.error("Campaign count error:", e);
+        console.error("Commission count error:", e);
       } finally {
         setIsLoading(false);
       }
@@ -363,18 +385,15 @@ const DinoChat = () => {
     addUser(platform === "israel" ? "🇮🇱 ישראל" : "🇹🇭 תאילנד");
 
     if (activeFlow === "deal") {
-      if (platform === "israel") {
-        // Show commission choice for Israel
-        addAssistant("🛒 מיון רגיל (לפי מכירות) או 🔥 עמלה גבוהה?", {
-          type: "buttons",
-          buttons: [
-            { label: "🛒 רגיל", value: "normal" },
-            { label: "🔥 עמלה גבוהה", value: "high_commission" },
-          ],
-        });
-        return;
-      }
-      showCategoryPicker(platform);
+      // Show commission choice for both Israel and Thailand
+      addAssistant("🛒 מיון רגיל (לפי מכירות) או 🔥 עמלה גבוהה?", {
+        type: "buttons",
+        buttons: [
+          { label: "🛒 רגיל", value: "normal" },
+          { label: "🔥 עמלה גבוהה", value: "high_commission" },
+        ],
+      });
+      return;
     } else if (activeFlow === "search") {
       if (searchQuery) {
         executeSearch(platform, searchQuery);
@@ -407,10 +426,16 @@ const DinoChat = () => {
       if (platform === "thailand") {
         const lazCat = cat as typeof LAZADA_CATEGORIES[0];
         let feedQ = supabase.from("feed_products")
-          .select("id, product_name, image_url, price_thb, sales_7d, rating, brand_name, category_name_hebrew, tracking_link, discount_percentage, category_l1")
+          .select("id, product_name, image_url, price_thb, sales_7d, rating, brand_name, category_name_hebrew, tracking_link, discount_percentage, category_l1, commission_rate")
           .eq("out_of_stock", false);
         if (cat.filterValues !== "all") feedQ = feedQ.in("category_l1", cat.filterValues as number[]);
-        feedQ = feedQ.order("sales_7d", { ascending: false, nullsFirst: false }).limit(10);
+        if (flowHighCommission) {
+          feedQ = feedQ.gte("commission_rate", 0.15);
+          feedQ = feedQ.order("commission_rate", { ascending: false }).order("sales_7d", { ascending: false, nullsFirst: false });
+        } else {
+          feedQ = feedQ.order("sales_7d", { ascending: false, nullsFirst: false });
+        }
+        feedQ = feedQ.limit(10);
 
         let curQ = supabase.from("category_products")
           .select("id, name_hebrew, name_english, price_thb, image_url, affiliate_link, category, rating, sales_count")
@@ -424,6 +449,7 @@ const DinoChat = () => {
           id: p.id, name: p.product_name, image_url: p.image_url, price: p.price_thb,
           sales: p.sales_7d, rating: p.rating, brand: p.brand_name, category: p.category_name_hebrew,
           tracking_link: p.tracking_link, discount_percentage: p.discount_percentage, source: "feed",
+          commission_rate: (p as any).commission_rate,
         }));
         const curItems: ProductItem[] = (curRes.data || []).map(p => ({
           id: `curated-${p.id}`, name: p.name_hebrew || p.name_english || "Unknown",
@@ -432,15 +458,38 @@ const DinoChat = () => {
           discount_percentage: null, source: "curated",
         }));
 
-        const merged = [...curItems, ...feedItems];
+        const merged = flowHighCommission ? [...feedItems] : [...curItems, ...feedItems];
         const seen = new Set<string>();
         const deduped: ProductItem[] = [];
         for (const item of merged) {
           const key = (item.name || "").substring(0, 40).toLowerCase().trim();
           if (!seen.has(key)) { seen.add(key); deduped.push(item); }
         }
-        deduped.sort((a, b) => (b.sales || 0) - (a.sales || 0));
-        items = deduped.slice(0, 5);
+        if (flowHighCommission) {
+          deduped.sort((a, b) => (b.commission_rate || 0) - (a.commission_rate || 0));
+        } else {
+          deduped.sort((a, b) => (b.sales || 0) - (a.sales || 0));
+        }
+
+        // Fallback for Thailand high commission
+        if (flowHighCommission && deduped.length === 0) {
+          addAssistant("לא נמצאו מוצרים עם עמלה גבוהה בקטגוריה הזו, מציג מוצרים רגילים... 🔄");
+          let fallbackQ = supabase.from("feed_products")
+            .select("id, product_name, image_url, price_thb, sales_7d, rating, brand_name, category_name_hebrew, tracking_link, discount_percentage, category_l1, commission_rate")
+            .eq("out_of_stock", false);
+          if (cat.filterValues !== "all") fallbackQ = fallbackQ.in("category_l1", cat.filterValues as number[]);
+          fallbackQ = fallbackQ.order("sales_7d", { ascending: false, nullsFirst: false }).limit(10);
+          const { data: fbData } = await fallbackQ;
+          const fbItems = (fbData || []).map(p => ({
+            id: p.id, name: p.product_name, image_url: p.image_url, price: p.price_thb,
+            sales: p.sales_7d, rating: p.rating, brand: p.brand_name, category: p.category_name_hebrew,
+            tracking_link: p.tracking_link, discount_percentage: p.discount_percentage, source: "feed",
+            commission_rate: (p as any).commission_rate,
+          }));
+          items = fbItems.slice(0, 5);
+        } else {
+          items = deduped.slice(0, 5);
+        }
       } else {
         let q = supabase.from("aliexpress_feed_products")
           .select("id, aliexpress_product_id, product_name, product_name_hebrew, image_url, price_usd, sales_30d, rating, category_name_hebrew, tracking_link, discount_percentage, category_id, commission_rate")
@@ -988,6 +1037,14 @@ const DinoChat = () => {
     // Detect intent locally
     const { intent, searchQuery: sq } = detectIntentLocally(text);
 
+    if (intent === "tasks") {
+      addUser(text);
+      addAssistant("🔄 טוען משימות...");
+      await fetchAlerts();
+      setMessages(prev => prev.filter(m => m.content !== "🔄 טוען משימות..."));
+      addAssistant("היי! מה נעשה? 🦕", { type: "menu" });
+      return;
+    }
     if (intent === "stats") {
       addUser(text);
       await handleStatistics();
@@ -1173,14 +1230,23 @@ const DinoChat = () => {
             <div className="flex items-center gap-2">
               <img src={dinoAvatar} alt="דינו" className="w-8 h-8 rounded-full object-cover" />
               <span className="font-bold text-white text-lg">דינו</span>
-              <span 
-                className={`w-2 h-2 rounded-full animate-pulse ${
-                  alerts.some(a => a.includes("❌")) ? "bg-red-400" :
-                  alerts.some(a => a.includes("⚠️")) ? "bg-yellow-300" :
-                  "bg-green-300"
-                }`}
-                title={alerts.find(a => a.includes("✅") || a.includes("⚠️") || a.includes("❌")) || "מחובר"}
-              />
+              {(() => {
+                const hasError = alerts.some(a => a.includes("❌"));
+                const hasWarn = alerts.some(a => a.includes("⚠️"));
+                const emoji = hasError ? "🔴" : hasWarn ? "🟡" : "🟢";
+                const color = hasError ? "bg-red-500" : hasWarn ? "bg-yellow-400" : "bg-green-400";
+                const tooltip = hasError
+                  ? alerts.find(a => a.includes("❌")) || "בעיה קריטית"
+                  : hasWarn
+                  ? alerts.find(a => a.includes("⚠️")) || "יש התראות"
+                  : "הכל תקין ✅";
+                return (
+                  <>
+                    <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${color}`} title={tooltip} />
+                    <span className="text-white/80 text-xs">{emoji}</span>
+                  </>
+                );
+              })()}
             </div>
             <button onClick={() => { setIsOpen(false); resetFlow(); }} className="text-white/80 hover:text-white transition-colors">
               <X className="w-5 h-5" />

@@ -131,7 +131,7 @@ async function getProactiveAlerts(supabase: any): Promise<string[]> {
     }
   } catch { /* ignore */ }
 
-  // Campaign health traffic light
+  // Campaign health traffic light - AliExpress
   try {
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -145,11 +145,27 @@ async function getProactiveAlerts(supabase: any): Promise<string[]> {
 
     const cc = campaignCount || 0;
     if (cc >= 50) {
-      alerts.push(`✅ מצב מעולה — ${cc} מוצרי קמפיין`);
+      alerts.push(`✅ 🇮🇱 מצב מעולה — ${cc} מוצרי קמפיין`);
     } else if (cc > 0) {
-      alerts.push(`⚠️ שים לב — רק ${cc} מוצרי קמפיין`);
+      alerts.push(`⚠️ 🇮🇱 שים לב — רק ${cc} מוצרי קמפיין`);
     } else {
-      alerts.push(`❌ אין קמפיינים — הרץ ייבוא`);
+      alerts.push(`❌ 🇮🇱 אין קמפיינים — הרץ ייבוא`);
+    }
+
+    // Lazada high commission health
+    const { count: lazadaHcCount } = await serviceClient
+      .from("feed_products")
+      .select("*", { count: "exact", head: true })
+      .gte("commission_rate", 0.15)
+      .eq("out_of_stock", false);
+
+    const lhc = lazadaHcCount || 0;
+    if (lhc >= 30) {
+      alerts.push(`✅ 🇹🇭 ${lhc} מוצרי עמלה גבוהה`);
+    } else if (lhc > 0) {
+      alerts.push(`⚠️ 🇹🇭 רק ${lhc} מוצרי עמלה גבוהה`);
+    } else {
+      alerts.push(`❌ 🇹🇭 אין מוצרי עמלה גבוהה`);
     }
   } catch { /* ignore */ }
 
