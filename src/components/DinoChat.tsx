@@ -815,17 +815,40 @@ const DinoChat = () => {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const { count } = await supabase
-        .from("button_clicks")
-        .select("*", { count: "exact", head: true })
-        .eq("button_type", "deal_generated")
-        .gte("created_at", today.toISOString());
-      
-      const goalCount = count || 0;
-      if (goalCount >= 2) {
-        return `🎉 יעד יומי הושלם! ${goalCount}/2 דילים`;
+      const todayISO = today.toISOString();
+
+      const [israelRes, thailandRes] = await Promise.all([
+        supabase
+          .from("button_clicks")
+          .select("*", { count: "exact", head: true })
+          .eq("button_type", "deal_generated")
+          .eq("country", "israel")
+          .gte("created_at", todayISO),
+        supabase
+          .from("button_clicks")
+          .select("*", { count: "exact", head: true })
+          .eq("button_type", "deal_generated")
+          .eq("country", "thailand")
+          .gte("created_at", todayISO),
+      ]);
+
+      const israelCount = israelRes.count || 0;
+      const thailandCount = thailandRes.count || 0;
+      const total = israelCount + thailandCount;
+
+      // Check if after 18:00 Israel time (UTC+3)
+      const israelHour = new Date(Date.now() + 3 * 60 * 60 * 1000).getUTCHours();
+      const missing = Math.max(0, 2 - israelCount) + Math.max(0, 2 - thailandCount);
+
+      if (total >= 4) {
+        return `🎉 יעד יומי הושלם! 🇮🇱 ${israelCount}/2 | 🇹🇭 ${thailandCount}/2`;
       }
-      return `📊 היום: ${goalCount}/2 דילים`;
+
+      let msg = `📊 🇮🇱 ${israelCount}/2 | 🇹🇭 ${thailandCount}/2`;
+      if (israelHour >= 18 && missing > 0) {
+        msg += ` ⚠️ חסרים ${missing} דילים`;
+      }
+      return msg;
     } catch {
       return null;
     }
@@ -833,8 +856,9 @@ const DinoChat = () => {
 
   const trackDealGenerated = async () => {
     try {
+      const country = flowPlatform || "israel";
       await supabase.functions.invoke("track-click", {
-        body: { button_type: "deal_generated", source: "dino_chat", country: "israel" },
+        body: { button_type: "deal_generated", source: "dino_chat", country },
       });
     } catch { /* ignore */ }
   };
