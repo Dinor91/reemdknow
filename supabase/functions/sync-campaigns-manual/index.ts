@@ -215,6 +215,17 @@ serve(async (req) => {
       console.error('Translation error:', e)
     }
 
+    // Cleanup: mark expired campaign products as out_of_stock
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: expiredData, error: cleanupError } = await supabase
+      .from('aliexpress_feed_products')
+      .update({ out_of_stock: true })
+      .eq('is_campaign_product', true)
+      .lt('updated_at', thirtyDaysAgo)
+      .select('id')
+    const expiredCount = cleanupError ? 0 : (expiredData?.length || 0)
+    if (expiredCount > 0) console.log(`Cleaned up ${expiredCount} expired campaign products`)
+
     const summary = {
       campaigns_found: promos.length,
       products_imported: upserted,
@@ -223,6 +234,7 @@ serve(async (req) => {
       errors,
       total_raw: allProducts.length,
       quality_filtered: uniqueProducts.length,
+      expired_cleaned: expiredCount,
     }
 
     console.log('Campaign sync complete:', JSON.stringify(summary))
