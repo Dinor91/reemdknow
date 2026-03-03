@@ -7,17 +7,20 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Send, Copy, Check, Loader2 } from "lucide-react";
+import { X, Send, Copy, Check, Loader2, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 // ────────────────── Types ──────────────────
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
-  type?: "text" | "menu" | "products" | "buttons" | "deal_message";
+  type?: "text" | "menu" | "products" | "buttons" | "deal_message" | "import_confirm";
   buttons?: ActionButton[];
   products?: ProductItem[];
+  importData?: ImportConfirmData;
 }
 
 interface ActionButton {
@@ -41,7 +44,15 @@ interface ProductItem {
   tier?: number;
 }
 
-type FlowType = "deal" | "search" | "import" | "summary" | "template" | null;
+interface ImportConfirmData {
+  platform: "israel" | "thailand";
+  platformLabel: string;
+  productId: string | null;
+  resolved_url: string;
+  original_url: string;
+}
+
+type FlowType = "deal" | "search" | "import" | "summary" | "template" | "import_name" | null;
 type DealStep = "platform" | "category" | "products" | "coupon" | "generating" | "done";
 type SearchStep = "platform" | "query" | "searching" | "results";
 type SummaryStep = "ask_products" | "generating" | "done";
@@ -81,10 +92,17 @@ const TEMPLATE_OPTIONS = [
   { label: "סיום הודעה", value: "סיום_הודעה" },
 ];
 
+const BACK_KEYWORDS = ["חזרה", "תפריט", "ביטול", "back", "cancel", "menu"];
+
 // ────────────────── Helpers ──────────────────
 
 function detectIntentLocally(text: string): { intent: FlowType | "stats" | "chat"; searchQuery?: string } {
   const lower = text.trim().toLowerCase();
+
+  // Check for back/cancel commands
+  if (BACK_KEYWORDS.some(k => lower === k || lower === `/${k}`)) {
+    return { intent: "chat" }; // Will be handled separately
+  }
 
   // Statistics
   if (lower.includes("סטטיסטיק") || lower.includes("קליקים") || lower.includes("נתונים")) {
@@ -97,7 +115,7 @@ function detectIntentLocally(text: string): { intent: FlowType | "stats" | "chat
   }
 
   // Message import (URL detection)
-  if (lower.includes("lazada.co.th") || lower.includes("s.click.aliexpress") || lower.includes("aliexpress.com/item")) {
+  if (lower.includes("lazada.co.th") || lower.includes("s.click.aliexpress") || lower.includes("aliexpress.com/item") || lower.includes("c.lazada") || lower.includes("a.aliexpress")) {
     return { intent: "import" };
   }
 
@@ -113,12 +131,16 @@ function detectIntentLocally(text: string): { intent: FlowType | "stats" | "chat
 
   // Product search
   if (lower.includes("חפש") || lower.includes("חיפוש") || lower.includes("מוצר") || lower.includes("search") || lower.includes("find")) {
-    // Extract query: remove the trigger word
     const query = text.replace(/חפש|חיפוש|מוצר|search|find/gi, "").trim();
     return { intent: "search", searchQuery: query || undefined };
   }
 
   return { intent: "chat" };
+}
+
+function isBackCommand(text: string): boolean {
+  const lower = text.trim().toLowerCase();
+  return BACK_KEYWORDS.some(k => lower === k || lower === `/${k}`);
 }
 
 // ────────────────── Component ──────────────────
@@ -142,6 +164,7 @@ const DinoChat = () => {
   const [flowProducts, setFlowProducts] = useState<ProductItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [pendingImport, setPendingImport] = useState<ImportConfirmData | null>(null);
 
   if (!isAdmin) return null;
 
@@ -176,11 +199,18 @@ const DinoChat = () => {
     setFlowProducts([]);
     setSelectedProduct(null);
     setSearchQuery("");
+    setEditingTemplate(null);
+    setPendingImport(null);
+  };
+
+  const handleBackToMenu = () => {
+    resetFlow();
+    addAssistant("חזרנו לתפריט 🦕", { type: "menu" });
   };
 
   const saveToStorage = (msgs: ChatMessage[]) => {
     try {
-      const toStore = msgs.filter(m => m.type !== "menu" && m.type !== "buttons" && m.type !== "products").slice(-MAX_STORED);
+      const toStore = msgs.filter(m => m.type !== "menu" && m.type !== "buttons" && m.type !== "products" && m.type !== "import_confirm").slice(-MAX_STORED);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
     } catch { /* ignore */ }
   };
@@ -285,14 +315,12 @@ const DinoChat = () => {
 
       if (platform === "thailand") {
         const lazCat = cat as typeof LAZADA_CATEGORIES[0];
-        // Feed products
         let feedQ = supabase.from("feed_products")
           .select("id, product_name, image_url, price_thb, sales_7d, rating, brand_name, category_name_hebrew, tracking_link, discount_percentage, category_l1")
           .eq("out_of_stock", false);
         if (cat.filterValues !== "all") feedQ = feedQ.in("category_l1", cat.filterValues as number[]);
         feedQ = feedQ.order("sales_7d", { ascending: false, nullsFirst: false }).limit(10);
 
-        // Curated
         let curQ = supabase.from("category_products")
           .select("id, name_hebrew, name_english, price_thb, image_url, affiliate_link, category, rating, sales_count")
           .eq("is_active", true);
@@ -313,7 +341,6 @@ const DinoChat = () => {
           discount_percentage: null, source: "curated",
         }));
 
-        // Merge, deduplicate, sort, limit 5
         const merged = [...curItems, ...feedItems];
         const seen = new Set<string>();
         const deduped: ProductItem[] = [];
@@ -324,7 +351,6 @@ const DinoChat = () => {
         deduped.sort((a, b) => (b.sales || 0) - (a.sales || 0));
         items = deduped.slice(0, 5);
       } else {
-        // AliExpress
         let q = supabase.from("aliexpress_feed_products")
           .select("id, aliexpress_product_id, product_name, product_name_hebrew, image_url, price_usd, sales_30d, rating, category_name_hebrew, tracking_link, discount_percentage, category_id")
           .eq("out_of_stock", false);
@@ -424,7 +450,6 @@ const DinoChat = () => {
         source: p.source,
       }));
 
-      // Remove the "searching" message and show results
       setMessages(prev => {
         const withoutSearching = prev.filter(m => m.content !== "🔍 מחפש...");
         if (results.length === 0) {
@@ -450,14 +475,91 @@ const DinoChat = () => {
 
   // ────────── IMPORT FLOW ──────────
 
-  const handleImport = (text: string) => {
-    const isLazada = text.includes("lazada.co.th") || text.includes("c.lazada");
-    const platform = isLazada ? "thailand" : "israel";
-    const platformLabel = isLazada ? "🇹🇭 Lazada (תאילנד)" : "🇮🇱 AliExpress (ישראל)";
-
+  const handleImport = async (text: string) => {
     addUser(text);
-    addAssistant(`זיהיתי לינק מ-${platformLabel}.\nפיצ'ר הייבוא עדיין בפיתוח 🚧\nבינתיים, תוכל להוסיף את המוצר ידנית דרך דף הניהול.`);
-    resetFlow();
+    setIsLoading(true);
+    setActiveFlow("import");
+
+    try {
+      const data = await invokeAction("import_product", { text });
+
+      if (!data?.success) {
+        addAssistant(data?.error || "שגיאה בזיהוי הלינק ❌");
+        resetFlow();
+        return;
+      }
+
+      if (data.step === "confirm") {
+        const importData: ImportConfirmData = {
+          platform: data.platform,
+          platformLabel: data.platformLabel,
+          productId: data.productId,
+          resolved_url: data.resolved_url,
+          original_url: data.original_url,
+        };
+        setPendingImport(importData);
+        addAssistant(
+          `זיהיתי לינק מ-${data.platformLabel}${data.productId ? `\nמזהה מוצר: ${data.productId}` : ""}\n\nלשמור במאגר?`,
+          {
+            type: "import_confirm",
+            importData,
+            buttons: [
+              { label: "✅ כן, שמור", value: "confirm_import" },
+              { label: "❌ לא, בטל", value: "cancel_import" },
+            ],
+          }
+        );
+      }
+    } catch (e: any) {
+      console.error("Import error:", e);
+      addAssistant(`שגיאה: ${e.message} ❌`);
+      resetFlow();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleImportConfirm = async (confirm: boolean) => {
+    if (!confirm || !pendingImport) {
+      addUser("❌ בוטל");
+      addAssistant("בוטל, לא נשמר מאומה.");
+      resetFlow();
+      return;
+    }
+
+    addUser("✅ שמור");
+    // Ask for product name
+    setActiveFlow("import_name");
+    addAssistant("מה שם המוצר בעברית? (או כתוב 'דלג' לשם ברירת מחדל)");
+  };
+
+  const handleImportName = async (text: string) => {
+    addUser(text);
+    setIsLoading(true);
+
+    const productName = text.trim().toLowerCase() === "דלג" ? undefined : text.trim();
+
+    try {
+      const data = await invokeAction("import_product", {
+        confirmed: true,
+        platform: pendingImport!.platform,
+        resolved_url: pendingImport!.resolved_url,
+        product_name: productName,
+      });
+
+      if (data?.success && data.step === "saved") {
+        addAssistant(data.message);
+      } else {
+        addAssistant(data?.error || "שגיאה בשמירה ❌");
+      }
+      resetFlow();
+    } catch (e: any) {
+      console.error("Import save error:", e);
+      addAssistant(`שגיאה: ${e.message} ❌`);
+      resetFlow();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // ────────── SUMMARY FLOW ──────────
@@ -472,14 +574,11 @@ const DinoChat = () => {
     setIsLoading(true);
 
     try {
-      // Fetch template
       const templateData = await invokeAction("fetch_template", { template_name: "סיכום_שבועי" });
       const template = templateData?.content || "";
 
-      // Parse product names
       const productNames = text.split(/[,،\n]+/).map((s: string) => s.trim()).filter(Boolean);
 
-      // Generate summary
       const data = await invokeAction("generate_summary", {
         template,
         product_names: productNames,
@@ -505,7 +604,6 @@ const DinoChat = () => {
       buttons: TEMPLATE_OPTIONS.map(t => ({ label: t.label, value: t.value })),
     });
   };
-
 
   const handleTemplateSelect = async (templateName: string) => {
     addUser(templateName);
@@ -534,7 +632,6 @@ const DinoChat = () => {
         new_content: newContent,
       });
       addAssistant(data?.message || "עודכן ✅");
-      setEditingTemplate(null);
       resetFlow();
     } catch (e: any) {
       addAssistant(`שגיאה: ${e.message} ❌`);
@@ -544,7 +641,7 @@ const DinoChat = () => {
     }
   };
 
-  // ────────── STATISTICS (existing) ──────────
+  // ────────── STATISTICS ──────────
 
   const handleStatistics = async () => {
     setIsLoading(true);
@@ -645,14 +742,23 @@ const DinoChat = () => {
     if (!text.trim() || isLoading) return;
     setInput("");
 
+    // Check for back command in any flow
+    if (isBackCommand(text) && activeFlow) {
+      addUser(text);
+      handleBackToMenu();
+      return;
+    }
+
     // If we're in an active flow, route to the right handler
+    if (activeFlow === "import_name" && pendingImport) {
+      await handleImportName(text);
+      return;
+    }
     if (activeFlow === "deal" && selectedProduct) {
-      // Waiting for coupon
       await handleCouponAndGenerate(text);
       return;
     }
     if (activeFlow === "search" && flowPlatform) {
-      // Waiting for search query
       addUser(text);
       setSearchQuery(text);
       await executeSearch(flowPlatform, text);
@@ -687,7 +793,7 @@ const DinoChat = () => {
       return;
     }
     if (intent === "import") {
-      handleImport(text);
+      await handleImport(text);
       return;
     }
     if (intent === "summary") {
@@ -726,6 +832,16 @@ const DinoChat = () => {
   // ────────── BUTTON HANDLER ──────────
 
   const handleButtonClick = (value: string) => {
+    // Import confirm/cancel
+    if (value === "confirm_import") {
+      handleImportConfirm(true);
+      return;
+    }
+    if (value === "cancel_import") {
+      handleImportConfirm(false);
+      return;
+    }
+
     if (activeFlow === "deal" && !flowPlatform) {
       handlePlatformSelect(value as "israel" | "thailand");
     } else if (activeFlow === "search" && !flowPlatform) {
@@ -748,6 +864,26 @@ const DinoChat = () => {
   };
 
   // ────────── RENDER ──────────
+
+  const renderAssistantText = (content: string) => (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+        ul: ({ children }) => <ul className="list-disc list-inside mb-1">{children}</ul>,
+        ol: ({ children }) => <ol className="list-decimal list-inside mb-1">{children}</ol>,
+        li: ({ children }) => <li className="mb-0.5">{children}</li>,
+        strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+        a: ({ href, children }) => (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">
+            {children}
+          </a>
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
 
   return (
     <>
@@ -786,6 +922,19 @@ const DinoChat = () => {
             </div>
           )}
 
+          {/* Back to Menu button */}
+          {activeFlow && !showResumePrompt && (
+            <div className="px-3 py-1.5 border-b">
+              <button
+                onClick={() => { handleBackToMenu(); }}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowRight className="w-3 h-3" />
+                <span>↩️ חזרה לתפריט</span>
+              </button>
+            </div>
+          )}
+
           {/* Resume Prompt */}
           {showResumePrompt && (
             <div className="flex-1 flex items-center justify-center p-6">
@@ -820,10 +969,10 @@ const DinoChat = () => {
                     </div>
                   )
 
-                  /* Buttons */
-                  : msg.type === "buttons" && msg.buttons ? (
+                  /* Buttons (including import confirm) */
+                  : (msg.type === "buttons" || msg.type === "import_confirm") && msg.buttons ? (
                     <div className="space-y-2">
-                      <p className="text-sm text-foreground">{msg.content}</p>
+                      <div className="text-sm text-foreground whitespace-pre-wrap">{msg.content}</div>
                       <div className="flex flex-wrap gap-2">
                         {msg.buttons.map(btn => (
                           <Button key={btn.value} size="sm" variant="outline" onClick={() => handleButtonClick(btn.value)}
@@ -888,7 +1037,7 @@ const DinoChat = () => {
                   : (
                     <div className="flex justify-end">
                       <div className="bg-muted rounded-2xl rounded-bl-sm px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap relative group">
-                        {msg.content}
+                        {msg.type === "deal_message" ? msg.content : renderAssistantText(msg.content)}
                         {msg.content.length > 50 && (
                           <button onClick={() => copyText(msg.content)}
                             className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-background/80">
@@ -923,7 +1072,7 @@ const DinoChat = () => {
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="כתוב לדינו..."
+                  placeholder={activeFlow ? "כתוב כאן... (או 'חזרה' לתפריט)" : "כתוב לדינו..."}
                   className="flex-1 text-sm rounded-xl"
                   disabled={isLoading}
                   autoFocus
