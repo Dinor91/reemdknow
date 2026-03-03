@@ -39,6 +39,7 @@ interface ProductItem {
   category: string | null;
   tracking_link: string | null;
   discount_percentage: number | null;
+  commission_rate?: number | null;
   source?: string;
   platform_label?: string;
   tier?: number;
@@ -53,7 +54,7 @@ interface ImportConfirmData {
 }
 
 type FlowType = "deal" | "search" | "import" | "summary" | "template" | "import_name" | null;
-type DealStep = "platform" | "category" | "products" | "coupon" | "generating" | "done";
+type DealStep = "platform" | "commission_choice" | "category" | "products" | "coupon" | "generating" | "done";
 type SearchStep = "platform" | "query" | "searching" | "results";
 type SummaryStep = "ask_products" | "generating" | "done";
 type TemplateStep = "pick" | "edit" | "confirming" | "done";
@@ -107,6 +108,11 @@ function detectIntentLocally(text: string): { intent: FlowType | "stats" | "chat
   // Statistics
   if (lower.includes("סטטיסטיק") || lower.includes("קליקים") || lower.includes("נתונים")) {
     return { intent: "stats" };
+  }
+
+  // High commission shortcut
+  if (lower.includes("עמלה גבוהה") || lower.includes("high commission")) {
+    return { intent: "deal", searchQuery: "high_commission" };
   }
 
   // Daily deal
@@ -165,6 +171,7 @@ const DinoChat = () => {
   const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [pendingImport, setPendingImport] = useState<ImportConfirmData | null>(null);
+  const [flowHighCommission, setFlowHighCommission] = useState(false);
 
   if (!isAdmin) return null;
 
@@ -201,6 +208,7 @@ const DinoChat = () => {
     setSearchQuery("");
     setEditingTemplate(null);
     setPendingImport(null);
+    setFlowHighCommission(false);
   };
 
   const handleBackToMenu = () => {
@@ -278,11 +286,33 @@ const DinoChat = () => {
     });
   };
 
+  const handleCommissionChoice = (choice: string) => {
+    if (choice === "high_commission") {
+      setFlowHighCommission(true);
+      addUser("🔥 עמלה גבוהה");
+    } else {
+      setFlowHighCommission(false);
+      addUser("🛒 רגיל");
+    }
+    showCategoryPicker(flowPlatform!);
+  };
+
   const handlePlatformSelect = (platform: "israel" | "thailand") => {
     setFlowPlatform(platform);
     addUser(platform === "israel" ? "🇮🇱 ישראל" : "🇹🇭 תאילנד");
 
     if (activeFlow === "deal") {
+      if (platform === "israel") {
+        // Show commission choice for Israel
+        addAssistant("🛒 מיון רגיל (לפי מכירות) או 🔥 עמלה גבוהה?", {
+          type: "buttons",
+          buttons: [
+            { label: "🛒 רגיל", value: "normal" },
+            { label: "🔥 עמלה גבוהה", value: "high_commission" },
+          ],
+        });
+        return;
+      }
       showCategoryPicker(platform);
     } else if (activeFlow === "search") {
       if (searchQuery) {
@@ -352,18 +382,45 @@ const DinoChat = () => {
         items = deduped.slice(0, 5);
       } else {
         let q = supabase.from("aliexpress_feed_products")
-          .select("id, aliexpress_product_id, product_name, product_name_hebrew, image_url, price_usd, sales_30d, rating, category_name_hebrew, tracking_link, discount_percentage, category_id")
+          .select("id, aliexpress_product_id, product_name, product_name_hebrew, image_url, price_usd, sales_30d, rating, category_name_hebrew, tracking_link, discount_percentage, category_id, commission_rate")
           .eq("out_of_stock", false);
         if (cat.filterValues !== "all") q = q.in("category_id", cat.filterValues as string[]);
-        const { data } = await q.order("sales_30d", { ascending: false, nullsFirst: false }).limit(5);
 
-        items = (data || []).map(p => ({
-          id: p.id, name: p.product_name_hebrew || p.product_name, image_url: p.image_url,
-          price: p.price_usd, sales: p.sales_30d, rating: p.rating, brand: null,
-          category: p.category_name_hebrew,
-          tracking_link: `https://www.aliexpress.com/item/${p.aliexpress_product_id}.html`,
-          discount_percentage: p.discount_percentage,
-        }));
+        if (flowHighCommission) {
+          q = q.gte("commission_rate", 0.09);
+          q = q.order("commission_rate", { ascending: false }).order("sales_30d", { ascending: false, nullsFirst: false });
+        } else {
+          q = q.order("sales_30d", { ascending: false, nullsFirst: false });
+        }
+        const { data } = await q.limit(5);
+
+        // Fallback: if high commission returned 0, retry without filter
+        if (flowHighCommission && (!data || data.length === 0)) {
+          addAssistant("לא נמצאו מוצרים עם עמלה גבוהה בקטגוריה הזו, מציג מוצרים רגילים... 🔄");
+          const { data: fallbackData } = await supabase.from("aliexpress_feed_products")
+            .select("id, aliexpress_product_id, product_name, product_name_hebrew, image_url, price_usd, sales_30d, rating, category_name_hebrew, tracking_link, discount_percentage, category_id, commission_rate")
+            .eq("out_of_stock", false)
+            .in("category_id", cat.filterValues === "all" ? [] : cat.filterValues as string[])
+            .order("sales_30d", { ascending: false, nullsFirst: false })
+            .limit(5);
+          items = (fallbackData || []).map(p => ({
+            id: p.id, name: p.product_name_hebrew || p.product_name, image_url: p.image_url,
+            price: p.price_usd, sales: p.sales_30d, rating: p.rating, brand: null,
+            category: p.category_name_hebrew,
+            tracking_link: `https://www.aliexpress.com/item/${p.aliexpress_product_id}.html`,
+            discount_percentage: p.discount_percentage,
+            commission_rate: p.commission_rate,
+          }));
+        } else {
+          items = (data || []).map(p => ({
+            id: p.id, name: p.product_name_hebrew || p.product_name, image_url: p.image_url,
+            price: p.price_usd, sales: p.sales_30d, rating: p.rating, brand: null,
+            category: p.category_name_hebrew,
+            tracking_link: `https://www.aliexpress.com/item/${p.aliexpress_product_id}.html`,
+            discount_percentage: p.discount_percentage,
+            commission_rate: p.commission_rate,
+          }));
+        }
       }
 
       setFlowProducts(items);
@@ -783,7 +840,18 @@ const DinoChat = () => {
     }
     if (intent === "deal") {
       addUser(text);
-      showPlatformPicker("deal");
+      if (sq === "high_commission") {
+        // Pre-set high commission and go directly to Israel
+        setFlowHighCommission(true);
+        setActiveFlow("deal");
+        setFlowPlatform("israel");
+        addAssistant("🔥 עמלה גבוהה - בחר קטגוריה:", {
+          type: "buttons",
+          buttons: ALIEXPRESS_CATEGORIES.map(c => ({ label: c.label, value: c.value })),
+        });
+      } else {
+        showPlatformPicker("deal");
+      }
       return;
     }
     if (intent === "search") {
@@ -839,6 +907,12 @@ const DinoChat = () => {
     }
     if (value === "cancel_import") {
       handleImportConfirm(false);
+      return;
+    }
+
+    // Commission choice (Israel deal flow)
+    if (activeFlow === "deal" && flowPlatform === "israel" && (value === "normal" || value === "high_commission")) {
+      handleCommissionChoice(value);
       return;
     }
 
@@ -1005,6 +1079,11 @@ const DinoChat = () => {
                               )}
                               {p.sales != null && p.sales > 0 && (
                                 <span className="text-xs text-muted-foreground">🔥 {p.sales}</span>
+                              )}
+                              {p.commission_rate != null && p.commission_rate > 0 && (
+                                <Badge className="text-[10px] bg-green-600 text-white border-green-600">
+                                  🔥 {Math.round(p.commission_rate * 100)}%
+                                </Badge>
                               )}
                               {p.tier && p.tier > 1 && (
                                 <Badge variant={p.tier === 2 ? "outline" : "destructive"} className="text-[10px]">
