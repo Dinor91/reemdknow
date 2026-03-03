@@ -328,7 +328,50 @@ serve(async (req) => {
         const formatDate = (d: Date) => d.toISOString().replace('T', ' ').substring(0, 19)
         const st = body.startTime || formatDate(thirtyDaysAgo)
         const et = body.endTime || formatDate(now)
-        result = await getOrderList(st, et, body.status || 'payment_completed', body.pageNo || 1, body.pageSize || 50)
+        const status = body.status || 'Payment Completed'
+        console.log('📋 Order list request params:', JSON.stringify({ startTime: st, endTime: et, status, trackingId: ALIEXPRESS_TRACKING_ID }))
+        result = await getOrderList(st, et, status, body.pageNo || 1, body.pageSize || 50)
+        
+        // Check for permission errors
+        const respResult = result?.aliexpress_affiliate_order_list_response?.resp_result
+        if (respResult?.resp_code === 407 || respResult?.resp_code === 15) {
+          console.error('⚠️ Order List API error:', JSON.stringify(respResult))
+          result = {
+            ...result,
+            _debug: {
+              warning: 'Order List API may require Advanced API permissions or date format is incorrect',
+              resp_code: respResult?.resp_code,
+              resp_msg: respResult?.resp_msg,
+              params_sent: { start_time: st, end_time: et, status: body.status || 'not set' }
+            }
+          }
+        }
+        console.log('📋 Order list FULL response:', JSON.stringify(result))
+        break
+      }
+
+      // Debug: get raw product data with all fields
+      case 'debug-product': {
+        const debugResult = await getHotProducts(undefined, body.keywords, 1, 1, 'USD', 'EN')
+        const rawProducts = debugResult?.aliexpress_affiliate_hotproduct_query_response?.resp_result?.result?.products?.product || []
+        const rawProduct = rawProducts[0] || null
+        
+        // Extract all commission/rate related fields
+        const rateFields: Record<string, any> = {}
+        if (rawProduct) {
+          for (const [key, value] of Object.entries(rawProduct)) {
+            if (/rate|commission|bonus|incentive|promotion|hot_product/i.test(key)) {
+              rateFields[key] = value
+            }
+          }
+        }
+        
+        result = {
+          raw_product: rawProduct,
+          commission_fields: rateFields,
+          all_field_names: rawProduct ? Object.keys(rawProduct) : [],
+          total_products_in_response: rawProducts.length
+        }
         break
       }
 
@@ -363,7 +406,8 @@ serve(async (req) => {
               'generate-link',
               'featured-promo',
               'categories',
-              'test'
+              'test',
+              'debug-product'
             ]
           }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

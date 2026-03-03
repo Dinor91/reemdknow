@@ -618,15 +618,17 @@ ${productNames.map((n: string, i: number) => `${i + 1}. ${n}`).join("\n")}
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
-        // Parse order response
+        // Parse order response — amounts are in cents (USD)
         const orderResp = aliData.data?.aliexpress_affiliate_order_list_response?.resp_result?.result;
         const orders = orderResp?.orders?.order || [];
-        const totalCommission = orders.reduce((sum: number, o: any) => sum + (parseFloat(o.estimated_paid_commission) || parseFloat(o.estimated_commission) || 0), 0);
-        const totalAmount = orders.reduce((sum: number, o: any) => sum + (parseFloat(o.order_amount) || 0), 0);
+        const totalCommissionCents = orders.reduce((sum: number, o: any) => sum + (parseFloat(o.estimated_paid_commission) || 0), 0);
+        const totalAmountCents = orders.reduce((sum: number, o: any) => sum + (parseFloat(o.paid_amount) || 0), 0);
+        const totalCommission = totalCommissionCents / 100;
+        const totalAmount = totalAmountCents / 100;
         const ilsAmount = Math.round(totalCommission * 3.70);
 
         const msg = orders.length > 0
-          ? `🇮🇱 אליאקספרס (30 יום):\n${orders.length} הזמנות | $${totalAmount.toFixed(0)} מכירות | $${totalCommission.toFixed(2)} עמלה (≈₪${ilsAmount})`
+          ? `🇮🇱 אליאקספרס (30 יום):\n${orders.length} הזמנות | $${totalAmount.toFixed(2)} מכירות | $${totalCommission.toFixed(2)} עמלה (≈₪${ilsAmount})`
           : `🇮🇱 אליאקספרס: אין הזמנות ב-30 יום האחרונים\n💡 טיפ: פרסם מוצרי קמפיין עם עמלה גבוהה`;
 
         return new Response(JSON.stringify({ message: msg }), {
@@ -680,7 +682,8 @@ ${productNames.map((n: string, i: number) => `${i + 1}. ${n}`).join("\n")}
         if (aliResp.ok && !aliData.error) {
           const orderResp = aliData.data?.aliexpress_affiliate_order_list_response?.resp_result?.result;
           const orders = orderResp?.orders?.order || [];
-          const comm = orders.reduce((s: number, o: any) => s + (parseFloat(o.estimated_paid_commission) || parseFloat(o.estimated_commission) || 0), 0);
+          const commCents = orders.reduce((s: number, o: any) => s + (parseFloat(o.estimated_paid_commission) || 0), 0);
+          const comm = commCents / 100;
           const ils = Math.round(comm * 3.70);
           totalILS += ils;
           results.push(orders.length > 0
