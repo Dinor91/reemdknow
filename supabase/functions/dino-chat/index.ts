@@ -72,6 +72,7 @@ async function verifyAdmin(supabase: any, authHeader: string): Promise<boolean> 
 async function getProactiveAlerts(supabase: any): Promise<string[]> {
   const alerts: string[] = [];
 
+  // Pending contact requests
   const { count } = await supabase
     .from("contact_requests")
     .select("*", { count: "exact", head: true })
@@ -81,20 +82,54 @@ async function getProactiveAlerts(supabase: any): Promise<string[]> {
     alerts.push(`יש ${count} בקשות לקוח ממתינות 📬`);
   }
 
-  const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
-  const { count: recentProducts } = await supabase
-    .from("category_products")
-    .select("*", { count: "exact", head: true })
-    .gte("created_at", fiveDaysAgo);
+  // Per-country freshness tracking
+  try {
+    const { data: lastIsrael } = await supabase
+      .from("israel_editor_products")
+      .select("created_at")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
 
-  const { count: recentIsrael } = await supabase
-    .from("israel_editor_products")
-    .select("*", { count: "exact", head: true })
-    .gte("created_at", fiveDaysAgo);
+    const { data: lastThailand } = await supabase
+      .from("category_products")
+      .select("created_at")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
 
-  if ((recentProducts || 0) + (recentIsrael || 0) === 0) {
-    alerts.push("לא נוספו מוצרים 5 ימים 📦");
-  }
+    const now = Date.now();
+    if (lastIsrael?.created_at) {
+      const daysIsrael = Math.floor((now - new Date(lastIsrael.created_at).getTime()) / (24 * 60 * 60 * 1000));
+      if (daysIsrael > 3) {
+        alerts.push(`🇮🇱 ישראל: ${daysIsrael} ימים ללא מוצר חדש`);
+      }
+    } else {
+      alerts.push("🇮🇱 ישראל: אין מוצרים עדיין");
+    }
+
+    if (lastThailand?.created_at) {
+      const daysThailand = Math.floor((now - new Date(lastThailand.created_at).getTime()) / (24 * 60 * 60 * 1000));
+      if (daysThailand > 3) {
+        alerts.push(`🇹🇭 תאילנד: ${daysThailand} ימים ללא מוצר חדש`);
+      }
+    } else {
+      alerts.push("🇹🇭 תאילנד: אין מוצרים עדיין");
+    }
+  } catch { /* ignore */ }
+
+  // Weekend summary reminders (Israel timezone UTC+3)
+  try {
+    const israelTime = new Date(Date.now() + 3 * 60 * 60 * 1000);
+    const day = israelTime.getUTCDay(); // 0=Sun, 4=Thu, 5=Fri
+    const hour = israelTime.getUTCHours();
+
+    if (day === 4 && hour >= 20) {
+      alerts.push("🔔 הכיני סיכום סופ\"ש (מחר בצהריים)");
+    } else if (day === 5 && hour >= 10 && hour < 16) {
+      alerts.push("⏳ תזכורת אחרונה: סיכום סופ\"ש");
+    }
+  } catch { /* ignore */ }
 
   // Campaign health traffic light
   try {
