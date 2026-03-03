@@ -1,50 +1,50 @@
 
 
-## תוכנית: תיקון פילטר Campaign Sync
+## ביקורת על הפרומט
 
-### הבעיה
-שורה 136 ב-`sync-campaigns-manual/index.ts`:
-```
-return evalRate >= 90 && commRate >= 15
-```
-98 מוצרים נמשכים אבל 0 עוברים את הסינון — הסף גבוה מדי.
+כמעט מתכנס, עם שני תיקונים:
 
-### השינויים
+### 1. סף הדירוג — 60 נמוך מדי
+- `evaluate_rate >= 60` = דירוג 3.0 כוכבים (60/20)
+- המדיניות שקבעת היא **מינימום 4.0 כוכבים** (= evaluate_rate >= 80)
+- הורדנו כבר ל-70 (3.5 כוכבים) וזה סביר כפשרה
+- 60 ישלוף מוצרים באיכות נמוכה שעלולים לפגוע באמינות ההמלצות בקבוצת WhatsApp
 
-**קובץ: `supabase/functions/sync-campaigns-manual/index.ts`**
+**המלצה:** השאר `evaluate_rate >= 70` (3.5 כוכבים) — זו כבר הרחבה מספיקה
 
-1. **שורות 131-137** — החלפת הפילטר + הוספת logging מפורט:
-```typescript
-// Step 3: Filter by quality (relaxed: rating >= 3.5 = evaluate_rate >= 70%, commission >= 8%)
-const ratePassCount = allProducts.filter(p => {
-  const evalRate = p.evaluate_rate ? parseFloat(String(p.evaluate_rate).replace('%', '')) : 0
-  return evalRate >= 70
-}).length
-const commPassCount = allProducts.filter(p => {
-  const commRate = p.commission_rate ? parseFloat(String(p.commission_rate)) : 0
-  return commRate >= 8
-}).length
+### 2. שגיאה בשאילתת ה-Validation
+הטבלה `aliexpress_feed_products` לא מכילה עמודת `is_active` — יש `out_of_stock`.
 
-const qualityProducts = allProducts.filter(p => {
-  if (!p.product_id || !p.product_main_image_url || !p.target_sale_price) return false
-  const evalRate = p.evaluate_rate ? parseFloat(String(p.evaluate_rate).replace('%', '')) : 0
-  const commRate = p.commission_rate ? parseFloat(String(p.commission_rate)) : 0
-  return evalRate >= 70 && commRate >= 8
-})
-
-console.log(`Filter breakdown: rate>=70: ${ratePassCount}, commission>=8: ${commPassCount}, both: ${qualityProducts.length}`)
-```
-
-2. **Deploy** את ה-Edge Function מיד אחרי השינוי.
-
-3. **הרצת סנכרון ידני** דרך curl ל-`sync-campaigns-manual` ובדיקת תוצאות.
-
-4. **Validation** — שאילתת DB:
+**תיקון:**
 ```sql
-SELECT COUNT(*) FROM aliexpress_feed_products WHERE is_campaign_product = true AND out_of_stock = false;
+SELECT COUNT(*) FROM aliexpress_feed_products 
+WHERE is_campaign_product = true AND out_of_stock = false;
 ```
-+ 3 מוצרים לדוגמה עם שם, commission, rating.
 
-### תוצאה צפויה
-20-40 מוצרי קמפיין עם עמלה 8-17%.
+### 3. הפילטר כבר עודכן
+הפילטר כבר שונה ל-`evaluate_rate >= 70 AND commission_rate >= 8` בסשן הקודם, ו-12 מוצרים נכנסו. אם רוצים עוד מוצרים, האפשרויות הן:
+- **להוריד commission ל-5%** (במקום להוריד rating) — יותר מוצרים בלי לפגוע באיכות
+- **להוסיף עוד דפים** (כרגע שולפים pages 1-2 בלבד, אפשר עד 5)
+- **שניהם ביחד** — סביר לקבל 30-50 מוצרים
+
+### פרומט מתוקן מוצע
+
+```text
+Expand Campaign Sync - More Products
+
+Current: 12 campaign products (filter: rate>=70, commission>=8, pages 1-2)
+Goal: 30-50 products for daily WhatsApp rotation
+
+Changes to sync-campaigns-manual/index.ts:
+1. Lower commission threshold: commission_rate >= 5 (instead of 8)
+2. Fetch more pages: pages 1-4 (instead of 1-2) for both promo and hot products
+3. Keep quality: evaluate_rate >= 70 (3.5 stars minimum)
+4. Deploy + run sync immediately
+
+Validation:
+SELECT COUNT(*) FROM aliexpress_feed_products 
+WHERE is_campaign_product = true AND out_of_stock = false;
+
+Expected: 30-50 total campaign products
+```
 
