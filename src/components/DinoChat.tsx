@@ -387,7 +387,7 @@ const DinoChat = () => {
         if (cat.filterValues !== "all") q = q.in("category_id", cat.filterValues as string[]);
 
         if (flowHighCommission) {
-          q = q.gte("commission_rate", 0.09);
+          q = q.gte("commission_rate", 0.15);
           q = q.order("commission_rate", { ascending: false }).order("sales_30d", { ascending: false, nullsFirst: false });
         } else {
           q = q.order("sales_30d", { ascending: false, nullsFirst: false });
