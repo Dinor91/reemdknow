@@ -300,15 +300,58 @@ const DinoChat = () => {
     });
   };
 
-  const handleCommissionChoice = (choice: string) => {
+  const handleCommissionChoice = async (choice: string) => {
     if (choice === "high_commission") {
       setFlowHighCommission(true);
       addUser("🔥 עמלה גבוהה");
+      
+      // Check campaign product count
+      setIsLoading(true);
+      try {
+        const { count, error } = await supabase
+          .from("aliexpress_feed_products")
+          .select("*", { count: "exact", head: true })
+          .eq("is_campaign_product", true)
+          .eq("out_of_stock", false);
+        
+        const campaignCount = count || 0;
+        
+        if (campaignCount === 0) {
+          // Try to check if campaigns exist via API
+          addAssistant("❌ אין קמפיינים רשומים", {
+            type: "buttons",
+            buttons: [
+              { label: "🌐 פתח פורטל", value: "open_affiliate_portal" },
+              { label: "🚀 ייבא קמפיינים", value: "trigger_sync" },
+            ],
+          });
+          setIsLoading(false);
+          return;
+        } else if (campaignCount < 10) {
+          addAssistant(`⚠️ יש רק ${campaignCount} מוצרי קמפיין, לייבא עוד?`, {
+            type: "buttons",
+            buttons: [
+              { label: "🚀 ייבא עכשיו", value: "trigger_sync" },
+              { label: "▶️ המשך עם מה שיש", value: "continue_categories" },
+            ],
+          });
+          setIsLoading(false);
+          return;
+        } else {
+          addAssistant(`✅ ${campaignCount} מוצרים זמינים`);
+        }
+      } catch (e) {
+        console.error("Campaign count error:", e);
+      } finally {
+        setIsLoading(false);
+      }
+      
+      showCategoryPicker(flowPlatform!);
     } else {
       setFlowHighCommission(false);
       addUser("🛒 רגיל");
+      showCategoryPicker(flowPlatform!);
     }
-    showCategoryPicker(flowPlatform!);
   };
 
   const handlePlatformSelect = (platform: "israel" | "thailand") => {
@@ -1017,6 +1060,21 @@ const DinoChat = () => {
       return;
     }
 
+    // Campaign status buttons
+    if (value === "open_affiliate_portal") {
+      window.open("https://portals.aliexpress.com/", "_blank");
+      addAssistant("פתחתי את פורטל השותפים בטאב חדש 🌐");
+      return;
+    }
+    if (value === "trigger_sync") {
+      handleCampaignSync();
+      return;
+    }
+    if (value === "continue_categories") {
+      showCategoryPicker(flowPlatform!);
+      return;
+    }
+
     // Commission choice (Israel deal flow)
     if (activeFlow === "deal" && flowPlatform === "israel" && (value === "normal" || value === "high_commission")) {
       handleCommissionChoice(value);
@@ -1087,7 +1145,14 @@ const DinoChat = () => {
             <div className="flex items-center gap-2">
               <img src={dinoAvatar} alt="דינו" className="w-8 h-8 rounded-full object-cover" />
               <span className="font-bold text-white text-lg">דינו</span>
-              <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse" />
+              <span 
+                className={`w-2 h-2 rounded-full animate-pulse ${
+                  alerts.some(a => a.includes("❌")) ? "bg-red-400" :
+                  alerts.some(a => a.includes("⚠️")) ? "bg-yellow-300" :
+                  "bg-green-300"
+                }`}
+                title={alerts.find(a => a.includes("✅") || a.includes("⚠️") || a.includes("❌")) || "מחובר"}
+              />
             </div>
             <button onClick={() => { setIsOpen(false); resetFlow(); }} className="text-white/80 hover:text-white transition-colors">
               <X className="w-5 h-5" />
