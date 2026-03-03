@@ -134,14 +134,14 @@ serve(async (req) => {
       return evalRate >= 70
     }).length
     const commPassCount = allProducts.filter(p => {
-      const commRate = p.commission_rate ? parseFloat(String(p.commission_rate)) : 0
+      const commRate = p.commission_rate ? parseFloat(String(p.commission_rate).replace('%', '')) : 0
       return commRate >= 5
     }).length
 
     const qualityProducts = allProducts.filter(p => {
       if (!p.product_id || !p.product_main_image_url || !p.target_sale_price) return false
       const evalRate = p.evaluate_rate ? parseFloat(String(p.evaluate_rate).replace('%', '')) : 0
-      const commRate = p.commission_rate ? parseFloat(String(p.commission_rate)) : 0
+      const commRate = p.commission_rate ? parseFloat(String(p.commission_rate).replace('%', '')) : 0
       return evalRate >= 70 && commRate >= 5
     })
 
@@ -179,15 +179,16 @@ serve(async (req) => {
         trackingLink = await generateAffiliateLink(productUrl) || productUrl
       }
 
-      const baseRate = product.commission_rate ? parseFloat(String(product.commission_rate)) : 0
-      const incentiveRate = product.incentive_commission_rate ? parseFloat(String(product.incentive_commission_rate)) : 0
-      const totalRate = (baseRate + incentiveRate) / 100
+      const baseRate = product.commission_rate ? parseFloat(String(product.commission_rate).replace('%', '')) : 0
+      const hotRate = product.hot_product_commission_rate ? parseFloat(String(product.hot_product_commission_rate).replace('%', '')) : 0
+      const totalRate = (baseRate + hotRate) / 100
       const commissionRate = totalRate > 0 ? totalRate : null
       if (commissionRate) totalCommission += commissionRate
 
       // Log first 3 products for debugging commission fields
       if (upserted < 3) {
-        console.log(`📊 Product ${productId}: base=${baseRate}%, incentive=${incentiveRate}%, total=${totalRate * 100}%`)
+        console.log(`📊 Product ${productId}: base=${baseRate}%, hot_bonus=${hotRate}%, total=${totalRate * 100}%`)
+        console.log(`📊 Raw fields: commission_rate=${product.commission_rate}, hot_product_commission_rate=${product.hot_product_commission_rate}`)
       }
 
       const { error } = await supabase.from('aliexpress_feed_products').upsert({
