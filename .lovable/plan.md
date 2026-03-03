@@ -1,44 +1,46 @@
 
 
-## Plan: Smart Campaign Status + Auto-Sync + Header Indicator
+## סטטוס: המשימה בוצעה ~40% — והשלמתה כן מעלה את המוכנות
 
-### Change 1: Status-based messages in High Commission flow
+### מה חסר (סיכום מהיר)
 
-**File: `src/components/DinoChat.tsx`**
+| פער | השפעה |
+|-----|--------|
+| ההתראה הגנרית "5 ימים" עדיין קיימת (שורה 96 ב-edge function) | רעש במקום מידע |
+| Daily goal לא מפריד ישראל/תאילנד | לא יודע אם חסר דיל ספציפי |
+| `trackDealGenerated` תמיד שולח `country: "israel"` (שורה 837) | נתונים לא מדויקים |
+| אין התראת 18:00 על דילים חסרים | לא דוחף לפעולה |
+| אין תזכורות סופ"ש (חמישי/שישי) | שוכחים סיכום שבועי |
+| אין freshness נפרד לכל מדינה | לא יודע איפה הבעיה |
 
-In `handleCommissionChoice` (around line 303), when user picks "high commission":
-- Query `aliexpress_feed_products` for `is_campaign_product = true` count
-- **0 campaigns**: Show "❌ אין קמפיינים רשומים" with a button `[🌐 פתח פורטל]` linking to AliExpress affiliate portal
-- **Campaigns exist but 0 imported (is_campaign_product count = 0 but campaigns API has results)**: Show "⚠️ יש קמפיינים, לייבא עכשיו?" with a `[🚀 ייבא]` button that triggers sync
-- **Products available (count > 0)**: Show "✅ X מוצרים זמינים" and proceed to category picker
+### האם זה מעלה את אחוזי המוכנות?
 
-### Change 2: Daily Cron Job (04:00 UTC)
+כן. הנה המיפוי:
 
-**DB insert (not migration):** Schedule a `pg_cron` job that calls `sync-campaigns-manual` daily at 04:00 UTC using `pg_net`:
-- Requires enabling `pg_cron` and `pg_net` extensions first (migration)
-- The cron job POSTs to the edge function URL with the anon key
-- The `sync-campaigns-manual` edge function already handles the import logic
-- Add expired product cleanup: set `out_of_stock = true` for campaign products older than 30 days with no recent update
+```text
+לפני השלמה:     אחרי השלמה:
+──────────────   ──────────────
+התראות:  60%  →  95%   (freshness נפרד + scheduling)
+מעקב יעדים: 50% → 95% (הפרדה לפי מדינה + 18:00)
+ייבוא:   85%  →  85%   (לא משתנה — Smart Import נפרד)
+דיל יומי: 85%  →  85%   (לא משתנה)
+צ'אט AI: 95%  →  95%   (לא משתנה)
+──────────────   ──────────────
+כולל:    ~75%  →  ~90%
+```
 
-**File: `supabase/functions/sync-campaigns-manual/index.ts`**
-- Add a cleanup step at the end: mark `is_campaign_product` products as `out_of_stock` if `updated_at < now() - 30 days`
+ההשלמה מעלה את דינו מ-~75% ל-~90% מוכנות. ה-10% הנותרים = Smart Import + פערי Daily Deals.
 
-### Change 3: Status indicator in Dino header
+### תוכנית ביצוע (2 קבצים)
 
-**File: `src/components/DinoChat.tsx`**
+**1. Edge Function — `getProactiveAlerts`:**
+- הסר "לא נוספו מוצרים 5 ימים" המאוחד
+- הוסף freshness נפרד: שאילתה ל-`israel_editor_products` ול-`category_products`, הצגה רק אם > 3 ימים
+- הוסף בדיקת יום/שעה (UTC+3): תזכורות חמישי 20:00 ושישי 10:00
 
-In the chat header (line ~1086-1091), replace the static green pulse dot with a dynamic campaign health indicator:
-- Use the `alerts` state (already fetched on open) to determine status
-- Parse the campaign health alert string for the emoji prefix (✅/⚠️/❌)
-- Show 🟢 (green), 🟡 (yellow), or 🔴 (red) dot accordingly
-- Add tooltip text on hover showing the full status message
-
-### Files to Edit
-
-| File | Change |
-|------|--------|
-| `src/components/DinoChat.tsx` | Status-based high commission messages, dynamic header indicator |
-| `supabase/functions/sync-campaigns-manual/index.ts` | Add cleanup of expired campaign products |
-| DB (extensions migration) | Enable `pg_cron` and `pg_net` extensions |
-| DB (insert, not migration) | Schedule daily cron job at 04:00 UTC |
+**2. Client — `DinoChat.tsx`:**
+- `fetchDailyGoal`: שתי שאילתות נפרדות עם `.eq("country", "israel")` / `.eq("country", "thailand")`
+- פורמט: `📊 ישראל: X/2 | תאילנד: Y/2`
+- לוגיקת שעה: אם > 18:00 וחסרים דילים → `⚠️`
+- תיקון `trackDealGenerated`: העברת `flowPlatform` במקום hardcoded "israel"
 
