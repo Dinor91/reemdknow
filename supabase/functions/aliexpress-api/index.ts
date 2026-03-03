@@ -175,6 +175,28 @@ async function searchProducts(
   return await callAliExpressAPI('aliexpress.affiliate.product.query', params)
 }
 
+// Get order list (affiliate conversions)
+async function getOrderList(
+  startTime: string,
+  endTime: string,
+  status?: string,
+  pageNo: number = 1,
+  pageSize: number = 50
+) {
+  console.log(`Getting order list from ${startTime} to ${endTime}`)
+
+  const params: Record<string, string> = {
+    start_time: startTime,
+    end_time: endTime,
+    page_no: pageNo.toString(),
+    page_size: pageSize.toString(),
+  }
+
+  if (status) params.status = status
+
+  return await callAliExpressAPI('aliexpress.affiliate.order.list', params)
+}
+
 // Get featured promo info (deals/coupons)
 async function getFeaturedPromo() {
   console.log('Getting featured promos')
@@ -299,6 +321,17 @@ serve(async (req) => {
         result = await getCategories()
         break
 
+      // Get order list (conversions)
+      case 'order-list': {
+        const now = new Date()
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        const formatDate = (d: Date) => d.toISOString().replace('T', ' ').substring(0, 19)
+        const st = body.startTime || formatDate(thirtyDaysAgo)
+        const et = body.endTime || formatDate(now)
+        result = await getOrderList(st, et, body.status || 'payment_completed', body.pageNo || 1, body.pageSize || 50)
+        break
+      }
+
       // Test API connection
       case 'test':
         result = {
@@ -313,7 +346,8 @@ serve(async (req) => {
             'product-details - Get details for specific products (productIds required)',
             'generate-link - Generate affiliate link (sourceValues required)',
             'featured-promo - Get current deals and promos',
-            'categories - Get all product categories'
+            'categories - Get all product categories',
+            'order-list - Get affiliate order list (conversions)'
           ]
         }
         break
