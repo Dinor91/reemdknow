@@ -64,14 +64,16 @@ type TemplateStep = "pick" | "edit" | "confirming" | "done";
 const STORAGE_KEY = "dino_chat_history";
 const MAX_STORED = 10;
 
-const QUICK_ACTIONS = [
-  { emoji: "🔍", label: "חפש מוצר ללקוח", action: "search" },
+const PRIMARY_ACTIONS = [
   { emoji: "📦", label: "צור דיל יומי", action: "deal" },
+  { emoji: "🔍", label: "חפש מוצר ללקוח", action: "search" },
   { emoji: "📥", label: "ייבא הודעה מהקבוצה", action: "import" },
+];
+
+const SECONDARY_ACTIONS = [
   { emoji: "🚀", label: "ייבא קמפיינים עכשיו", action: "sync_campaigns" },
-  { emoji: "📊", label: "סטטיסטיקות", action: "stats" },
   { emoji: "✍️", label: "כתוב סיכום שבועי", action: "summary" },
-  { emoji: "⚙️", label: "ערוך נוסח הודעה", action: "template" },
+  { emoji: "📝", label: "ערוך תבניות הודעות", action: "template" },
 ];
 
 const LAZADA_CATEGORIES = [
@@ -180,6 +182,7 @@ const DinoChat = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [pendingImport, setPendingImport] = useState<ImportConfirmData | null>(null);
   const [flowHighCommission, setFlowHighCommission] = useState(false);
+  const [showSecondaryMenu, setShowSecondaryMenu] = useState(false);
 
   if (!isAdmin) return null;
 
@@ -221,6 +224,7 @@ const DinoChat = () => {
 
   const handleBackToMenu = () => {
     resetFlow();
+    setShowSecondaryMenu(false);
     addAssistant("חזרנו לתפריט 🦕", { type: "menu" });
   };
 
@@ -1227,15 +1231,45 @@ const DinoChat = () => {
                   {msg.role === "assistant" && msg.type === "menu" ? (
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-foreground">{msg.content}</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {QUICK_ACTIONS.map(qa => (
-                          <button key={qa.action} onClick={() => handleQuickAction(qa.action)}
-                            className="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-card hover:bg-accent text-right text-sm transition-colors">
-                            <span>{qa.emoji}</span>
-                            <span className="text-xs leading-tight">{qa.label}</span>
+                      {!showSecondaryMenu ? (
+                        <>
+                          <div className="grid grid-cols-1 gap-2">
+                            {PRIMARY_ACTIONS.map(qa => (
+                              <button key={qa.action} onClick={() => handleQuickAction(qa.action)}
+                                className="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-card hover:bg-accent text-right text-sm transition-colors">
+                                <span>{qa.emoji}</span>
+                                <span className="text-xs leading-tight">{qa.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => setShowSecondaryMenu(true)}
+                            className="flex items-center justify-center gap-1.5 w-full p-2 rounded-lg border border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground hover:border-border text-xs transition-colors"
+                          >
+                            <span>⚙️</span>
+                            <span>כלים נוספים</span>
                           </button>
-                        ))}
-                      </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 gap-2">
+                            {SECONDARY_ACTIONS.map(qa => (
+                              <button key={qa.action} onClick={() => { setShowSecondaryMenu(false); handleQuickAction(qa.action); }}
+                                className="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-card hover:bg-accent text-right text-sm transition-colors">
+                                <span>{qa.emoji}</span>
+                                <span className="text-xs leading-tight">{qa.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => setShowSecondaryMenu(false)}
+                            className="flex items-center justify-center gap-1.5 w-full p-2 rounded-lg border border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground hover:border-border text-xs transition-colors"
+                          >
+                            <span>↩️</span>
+                            <span>חזרה לראשי</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   )
 
