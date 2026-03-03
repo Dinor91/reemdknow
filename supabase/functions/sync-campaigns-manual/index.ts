@@ -179,8 +179,16 @@ serve(async (req) => {
         trackingLink = await generateAffiliateLink(productUrl) || productUrl
       }
 
-      const commissionRate = product.commission_rate ? parseFloat(String(product.commission_rate)) / 100 : null
+      const baseRate = product.commission_rate ? parseFloat(String(product.commission_rate)) : 0
+      const incentiveRate = product.incentive_commission_rate ? parseFloat(String(product.incentive_commission_rate)) : 0
+      const totalRate = (baseRate + incentiveRate) / 100
+      const commissionRate = totalRate > 0 ? totalRate : null
       if (commissionRate) totalCommission += commissionRate
+
+      // Log first 3 products for debugging commission fields
+      if (upserted < 3) {
+        console.log(`📊 Product ${productId}: base=${baseRate}%, incentive=${incentiveRate}%, total=${totalRate * 100}%`)
+      }
 
       const { error } = await supabase.from('aliexpress_feed_products').upsert({
         aliexpress_product_id: productId,

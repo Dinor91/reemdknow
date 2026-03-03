@@ -53,7 +53,7 @@ interface ImportConfirmData {
   original_url: string;
 }
 
-type FlowType = "deal" | "search" | "import" | "summary" | "template" | "import_name" | "sync_campaigns" | null;
+type FlowType = "deal" | "search" | "import" | "summary" | "template" | "import_name" | "sync_campaigns" | "conversions" | null;
 type DealStep = "platform" | "commission_choice" | "category" | "products" | "coupon" | "generating" | "done";
 type SearchStep = "platform" | "query" | "searching" | "results";
 type SummaryStep = "ask_products" | "generating" | "done";
@@ -72,6 +72,7 @@ const PRIMARY_ACTIONS = [
 
 const SECONDARY_ACTIONS = [
   { emoji: "🚀", label: "ייבא קמפיינים עכשיו", action: "sync_campaigns" },
+  { emoji: "💰", label: "דוח רווחים", action: "conversions" },
   { emoji: "✍️", label: "כתוב סיכום שבועי", action: "summary" },
   { emoji: "📝", label: "ערוך תבניות הודעות", action: "template" },
 ];
@@ -118,6 +119,11 @@ function detectIntentLocally(text: string): { intent: FlowType | "stats" | "task
   // Statistics
   if (lower.includes("סטטיסטיק") || lower.includes("קליקים") || lower.includes("נתונים")) {
     return { intent: "stats" };
+  }
+
+  // Conversions / Revenue
+  if (lower.includes("המרות") || lower.includes("רווח") || lower.includes("כסף") || lower.includes("הכנסות") || lower.includes("earnings") || lower.includes("הרווחתי") || lower.includes("conversions")) {
+    return { intent: "conversions" as any };
   }
 
   // Campaign sync
@@ -862,6 +868,43 @@ const DinoChat = () => {
     }
   };
 
+  // ────────── CONVERSIONS ──────────
+
+  const showConversionsMenu = () => {
+    setActiveFlow("conversions");
+    addAssistant("📊 בחר דוח רווחים:", {
+      type: "buttons",
+      buttons: [
+        { label: "🇹🇭 לזדה", value: "conversions_lazada" },
+        { label: "🇮🇱 אליאקספרס", value: "conversions_aliexpress" },
+        { label: "📊 דוח מלא", value: "conversions_all" },
+      ],
+    });
+  };
+
+  const handleConversionsAction = async (reportType: string) => {
+    setIsLoading(true);
+    addAssistant("⏳ טוען נתוני רווחים...");
+
+    try {
+      const data = await invokeAction(reportType);
+      setMessages(prev => {
+        const withoutLoading = prev.filter(m => m.content !== "⏳ טוען נתוני רווחים...");
+        return [...withoutLoading, { role: "assistant" as const, content: data?.message || "אין נתונים" }];
+      });
+      scrollToBottom();
+    } catch (e: any) {
+      console.error("Conversions error:", e);
+      setMessages(prev => {
+        const withoutLoading = prev.filter(m => m.content !== "⏳ טוען נתוני רווחים...");
+        return [...withoutLoading, { role: "assistant" as const, content: `שגיאה: ${e.message} ❌` }];
+      });
+    } finally {
+      setIsLoading(false);
+      resetFlow();
+    }
+  };
+
   // ────────── DAILY GOAL ──────────
 
   const fetchDailyGoal = async () => {
@@ -1055,6 +1098,11 @@ const DinoChat = () => {
       await handleCampaignSync();
       return;
     }
+    if (intent === "conversions") {
+      addUser(text);
+      showConversionsMenu();
+      return;
+    }
     if (intent === "deal") {
       addUser(text);
       if (sq === "high_commission") {
@@ -1107,6 +1155,10 @@ const DinoChat = () => {
       handleCampaignSync();
       return;
     }
+    if (action === "conversions") {
+      showConversionsMenu();
+      return;
+    }
     const actionMessages: Record<string, string> = {
       search: "חפש מוצר",
       deal: "צור דיל יומי",
@@ -1128,6 +1180,13 @@ const DinoChat = () => {
     }
     if (value === "cancel_import") {
       handleImportConfirm(false);
+      return;
+    }
+
+    // Conversion report buttons
+    if (value === "conversions_lazada" || value === "conversions_aliexpress" || value === "conversions_all") {
+      addUser(value === "conversions_lazada" ? "🇹🇭 לזדה" : value === "conversions_aliexpress" ? "🇮🇱 אליאקספרס" : "📊 דוח מלא");
+      handleConversionsAction(value);
       return;
     }
 

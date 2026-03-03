@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.sync-campaigns-manual]
 verify_jwt = false
+
+[functions.aliexpress-api]
+verify_jwt = false

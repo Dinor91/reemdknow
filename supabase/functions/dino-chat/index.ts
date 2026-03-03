@@ -558,6 +558,148 @@ ${productNames.map((n: string, i: number) => `${i + 1}. ${n}`).join("\n")}
       });
     }
 
+    // ────────── CONVERSION REPORTS ──────────
+    if (action === "conversions_lazada") {
+      try {
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const lazadaResp = await fetch(`${SUPABASE_URL}/functions/v1/lazada-api`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+          body: JSON.stringify({
+            action: "conversion-report",
+            dateStart: thirtyDaysAgo.toISOString().split("T")[0],
+            dateEnd: now.toISOString().split("T")[0],
+          }),
+        });
+        const lazData = await lazadaResp.json();
+        
+        if (!lazadaResp.ok || lazData.error) {
+          return new Response(JSON.stringify({ message: `⚠️ Lazada conversion report: ${lazData.error || "שגיאה"}` }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const orders = lazData.data?.orders || [];
+        const totalCommission = orders.reduce((sum: number, o: any) => sum + (parseFloat(o.commission) || 0), 0);
+        const ilsAmount = Math.round(totalCommission * 0.36);
+
+        const msg = orders.length > 0
+          ? `🇹🇭 לזדה (30 יום):\n${orders.length} הזמנות | ฿${totalCommission.toFixed(0)} עמלה (≈₪${ilsAmount})`
+          : `🇹🇭 לזדה: אין הזמנות ב-30 יום האחרונים\n💡 טיפ: שתף עוד דילים בקבוצה כדי להגדיל המרות`;
+
+        return new Response(JSON.stringify({ message: msg }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        console.error("Lazada conversions error:", e);
+        return new Response(JSON.stringify({ message: "⚠️ שגיאה בטעינת נתוני Lazada" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    if (action === "conversions_aliexpress") {
+      try {
+        const aliResp = await fetch(`${SUPABASE_URL}/functions/v1/aliexpress-api`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+          body: JSON.stringify({ action: "order-list" }),
+        });
+        const aliData = await aliResp.json();
+
+        if (!aliResp.ok || aliData.error) {
+          const errMsg = aliData.error || "שגיאה";
+          const isApiLimit = errMsg.includes("Insufficient") || errMsg.includes("permission") || errMsg.includes("ISP");
+          return new Response(JSON.stringify({
+            message: isApiLimit
+              ? "⚠️ AliExpress order tracking לא זמין — נדרש שדרוג API ל-Advanced.\nלזדה ממשיך לעבוד כרגיל ✅"
+              : `⚠️ AliExpress: ${errMsg}`,
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        // Parse order response
+        const orderResp = aliData.data?.aliexpress_affiliate_order_list_response?.resp_result?.result;
+        const orders = orderResp?.orders?.order || [];
+        const totalCommission = orders.reduce((sum: number, o: any) => sum + (parseFloat(o.estimated_paid_commission) || parseFloat(o.estimated_commission) || 0), 0);
+        const totalAmount = orders.reduce((sum: number, o: any) => sum + (parseFloat(o.order_amount) || 0), 0);
+        const ilsAmount = Math.round(totalCommission * 3.70);
+
+        const msg = orders.length > 0
+          ? `🇮🇱 אליאקספרס (30 יום):\n${orders.length} הזמנות | $${totalAmount.toFixed(0)} מכירות | $${totalCommission.toFixed(2)} עמלה (≈₪${ilsAmount})`
+          : `🇮🇱 אליאקספרס: אין הזמנות ב-30 יום האחרונים\n💡 טיפ: פרסם מוצרי קמפיין עם עמלה גבוהה`;
+
+        return new Response(JSON.stringify({ message: msg }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        console.error("AliExpress conversions error:", e);
+        return new Response(JSON.stringify({ message: "⚠️ שגיאה בטעינת נתוני AliExpress" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    if (action === "conversions_all") {
+      const results: string[] = [];
+      let totalILS = 0;
+
+      // Lazada
+      try {
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const lazResp = await fetch(`${SUPABASE_URL}/functions/v1/lazada-api`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+          body: JSON.stringify({
+            action: "conversion-report",
+            dateStart: thirtyDaysAgo.toISOString().split("T")[0],
+            dateEnd: now.toISOString().split("T")[0],
+          }),
+        });
+        const lazData = await lazResp.json();
+        const orders = lazData.data?.orders || [];
+        const comm = orders.reduce((s: number, o: any) => s + (parseFloat(o.commission) || 0), 0);
+        const ils = Math.round(comm * 0.36);
+        totalILS += ils;
+        results.push(orders.length > 0
+          ? `🇹🇭 לזדה: ${orders.length} הזמנות | ฿${comm.toFixed(0)} עמלה (≈₪${ils})`
+          : `🇹🇭 לזדה: אין הזמנות`);
+      } catch {
+        results.push("🇹🇭 לזדה: שגיאה בטעינה");
+      }
+
+      // AliExpress
+      try {
+        const aliResp = await fetch(`${SUPABASE_URL}/functions/v1/aliexpress-api`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+          body: JSON.stringify({ action: "order-list" }),
+        });
+        const aliData = await aliResp.json();
+        if (aliResp.ok && !aliData.error) {
+          const orderResp = aliData.data?.aliexpress_affiliate_order_list_response?.resp_result?.result;
+          const orders = orderResp?.orders?.order || [];
+          const comm = orders.reduce((s: number, o: any) => s + (parseFloat(o.estimated_paid_commission) || parseFloat(o.estimated_commission) || 0), 0);
+          const ils = Math.round(comm * 3.70);
+          totalILS += ils;
+          results.push(orders.length > 0
+            ? `🇮🇱 אליאקספרס: ${orders.length} הזמנות | $${comm.toFixed(2)} עמלה (≈₪${ils})`
+            : `🇮🇱 אליאקספרס: אין הזמנות`);
+        } else {
+          results.push("🇮🇱 אליאקספרס: API לא זמין (נדרש שדרוג)");
+        }
+      } catch {
+        results.push("🇮🇱 אליאקספרס: שגיאה בטעינה");
+      }
+
+      const msg = `📊 דוח רווחים (30 יום):\n\n${results.join("\n")}\n\n💰 סה״כ רווח משוער: ₪${totalILS}\n\n_* שער המרה: 1฿=₪0.36, $1=₪3.70_`;
+
+      return new Response(JSON.stringify({ message: msg }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Chat mode - streaming AI
     if (action === "chat") {
       const dinoSystemPrompt = `אתה דינו 🦕, עוזר AI ידידותי של צוות DKNOW.
