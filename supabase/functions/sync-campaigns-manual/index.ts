@@ -89,7 +89,7 @@ serve(async (req) => {
     // Step 2: Get products from campaigns (pages 1-2)
     const allProducts: any[] = []
 
-    for (let page = 1; page <= 2; page++) {
+    for (let page = 1; page <= 4; page++) {
       console.log(`Fetching campaign products page ${page}...`)
       const result = await callAliExpressAPI('aliexpress.affiliate.featuredpromo.products.get', {
         promotion_link_type: '0',
@@ -110,8 +110,8 @@ serve(async (req) => {
 
     // Also try hot products for high-commission items
     console.log('=== Fetching Hot Products ===')
-    for (let page = 1; page <= 2; page++) {
-      if (allProducts.length >= 200) break
+    for (let page = 1; page <= 4; page++) {
+      if (allProducts.length >= 400) break
       const result = await callAliExpressAPI('aliexpress.affiliate.hotproduct.query', {
         page_no: page.toString(),
         page_size: '50',
@@ -128,24 +128,24 @@ serve(async (req) => {
 
     console.log(`Total raw products: ${allProducts.length}`)
 
-    // Step 3: Filter by quality (relaxed: rating >= 3.5 = evaluate_rate >= 70%, commission >= 8%)
+    // Step 3: Filter by quality (relaxed: rating >= 3.5 = evaluate_rate >= 70%, commission >= 5%)
     const ratePassCount = allProducts.filter(p => {
       const evalRate = p.evaluate_rate ? parseFloat(String(p.evaluate_rate).replace('%', '')) : 0
       return evalRate >= 70
     }).length
     const commPassCount = allProducts.filter(p => {
       const commRate = p.commission_rate ? parseFloat(String(p.commission_rate)) : 0
-      return commRate >= 8
+      return commRate >= 5
     }).length
 
     const qualityProducts = allProducts.filter(p => {
       if (!p.product_id || !p.product_main_image_url || !p.target_sale_price) return false
       const evalRate = p.evaluate_rate ? parseFloat(String(p.evaluate_rate).replace('%', '')) : 0
       const commRate = p.commission_rate ? parseFloat(String(p.commission_rate)) : 0
-      return evalRate >= 70 && commRate >= 8
+      return evalRate >= 70 && commRate >= 5
     })
 
-    console.log(`Filter breakdown: rate>=70: ${ratePassCount}, commission>=8: ${commPassCount}, both: ${qualityProducts.length}`)
+    console.log(`Filter breakdown: rate>=70: ${ratePassCount}, commission>=5: ${commPassCount}, both: ${qualityProducts.length}`)
 
     // Deduplicate by product_id
     const seen = new Set<string>()
