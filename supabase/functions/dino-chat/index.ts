@@ -9,6 +9,7 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
 interface ChatMessage {
@@ -49,6 +50,10 @@ function createSupabaseClient(authHeader: string) {
   });
 }
 
+function createServiceClient() {
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+}
+
 async function verifyAdmin(supabase: any, authHeader: string): Promise<boolean> {
   const token = authHeader.replace("Bearer ", "");
   const { data: userData, error } = await supabase.auth.getUser(token);
@@ -67,7 +72,6 @@ async function verifyAdmin(supabase: any, authHeader: string): Promise<boolean> 
 async function getProactiveAlerts(supabase: any): Promise<string[]> {
   const alerts: string[] = [];
 
-  // Check pending contact requests
   const { count } = await supabase
     .from("contact_requests")
     .select("*", { count: "exact", head: true })
@@ -77,7 +81,6 @@ async function getProactiveAlerts(supabase: any): Promise<string[]> {
     alerts.push(`יש ${count} בקשות לקוח ממתינות 📬`);
   }
 
-  // Check products added recently (last 5 days)
   const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
   const { count: recentProducts } = await supabase
     .from("category_products")
@@ -97,7 +100,6 @@ async function getProactiveAlerts(supabase: any): Promise<string[]> {
 }
 
 async function handleProductSearch(supabase: any, platform: string, query: string): Promise<any> {
-  // Call smart-search edge function
   const searchUrl = `${SUPABASE_URL}/functions/v1/smart-search`;
   const response = await fetch(searchUrl, {
     method: "POST",
@@ -116,7 +118,6 @@ async function handleProductSearch(supabase: any, platform: string, query: strin
 }
 
 async function handleStatistics(supabase: any): Promise<string> {
-  // Get clicks this week
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -130,7 +131,6 @@ async function handleStatistics(supabase: any): Promise<string> {
     .select("*", { count: "exact", head: true })
     .gte("created_at", monthAgo);
 
-  // Count by source
   const sourceCount: Record<string, number> = {};
   for (const click of (weekClicks || [])) {
     const key = click.source || click.button_type || "unknown";
@@ -168,48 +168,190 @@ async function handleTemplateEdit(supabase: any, templateName: string, newConten
   return "עודכן ✅";
 }
 
-async function detectIntent(messages: ChatMessage[]): Promise<{ intent: string; params: any }> {
-  const systemPrompt = `You are an intent classifier for a Hebrew admin assistant called "דינו".
-Analyze the latest user message and return a JSON object with:
-{
-  "intent": one of ["product_search", "daily_deal", "message_import", "weekly_summary", "statistics", "edit_template", "general_chat", "platform_select"],
-  "params": {
-    "platform": "israel" | "thailand" | null,
-    "query": string | null,
-    "template_name": string | null,
-    "new_content": string | null,
-    "pasted_message": string | null,
-    "product_names": string[] | null
-  }
+// ────────── IMPORT PRODUCT ──────────
+
+function extractProductId(url: string): { platform: "israel" | "thailand"; productId: string | null } {
+  // AliExpress: /item/1234567890.html
+  const aliMatch = url.match(/aliexpress\.com\/item\/(\d+)\.html/i);
+  if (aliMatch) return { platform: "israel", productId: aliMatch[1] };
+
+  // AliExpress product ID in query params
+  const aliParamMatch = url.match(/productId=(\d+)/i);
+  if (aliParamMatch) return { platform: "israel", productId: aliParamMatch[1] };
+
+  // Lazada: /products/name-i{productId}-s{skuId}.html
+  const lazMatch = url.match(/-i(\d+)-s\d+/i);
+  if (lazMatch) return { platform: "thailand", productId: lazMatch[1] };
+
+  // Lazada alternate: /products/{slug}.html with mp= param
+  const lazMpMatch = url.match(/[?&]mp=(\d+)/i);
+  if (lazMpMatch) return { platform: "thailand", productId: lazMpMatch[1] };
+
+  // Detect platform even if no ID
+  if (url.includes("lazada")) return { platform: "thailand", productId: null };
+  if (url.includes("aliexpress")) return { platform: "israel", productId: null };
+
+  return { platform: "israel", productId: null };
 }
 
-Rules:
-- If user mentions search/product/מוצר/חפש → product_search
-- If user mentions deal/דיל/הודעה → daily_deal
-- If user pastes a URL with lazada or aliexpress → message_import
-- If user mentions summary/סיכום → weekly_summary
-- If user mentions stats/סטטיסטיקות/קליקים → statistics
-- If user mentions template/נוסח/תבנית → edit_template
-- If user selects ישראל or תאילנד → platform_select
-- Otherwise → general_chat
+function extractUrlsFromText(text: string): string[] {
+  const urlRegex = /https?:\/\/[^\s<>"']+/gi;
+  return text.match(urlRegex) || [];
+}
 
-Return ONLY the JSON, no extra text.`;
+async function handleImportProduct(params: any): Promise<any> {
+  const { text, confirmed, platform: confirmedPlatform, resolved_url, product_name } = params;
 
-  const raw = await callGemini([
-    { role: "system", content: systemPrompt },
-    ...messages.slice(-5),
-  ]);
-
-  try {
-    let cleaned = (raw as string).trim();
-    if (cleaned.startsWith("```")) {
-      cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+  // Step 1: Extract URLs and resolve short links
+  if (!confirmed) {
+    const urls = extractUrlsFromText(text);
+    if (urls.length === 0) {
+      return { success: false, error: "לא נמצא לינק בהודעה" };
     }
-    return JSON.parse(cleaned);
-  } catch {
-    return { intent: "general_chat", params: {} };
+
+    const url = urls[0];
+    let finalUrl = url;
+
+    // Check if it's a short link that needs resolving
+    const shortDomains = ["s.lazada.co.th", "c.lazada.co.th", "s.click.aliexpress.com", "a.aliexpress.com"];
+    const isShort = shortDomains.some(d => url.includes(d));
+
+    if (isShort) {
+      try {
+        const resolveResp = await fetch(`${SUPABASE_URL}/functions/v1/resolve-short-links`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ urls: [url] }),
+        });
+        const resolveData = await resolveResp.json();
+        if (resolveData.resolved?.[url]) {
+          finalUrl = resolveData.resolved[url];
+        }
+      } catch (e) {
+        console.error("Failed to resolve short link:", e);
+      }
+    }
+
+    const { platform, productId } = extractProductId(finalUrl);
+    const platformLabel = platform === "israel" ? "🇮🇱 AliExpress (ישראל)" : "🇹🇭 Lazada (תאילנד)";
+
+    return {
+      success: true,
+      step: "confirm",
+      platform,
+      platformLabel,
+      productId,
+      resolved_url: finalUrl,
+      original_url: url,
+    };
+  }
+
+  // Step 2: User confirmed → save to DB
+  const serviceClient = createServiceClient();
+  const platform = confirmedPlatform;
+
+  if (platform === "israel") {
+    // Build tracking link with affiliate params
+    const trackingId = Deno.env.get("ALIEXPRESS_TRACKING_ID") || "";
+    let trackingLink = resolved_url;
+    if (trackingId && resolved_url.includes("aliexpress.com")) {
+      const separator = resolved_url.includes("?") ? "&" : "?";
+      trackingLink = `${resolved_url}${separator}aff_fcid=${trackingId}&aff_platform=portals-tool`;
+    }
+
+    const insertData: any = {
+      product_name_hebrew: product_name || "מוצר חדש מ-AliExpress",
+      tracking_link: trackingLink,
+      category_name_hebrew: "כללי",
+      is_active: true,
+      out_of_stock: false,
+    };
+
+    // Extract product ID if available
+    const aliMatch = resolved_url.match(/item\/(\d+)/);
+    if (aliMatch) {
+      insertData.aliexpress_product_id = aliMatch[1];
+    }
+
+    const { data, error } = await serviceClient
+      .from("israel_editor_products")
+      .insert(insertData)
+      .select("id, product_name_hebrew")
+      .single();
+
+    if (error) {
+      console.error("Insert error:", error);
+      return { success: false, error: `שגיאה בשמירה: ${error.message}` };
+    }
+
+    // Verify the row exists
+    const { data: verify, error: verifyErr } = await serviceClient
+      .from("israel_editor_products")
+      .select("id, product_name_hebrew")
+      .eq("id", data.id)
+      .single();
+
+    if (verifyErr || !verify) {
+      return { success: false, error: "השורה לא נמצאה אחרי השמירה ❌" };
+    }
+
+    return {
+      success: true,
+      step: "saved",
+      message: `נשמר ✅ — ${verify.product_name_hebrew} (ID #${verify.id.substring(0, 8)})`,
+      id: verify.id,
+    };
+  } else {
+    // Thailand / Lazada
+    const insertData: any = {
+      name_hebrew: product_name || "מוצר חדש מ-Lazada",
+      affiliate_link: resolved_url,
+      category: "כללי",
+      is_active: true,
+      out_of_stock: false,
+    };
+
+    // Extract Lazada product ID
+    const lazMatch = resolved_url.match(/-i(\d+)-s/);
+    if (lazMatch) {
+      insertData.lazada_product_id = lazMatch[1];
+    }
+
+    const { data, error } = await serviceClient
+      .from("category_products")
+      .insert(insertData)
+      .select("id, name_hebrew")
+      .single();
+
+    if (error) {
+      console.error("Insert error:", error);
+      return { success: false, error: `שגיאה בשמירה: ${error.message}` };
+    }
+
+    // Verify
+    const { data: verify, error: verifyErr } = await serviceClient
+      .from("category_products")
+      .select("id, name_hebrew")
+      .eq("id", data.id)
+      .single();
+
+    if (verifyErr || !verify) {
+      return { success: false, error: "השורה לא נמצאה אחרי השמירה ❌" };
+    }
+
+    return {
+      success: true,
+      step: "saved",
+      message: `נשמר ✅ — ${verify.name_hebrew} (ID #${verify.id.substring(0, 8)})`,
+      id: verify.id,
+    };
   }
 }
+
+// ────────── MAIN HANDLER ──────────
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -236,7 +378,6 @@ serve(async (req) => {
 
     const { action, messages, params } = await req.json();
 
-    // Handle specific actions
     if (action === "get_alerts") {
       const alerts = await getProactiveAlerts(supabase);
       return new Response(JSON.stringify({ alerts }), {
@@ -266,7 +407,6 @@ serve(async (req) => {
     }
 
     if (action === "generate_deal") {
-      // Call generate-deal-message
       const dealUrl = `${SUPABASE_URL}/functions/v1/generate-deal-message`;
       const dealResp = await fetch(dealUrl, {
         method: "POST",
@@ -301,7 +441,6 @@ serve(async (req) => {
     }
 
     if (action === "generate_summary") {
-      // Generate weekly summary using template + product names
       const template = params.template || "";
       const productNames = params.product_names || [];
       const summaryPrompt = `אתה כותב סיכום שבועי לקהילת דילים בוואטסאפ בעברית.
@@ -334,6 +473,14 @@ ${productNames.map((n: string, i: number) => `${i + 1}. ${n}`).join("\n")}
         });
       }
       return new Response(JSON.stringify({ templates: data || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ────────── IMPORT PRODUCT ──────────
+    if (action === "import_product") {
+      const result = await handleImportProduct(params);
+      return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
