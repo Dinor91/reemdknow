@@ -128,13 +128,24 @@ serve(async (req) => {
 
     console.log(`Total raw products: ${allProducts.length}`)
 
-    // Step 3: Filter by quality (rating >= 4.5 = evaluate_rate >= 90%, commission >= 15%)
+    // Step 3: Filter by quality (relaxed: rating >= 3.5 = evaluate_rate >= 70%, commission >= 8%)
+    const ratePassCount = allProducts.filter(p => {
+      const evalRate = p.evaluate_rate ? parseFloat(String(p.evaluate_rate).replace('%', '')) : 0
+      return evalRate >= 70
+    }).length
+    const commPassCount = allProducts.filter(p => {
+      const commRate = p.commission_rate ? parseFloat(String(p.commission_rate)) : 0
+      return commRate >= 8
+    }).length
+
     const qualityProducts = allProducts.filter(p => {
       if (!p.product_id || !p.product_main_image_url || !p.target_sale_price) return false
       const evalRate = p.evaluate_rate ? parseFloat(String(p.evaluate_rate).replace('%', '')) : 0
       const commRate = p.commission_rate ? parseFloat(String(p.commission_rate)) : 0
-      return evalRate >= 90 && commRate >= 15
+      return evalRate >= 70 && commRate >= 8
     })
+
+    console.log(`Filter breakdown: rate>=70: ${ratePassCount}, commission>=8: ${commPassCount}, both: ${qualityProducts.length}`)
 
     // Deduplicate by product_id
     const seen = new Set<string>()
