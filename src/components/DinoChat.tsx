@@ -53,7 +53,7 @@ interface ImportConfirmData {
   original_url: string;
 }
 
-type FlowType = "deal" | "search" | "import" | "summary" | "template" | "import_name" | null;
+type FlowType = "deal" | "search" | "import" | "summary" | "template" | "import_name" | "sync_campaigns" | null;
 type DealStep = "platform" | "commission_choice" | "category" | "products" | "coupon" | "generating" | "done";
 type SearchStep = "platform" | "query" | "searching" | "results";
 type SummaryStep = "ask_products" | "generating" | "done";
@@ -68,6 +68,7 @@ const QUICK_ACTIONS = [
   { emoji: "🔍", label: "חפש מוצר ללקוח", action: "search" },
   { emoji: "📦", label: "צור דיל יומי", action: "deal" },
   { emoji: "📥", label: "ייבא הודעה מהקבוצה", action: "import" },
+  { emoji: "🚀", label: "ייבא קמפיינים עכשיו", action: "sync_campaigns" },
   { emoji: "📊", label: "סטטיסטיקות", action: "stats" },
   { emoji: "✍️", label: "כתוב סיכום שבועי", action: "summary" },
   { emoji: "⚙️", label: "ערוך נוסח הודעה", action: "template" },
@@ -81,10 +82,12 @@ const LAZADA_CATEGORIES = [
 ];
 
 const ALIEXPRESS_CATEGORIES = [
-  { label: "Gadgets & Tech 📱", value: "gadgets_tech", filterValues: ["15", "44", "7", "202192403"] },
-  { label: "Tools & Home 🔧", value: "tools_home", filterValues: ["1511", "34", "13", "39"] },
-  { label: "Toys 🎮", value: "toys", filterValues: ["26"] },
-  { label: "Best Sellers ⭐", value: "best", filterValues: "all" as const },
+  { label: "🏠 גאדג׳טים ובית חכם", value: "gadgets_smart_home", filterValues: ["15", "44", "7", "202192403", "1420"] },
+  { label: "🧩 משחקים ופתרונות לילדים", value: "games_kids", filterValues: ["26", "200000297"] },
+  { label: "⚡ מוצרי חשמל קטנים", value: "small_appliances", filterValues: ["44", "1420"] },
+  { label: "🏕️ ציוד לנסיעות וטיולים", value: "travel_outdoor", filterValues: ["18", "200000297"] },
+  { label: "🚙 אביזרים לרכב ולאופנוע", value: "automotive", filterValues: ["34", "1511"] },
+  { label: "⭐ הנמכרים ביותר", value: "best", filterValues: "all" as const },
 ];
 
 const TEMPLATE_OPTIONS = [
@@ -108,6 +111,11 @@ function detectIntentLocally(text: string): { intent: FlowType | "stats" | "chat
   // Statistics
   if (lower.includes("סטטיסטיק") || lower.includes("קליקים") || lower.includes("נתונים")) {
     return { intent: "stats" };
+  }
+
+  // Campaign sync
+  if (lower.includes("ייבא קמפיינים") || lower.includes("קמפיינים") || lower.includes("campaigns") || lower.includes("sync campaigns")) {
+    return { intent: "sync_campaigns" };
   }
 
   // High commission shortcut
@@ -242,7 +250,13 @@ const DinoChat = () => {
   const fetchAlerts = async () => {
     try {
       const data = await invokeAction("get_alerts");
-      if (data?.alerts) setAlerts(data.alerts);
+      const alertList: string[] = data?.alerts || [];
+      
+      // Add daily goal
+      const goalMsg = await fetchDailyGoal();
+      if (goalMsg) alertList.push(goalMsg);
+      
+      setAlerts(alertList);
     } catch { /* ignore */ }
   };
 
@@ -442,7 +456,13 @@ const DinoChat = () => {
   const handleProductSelect = (product: ProductItem) => {
     setSelectedProduct(product);
     addUser(`בחרתי: ${product.name}`);
-    addAssistant("יש קופון? (אם לא, כתוב 'לא')");
+    addAssistant("מה לעשות עם המוצר?", {
+      type: "buttons",
+      buttons: [
+        { label: "📝 צור הודעת דיל", value: "generate_deal_msg" },
+        { label: "🔍 בדוק קופונים", value: "check_coupons" },
+      ],
+    });
   };
 
   const handleCouponAndGenerate = async (couponText: string) => {
@@ -469,6 +489,8 @@ const DinoChat = () => {
 
       if (data?.error) throw new Error(data.error);
       addAssistant(data.message || "שגיאה ביצירת הודעה", { type: "deal_message" });
+      // Track daily goal
+      await trackDealGenerated();
       resetFlow();
     } catch (e: any) {
       console.error("Deal generation error:", e);
@@ -712,6 +734,68 @@ const DinoChat = () => {
     }
   };
 
+  // ────────── CAMPAIGN SYNC ──────────
+
+  const handleCampaignSync = async () => {
+    setActiveFlow("sync_campaigns");
+    setIsLoading(true);
+    addAssistant("🚀 מתחיל ייבוא קמפיינים מ-AliExpress...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-campaigns-manual");
+      if (error) throw error;
+
+      if (data?.success) {
+        addAssistant(
+          `✅ ייבוא קמפיינים הושלם!\n\n` +
+          `📢 קמפיינים פעילים: ${data.campaigns_found}\n` +
+          `📦 מוצרים יובאו: ${data.products_imported}\n` +
+          `💰 עמלה ממוצעת: ${data.avg_commission_rate}\n` +
+          `🌐 תורגמו: ${data.translated}\n` +
+          (data.errors > 0 ? `⚠️ שגיאות: ${data.errors}` : "")
+        );
+      } else {
+        addAssistant(`שגיאה: ${data?.error || "לא ידוע"} ❌`);
+      }
+    } catch (e: any) {
+      console.error("Campaign sync error:", e);
+      addAssistant(`שגיאה בייבוא: ${e.message} ❌`);
+    } finally {
+      setIsLoading(false);
+      resetFlow();
+    }
+  };
+
+  // ────────── DAILY GOAL ──────────
+
+  const fetchDailyGoal = async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const { count } = await supabase
+        .from("button_clicks")
+        .select("*", { count: "exact", head: true })
+        .eq("button_type", "deal_generated")
+        .gte("created_at", today.toISOString());
+      
+      const goalCount = count || 0;
+      if (goalCount >= 2) {
+        return `🎉 יעד יומי הושלם! ${goalCount}/2 דילים`;
+      }
+      return `📊 היום: ${goalCount}/2 דילים`;
+    } catch {
+      return null;
+    }
+  };
+
+  const trackDealGenerated = async () => {
+    try {
+      await supabase.functions.invoke("track-click", {
+        body: { button_type: "deal_generated", source: "dino_chat", country: "israel" },
+      });
+    } catch { /* ignore */ }
+  };
+
   // ────────── STREAMING CHAT ──────────
 
   const streamChat = async (chatMessages: { role: string; content: string }[]) => {
@@ -838,6 +922,11 @@ const DinoChat = () => {
       await handleStatistics();
       return;
     }
+    if (intent === "sync_campaigns") {
+      addUser(text);
+      await handleCampaignSync();
+      return;
+    }
     if (intent === "deal") {
       addUser(text);
       if (sq === "high_commission") {
@@ -886,6 +975,10 @@ const DinoChat = () => {
   // ────────── QUICK ACTIONS ──────────
 
   const handleQuickAction = (action: string) => {
+    if (action === "sync_campaigns") {
+      handleCampaignSync();
+      return;
+    }
     const actionMessages: Record<string, string> = {
       search: "חפש מוצר",
       deal: "צור דיל יומי",
@@ -907,6 +1000,20 @@ const DinoChat = () => {
     }
     if (value === "cancel_import") {
       handleImportConfirm(false);
+      return;
+    }
+
+    // Product action buttons (after selecting a product)
+    if (value === "generate_deal_msg" && selectedProduct) {
+      addUser("📝 צור הודעת דיל");
+      addAssistant("יש קופון? (אם לא, כתוב 'לא')");
+      return;
+    }
+    if (value === "check_coupons" && selectedProduct) {
+      addUser("🔍 בדוק קופונים");
+      const productUrl = selectedProduct.tracking_link || `https://www.aliexpress.com/item/${selectedProduct.id}.html`;
+      window.open(productUrl, "_blank");
+      addAssistant("פתחתי את דף המוצר בטאב חדש — בדוק שם קופונים 🎟️");
       return;
     }
 

@@ -1,0 +1,1 @@
+ALTER TABLE public.aliexpress_feed_products ADD COLUMN is_campaign_product BOOLEAN DEFAULT false;

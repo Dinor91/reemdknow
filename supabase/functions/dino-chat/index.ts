@@ -96,6 +96,28 @@ async function getProactiveAlerts(supabase: any): Promise<string[]> {
     alerts.push("לא נוספו מוצרים 5 ימים 📦");
   }
 
+  // Campaign health traffic light
+  try {
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { count: campaignCount } = await serviceClient
+      .from("aliexpress_feed_products")
+      .select("*", { count: "exact", head: true })
+      .eq("is_campaign_product", true)
+      .eq("out_of_stock", false);
+
+    const cc = campaignCount || 0;
+    if (cc >= 50) {
+      alerts.push(`✅ מצב מעולה — ${cc} מוצרי קמפיין`);
+    } else if (cc > 0) {
+      alerts.push(`⚠️ שים לב — רק ${cc} מוצרי קמפיין`);
+    } else {
+      alerts.push(`❌ אין קמפיינים — הרץ ייבוא`);
+    }
+  } catch { /* ignore */ }
+
   return alerts;
 }
 

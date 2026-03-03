@@ -61,6 +61,7 @@ export type Database = {
           discount_percentage: number | null
           id: string
           image_url: string | null
+          is_campaign_product: boolean | null
           is_featured: boolean | null
           original_price_usd: number | null
           out_of_stock: boolean | null
@@ -83,6 +84,7 @@ export type Database = {
           discount_percentage?: number | null
           id?: string
           image_url?: string | null
+          is_campaign_product?: boolean | null
           is_featured?: boolean | null
           original_price_usd?: number | null
           out_of_stock?: boolean | null
@@ -105,6 +107,7 @@ export type Database = {
           discount_percentage?: number | null
           id?: string
           image_url?: string | null
+          is_campaign_product?: boolean | null
           is_featured?: boolean | null
           original_price_usd?: number | null
           out_of_stock?: boolean | null
