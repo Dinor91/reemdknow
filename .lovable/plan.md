@@ -1,50 +1,81 @@
 
 
-## ביקורת על הפרומט
+## תוכנית: Step 0 (תיקון עמלות) + Steps 1-5 (Revenue Tracking)
 
-כמעט מתכנס, עם שני תיקונים:
+### מצב נוכחי
+- 196 מוצרי קמפיין פעילים: 176 עם commission_rate=0.07, 20 עם 0.09
+- AliExpress API מחזיר שדה `incentive_commission_rate` שלא נשמר כרגע
+- `aliexpress-api` לא רשום ב-config.toml
 
-### 1. סף הדירוג — 60 נמוך מדי
-- `evaluate_rate >= 60` = דירוג 3.0 כוכבים (60/20)
-- המדיניות שקבעת היא **מינימום 4.0 כוכבים** (= evaluate_rate >= 80)
-- הורדנו כבר ל-70 (3.5 כוכבים) וזה סביר כפשרה
-- 60 ישלוף מוצרים באיכות נמוכה שעלולים לפגוע באמינות ההמלצות בקבוצת WhatsApp
+---
 
-**המלצה:** השאר `evaluate_rate >= 70` (3.5 כוכבים) — זו כבר הרחבה מספיקה
+### Step 0: Fix Campaign Commission Data
 
-### 2. שגיאה בשאילתת ה-Validation
-הטבלה `aliexpress_feed_products` לא מכילה עמודת `is_active` — יש `out_of_stock`.
+**A. Debug — גלה את incentive_commission_rate**
 
-**תיקון:**
+עדכון `sync-campaigns-manual/index.ts`:
+- הוספת לוג מפורט של השדות `commission_rate` ו-`incentive_commission_rate` מתשובת ה-API
+- חישוב `total_commission = base_commission + incentive_commission`
+- שמירת הערך המשולב בעמודת `commission_rate` במקום ה-base בלבד
+
+שינוי ספציפי בלולאת upsert:
+```
+// Before:
+const commissionRate = product.commission_rate ? parseFloat(...) / 100 : null
+
+// After:  
+const baseRate = product.commission_rate ? parseFloat(...) : 0
+const incentiveRate = product.incentive_commission_rate ? parseFloat(...) : 0
+const totalRate = (baseRate + incentiveRate) / 100
+```
+
+**B. Deploy + Run Sync** — ירוץ מיד אחרי השינוי
+
+**C. Validation:**
 ```sql
-SELECT COUNT(*) FROM aliexpress_feed_products 
-WHERE is_campaign_product = true AND out_of_stock = false;
+SELECT commission_rate, COUNT(*) FROM aliexpress_feed_products 
+WHERE is_campaign_product = true AND out_of_stock = false 
+GROUP BY commission_rate ORDER BY commission_rate DESC;
+```
+ציפייה: ערכי commission_rate גבוהים יותר (0.13-0.16 במקום 0.07)
+
+---
+
+### Step 1: Register aliexpress-api in config.toml
+```toml
+[functions.aliexpress-api]
+verify_jwt = false
 ```
 
-### 3. הפילטר כבר עודכן
-הפילטר כבר שונה ל-`evaluate_rate >= 70 AND commission_rate >= 8` בסשן הקודם, ו-12 מוצרים נכנסו. אם רוצים עוד מוצרים, האפשרויות הן:
-- **להוריד commission ל-5%** (במקום להוריד rating) — יותר מוצרים בלי לפגוע באיכות
-- **להוסיף עוד דפים** (כרגע שולפים pages 1-2 בלבד, אפשר עד 5)
-- **שניהם ביחד** — סביר לקבל 30-50 מוצרים
+### Step 2: Add order-list to aliexpress-api/index.ts
+- פונקציה `getOrderList(startTime, endTime, status?)`
+- Method: `aliexpress.affiliate.order.list`
+- Format: `YYYY-MM-DD HH:MM:SS`
+- Case חדש `"order-list"` ב-switch
 
-### פרומט מתוקן מוצע
+### Step 3: Add 3 conversion actions to dino-chat/index.ts
 
-```text
-Expand Campaign Sync - More Products
+**`conversions_lazada`** — קורא ל-lazada-api עם `action: "conversion-report"` (30 יום)
+**`conversions_aliexpress`** — קורא ל-aliexpress-api עם `action: "order-list"` (30 יום)  
+**`conversions_all`** — Promise.all + דו"ח משולב עם שערים: 1฿=₪0.36, $1=₪3.70
 
-Current: 12 campaign products (filter: rate>=70, commission>=8, pages 1-2)
-Goal: 30-50 products for daily WhatsApp rotation
+### Step 4: Update DinoChat.tsx
+- Intent detection: "המרות", "רווח", "כסף", "הכנסות", "earnings", "הרווחתי"
+- FlowType: הוספת `"conversions"`
+- 3 כפתורים: 🇹🇭 לזדה / 🇮🇱 אליאקספרס / 📊 דוח מלא
+- כפתור ב-SECONDARY_ACTIONS: `{ emoji: "💰", label: "דוח רווחים", action: "conversions" }`
 
-Changes to sync-campaigns-manual/index.ts:
-1. Lower commission threshold: commission_rate >= 5 (instead of 8)
-2. Fetch more pages: pages 1-4 (instead of 1-2) for both promo and hot products
-3. Keep quality: evaluate_rate >= 70 (3.5 stars minimum)
-4. Deploy + run sync immediately
+### Step 5: Deploy + Test
 
-Validation:
-SELECT COUNT(*) FROM aliexpress_feed_products 
-WHERE is_campaign_product = true AND out_of_stock = false;
+**סיכון:** AliExpress `order.list` עשוי לדרוש Advanced API. אם נקבל שגיאה — Lazada ימשיך לעבוד + fallback message לאליאקספרס.
 
-Expected: 30-50 total campaign products
-```
+---
+
+### סדר ביצוע
+1. Fix commission in sync-campaigns-manual → deploy → run sync → validate
+2. Add aliexpress-api to config.toml
+3. Add order-list to aliexpress-api
+4. Add 3 conversion actions to dino-chat
+5. Update DinoChat.tsx with intent + buttons
+6. Deploy all → test via Dino
 
