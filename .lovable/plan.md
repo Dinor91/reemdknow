@@ -1,82 +1,60 @@
 
 
-## מחקר מקיף: שדרוג דף /join ל-90% מושלם
+## Phase 3: High Commission Support for AliExpress
 
-### ממצאי המחקר
+### API Verification Results
+- `featured-promo` API: **WORKS** - returns 151 active promo campaigns
+- `hot-products` API: **WORKS** - returns `commission_rate` ("7.0%") and `hot_product_commission_rate` ("4.0%") per product
+- DB `aliexpress_feed_products.commission_rate`: 198 products at 7%, 18 at 9%, 13 at 3%
 
-ביצעתי מחקר על דפי "Link in Bio" מובילים (Linktree, Later, Stan Store, Liinks) וניתחתי את הדף הנוכחי מול best practices מוכחות. הנה הפערים והשיפורים:
+### Changes
 
-### מה עובד עכשיו
-- תמונה אישית עם אפקט גרדיאנט (אמון)
-- היררכיה ברורה: קהילה > רשתות חברתיות
-- צבעי מותג ייחודיים לכל פלטפורמה
-- כיוון RTL תקין
+#### 1. DinoChat.tsx - Add High Commission Option to Israel Deal Flow
 
-### מה חסר / דורש שיפור (לפי המחקר)
+After platform "Israel" is selected in the deal flow, **before** showing categories, add a sorting prompt:
 
-**1. אנימציות כניסה (Staggered entrance)**
-- הכפתורים צריכים להופיע אחד-אחד עם דיליי קל (50-100ms) - זה מושך את העין ויוצר תחושת "חיים"
-- CSS `@keyframes fadeInUp` פשוט, בלי ספריה חיצונית
-
-**2. מונה חברים / הוכחה חברתית (Social Proof)**
-- הוספת badge קטן ליד כפתורי הוואטסאפ: "1,200+ חברים" 
-- זה אחד האלמנטים הכי חזקים בהמרה (מחקר: מעלה CTR ב-15-30%)
-
-**3. היררכיית CTA חזקה יותר**
-- כפתור וואטסאפ ישראל צריך להיות בולט יותר (גדול יותר, אנימציית pulse עדינה)
-- כפתורי הרשתות החברתיות צריכים להיות קטנים יותר או בשורה אופקית (אייקונים בלבד) - כך שהפוקוס נשאר על הוואטסאפ
-
-**4. עיצוב כפתורי הרשתות החברתיות**
-- במקום כפתורים מלאים לאינסטגרם/טיקטוק/פייסבוק - להציג אותם כשורת אייקונים עגולים בתחתית (כמו ב-Linktree Pro)
-- זה מצמצם רעש ושומר על הפוקוס ב-WhatsApp
-
-**5. Tap targets ומרווחים**
-- כפתורים צריכים להיות לפחות 48px גובה (נגישות)
-- מרווח בין כפתורים: לפחות 12px למניעת טעויות לחיצה
-
-**6. מהירות טעינה**
-- הדף כבר קליל, אבל ניתן להוסיף `loading="eager"` לתמונת הפרופיל
-
-**7. Meta tags ו-OG**
-- הוספת Open Graph tags כדי שהדף יראה טוב כשמשתפים אותו
-
-### תוכנית טכנית
-
-```text
-┌─────────────────────────┐
-│     תמונה אישית (80px)  │  ← gradient ring + fadeIn
-│   ראם | (D)Know          │
-│   דילים שווים אחרי סינון │
-├─────────────────────────┤
-│   ── הצטרפו לקהילה ──   │
-│                          │
-│ ┌─────────────────────┐ │  ← featured, larger, pulse glow
-│ │ 🟢 וואטסאפ ישראל    │ │
-│ │ 1,200+ חברים בקבוצה │ │
-│ └─────────────────────┘ │
-│                          │
-│ ┌─────────────────────┐ │
-│ │ 🟢 וואטסאפ תאילנד   │ │
-│ │ דילים מלאזדה        │ │
-│ └─────────────────────┘ │
-├─────────────────────────┤
-│   ── עקבו אחריי ──      │
-│                          │
-│   [IG]  [TikTok]  [FB]  │  ← שורת אייקונים עגולים
-│                          │
-│   © (D)Know              │
-└─────────────────────────┘
+```
+"🛒 מיון רגיל (לפי מכירות) או 🔥 עמלה גבוהה?"
 ```
 
-### שינויים בקובץ `src/pages/ChannelSelect.tsx`:
+Two buttons: `{ label: "🛒 רגיל", value: "normal" }` and `{ label: "🔥 עמלה גבוהה", value: "high_commission" }`
 
-1. **אנימציות CSS** - הוספת `@keyframes fadeInUp` ו-staggered delay דרך inline styles
-2. **Social proof badge** - הוספת טקסט "1,200+ חברים" מתחת ל-sublabel של וואטסאפ ישראל
-3. **Pulse glow** - אנימציית זוהר עדינה סביב כפתור וואטסאפ ישראל (ה-CTA הראשי)
-4. **רשתות חברתיות כאייקונים** - שינוי אינסטגרם/טיקטוק/פייסבוק משורת כפתורים מלאים לשורה אופקית של אייקונים עגולים קטנים
-5. **שיפור tap targets** - ודא py-4 לפחות על כפתורי WhatsApp
-6. **OG meta tag** - עדכון `document.title` + הוספת meta description
+New state: `flowHighCommission: boolean` (default false)
 
-### שינויים ב-Edge Function `track-click`:
-- הוספת `instagram`, `facebook`, `tiktok` לרשימת ה-`button_type` המותרים (כרגע רק `whatsapp` ו-`telegram` מותרים, אבל הדף שולח גם `instagram`/`facebook`/`tiktok`)
+**When high commission selected:**
+- In `handleCategorySelect` for Israel, add `.gte('commission_rate', 0.09)` filter and `.order('commission_rate', { ascending: false })` 
+- Show commission badge on product cards: `<Badge>עמלה {rate}%</Badge>`
+
+**Intent detection addition:**
+- Keywords "עמלה גבוהה" / "high commission" → start deal flow with `flowHighCommission = true` pre-set
+
+#### 2. DinoChat.tsx - Commission Badge on Product Cards
+
+In the product card rendering section, when `commission_rate` exists on a product, show a green badge: `🔥 {rate}%`
+
+Add `commission_rate` to the `ProductItem` interface.
+
+#### 3. DinoChat.tsx - Flow Changes
+
+Modify `handlePlatformSelect`:
+- If `activeFlow === "deal"` and `platform === "israel"` → show commission sorting prompt first
+- If `platform === "thailand"` → go directly to categories (no commission data for Lazada)
+
+New handler `handleCommissionChoice(choice)`:
+- Sets `flowHighCommission` state
+- Then calls `showCategoryPicker(platform)`
+
+Modify `handleCategorySelect` for Israel path:
+- If `flowHighCommission`: filter `commission_rate >= 0.09`, order by `commission_rate DESC` then `sales_30d DESC`
+- Include `commission_rate` in the SELECT and map it to ProductItem
+
+#### 4. Graceful Fallback
+
+If high commission query returns 0 products → show message "לא נמצאו מוצרים עם עמלה גבוהה בקטגוריה הזו, מציג מוצרים רגילים..." and fall back to normal sort.
+
+### Files to Edit
+- `src/components/DinoChat.tsx` — add commission flow step, badge rendering, new state
+
+### No Edge Function Changes Needed
+Commission data already exists in `aliexpress_feed_products.commission_rate`. This is purely a client-side filtering/display change.
 
