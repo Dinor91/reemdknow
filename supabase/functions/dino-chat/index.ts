@@ -56,23 +56,37 @@ function getActiveEvents(platform?: "aliexpress" | "lazada"): PlatformEvent[] {
 // ────────── UPSERT ORDERS ──────────
 
 async function upsertLazadaOrders(orders: any[]) {
-  if (!orders || orders.length === 0) return;
+  if (!orders || orders.length === 0) {
+    console.log("upsertLazadaOrders: no orders to upsert");
+    return;
+  }
+  console.log(`upsertLazadaOrders: processing ${orders.length} orders`);
+  // Log first order's raw fields for debugging
+  if (orders[0]) {
+    const sample = orders[0];
+    console.log(`Sample order keys: ${Object.keys(sample).join(", ")}`);
+    console.log(`Sample order snippet: orderId=${sample.orderId}, order_id=${sample.order_id}, estPayout=${sample.estPayout}, orderAmt=${sample.orderAmt}`);
+  }
   const serviceClient = createServiceClient();
   const rows = orders.map((o: any) => ({
     order_id: String(o.orderId || o.order_id || ""),
     product_name: o.productName || o.product_name || null,
     category_name: o.categoryName || o.category_name || null,
-    order_amount_thb: parseFloat(o.orderAmt) || 0,
-    commission_thb: parseFloat(o.estPayout) || 0,
+    order_amount_thb: parseFloat(o.orderAmt || o.order_amount || "0") || 0,
+    commission_thb: parseFloat(o.estPayout || o.est_payout || "0") || 0,
     order_status: o.orderStatus || o.status || null,
-    order_date: o.orderDate ? new Date(o.orderDate).toISOString() : null,
+    order_date: o.orderDate || o.order_date ? new Date(o.orderDate || o.order_date).toISOString() : null,
     raw_data: o,
   })).filter(r => r.order_id);
 
-  if (rows.length === 0) return;
+  if (rows.length === 0) {
+    console.log("upsertLazadaOrders: all rows filtered out (no order_id)");
+    return;
+  }
+  console.log(`upsertLazadaOrders: upserting ${rows.length} rows, first order_id=${rows[0].order_id}`);
   const { error } = await serviceClient.from("orders_lazada").upsert(rows, { onConflict: "order_id" });
-  if (error) console.error("Lazada upsert error:", error);
-  else console.log(`Upserted ${rows.length} Lazada orders`);
+  if (error) console.error("Lazada upsert error:", JSON.stringify(error));
+  else console.log(`Upserted ${rows.length} Lazada orders successfully`);
 }
 
 async function upsertAliexpressOrders(orders: any[]) {
