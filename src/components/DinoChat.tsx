@@ -1443,10 +1443,16 @@ const DinoChat = () => {
                   ? alerts.find(a => a.includes("⚠️")) || "יש התראות"
                   : "הכל תקין ✅";
                 return (
-                  <>
-                    <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${color}`} title={tooltip} />
-                    <span className="text-white/80 text-xs">{emoji}</span>
-                  </>
+                  <div className="relative group/status flex items-center gap-1">
+                    <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${color}`} />
+                    <span className="text-white/80 text-xs cursor-default">{emoji}</span>
+                    <div className="absolute top-full right-0 mt-2 w-52 bg-popover text-popover-foreground text-xs rounded-lg shadow-xl border border-border p-3 opacity-0 invisible group-hover/status:opacity-100 group-hover/status:visible transition-all duration-200 z-[60] pointer-events-none" dir="rtl">
+                      <p className="font-semibold mb-1">{hasError ? "🔴 בעיה קריטית" : hasWarn ? "🟡 יש התראות" : "🟢 הכל תקין"}</p>
+                      {alerts.length > 0 ? alerts.map((a, i) => (
+                        <p key={i} className="text-muted-foreground leading-relaxed">{a}</p>
+                      )) : <p className="text-muted-foreground">אין התראות</p>}
+                    </div>
+                  </div>
                 );
               })()}
             </div>
