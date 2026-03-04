@@ -1758,7 +1758,7 @@ const DinoChat = () => {
                   {/* Menu */}
                   {msg.role === "assistant" && msg.type === "menu" ? (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-foreground">{msg.content}</p>
+                      <p className={`font-medium text-foreground ${isExpanded ? 'text-base' : 'text-sm'}`}>{msg.content}</p>
                       {!showSecondaryMenu ? (
                         <>
                           <div className="grid grid-cols-1 gap-2">
@@ -1766,7 +1766,7 @@ const DinoChat = () => {
                               <button key={qa.action} onClick={() => handleQuickAction(qa.action)}
                                 className="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-card hover:bg-accent text-right text-sm transition-colors">
                                 <span>{qa.emoji}</span>
-                                <span className="text-xs leading-tight">{qa.label}</span>
+                                <span className={`leading-tight ${isExpanded ? 'text-sm' : 'text-xs'}`}>{qa.label}</span>
                               </button>
                             ))}
                           </div>
@@ -1785,7 +1785,7 @@ const DinoChat = () => {
                               <button key={qa.action} onClick={() => { setShowSecondaryMenu(false); handleQuickAction(qa.action); }}
                                 className="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-card hover:bg-accent text-right text-sm transition-colors">
                                 <span>{qa.emoji}</span>
-                                <span className="text-xs leading-tight">{qa.label}</span>
+                                <span className={`leading-tight ${isExpanded ? 'text-sm' : 'text-xs'}`}>{qa.label}</span>
                               </button>
                             ))}
                           </div>
@@ -1804,11 +1804,11 @@ const DinoChat = () => {
                   /* Buttons (including import confirm) */
                   : (msg.type === "buttons" || msg.type === "import_confirm") && msg.buttons ? (
                     <div className="space-y-2">
-                      <div className="text-sm text-foreground whitespace-pre-wrap">{msg.content}</div>
+                      <div className={`text-foreground whitespace-pre-wrap ${isExpanded ? 'text-base' : 'text-sm'}`}>{msg.content}</div>
                       <div className="flex flex-wrap gap-2">
                         {msg.buttons.map(btn => (
-                          <Button key={btn.value} size="sm" variant="outline" onClick={() => handleButtonClick(btn.value)}
-                            disabled={isLoading} className="text-sm">
+                          <Button key={btn.value} size={isExpanded ? "default" : "sm"} variant="outline" onClick={() => handleButtonClick(btn.value)}
+                            disabled={isLoading} className={isExpanded ? "text-base" : "text-sm"}>
                             {btn.label}
                           </Button>
                         ))}
@@ -1819,7 +1819,7 @@ const DinoChat = () => {
                   /* Product cards */
                   : msg.type === "products" && msg.products ? (
                     <div className="space-y-2">
-                      <p className="text-sm text-foreground">{msg.content}</p>
+                      <p className={`text-foreground ${isExpanded ? 'text-base' : 'text-sm'}`}>{msg.content}</p>
                       {msg.products.map((p, idx) => (
                         <div key={p.id}
                           onClick={() => activeFlow === "deal" ? handleProductSelect(p) : undefined}
@@ -1828,7 +1828,7 @@ const DinoChat = () => {
                             <img src={p.image_url} alt="" className="w-12 h-12 object-contain rounded bg-muted shrink-0" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium line-clamp-1 text-foreground">{idx + 1}. {p.name}</p>
+                            <p className={`font-medium line-clamp-1 text-foreground ${isExpanded ? 'text-base' : 'text-sm'}`}>{idx + 1}. {p.name}</p>
                             <div className="flex flex-wrap gap-1 mt-0.5">
                               {p.price != null && (
                                 <Badge variant="secondary" className="text-xs">
@@ -1874,7 +1874,7 @@ const DinoChat = () => {
                   /* User message */
                   : msg.role === "user" ? (
                     <div className="flex justify-start">
-                      <div className="bg-teal-500 text-white rounded-2xl rounded-br-sm px-3 py-2 max-w-[85%] text-sm">
+                      <div className={`bg-teal-500 text-white rounded-2xl rounded-br-sm px-3 py-2 max-w-[85%] ${isExpanded ? 'text-base' : 'text-sm'}`}>
                         {msg.content}
                       </div>
                     </div>
@@ -1883,7 +1883,7 @@ const DinoChat = () => {
                   /* Assistant message (text or deal_message) */
                   : (
                     <div className="flex justify-end">
-                      <div className="bg-muted rounded-2xl rounded-bl-sm px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap relative group">
+                      <div className={`bg-muted rounded-2xl rounded-bl-sm px-3 py-2 max-w-[85%] whitespace-pre-wrap relative group ${isExpanded ? 'text-base' : 'text-sm'}`}>
                         {msg.type === "deal_message" ? msg.content : renderAssistantText(msg.content)}
                         {msg.content.length > 50 && (
                           <button onClick={() => copyText(msg.content)}
@@ -1920,7 +1920,7 @@ const DinoChat = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={activeFlow ? "כתוב כאן... (או 'חזרה' לתפריט)" : "כתוב לדינו..."}
-                  className="flex-1 text-sm rounded-xl"
+                  className={`flex-1 rounded-xl ${isExpanded ? 'text-base h-11' : 'text-sm'}`}
                   disabled={isLoading}
                   autoFocus
                 />
