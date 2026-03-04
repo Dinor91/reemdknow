@@ -604,7 +604,7 @@ const DinoChat = () => {
             .select("id, product_name, image_url, price_thb, sales_7d, rating, brand_name, category_name_hebrew, tracking_link, discount_percentage, category_l1, commission_rate")
             .eq("out_of_stock", false);
           if (cat.filterValues !== "all") fallbackQ = fallbackQ.in("category_l1", cat.filterValues as number[]);
-          fallbackQ = fallbackQ.order("sales_7d", { ascending: false, nullsFirst: false }).limit(10);
+          fallbackQ = fallbackQ.order("sales_7d", { ascending: false, nullsFirst: false }).order("rating", { ascending: false, nullsFirst: false }).limit(20);
           const { data: fbData } = await fallbackQ;
           const fbItems = (fbData || []).map(p => ({
             id: p.id, name: p.product_name, image_url: p.image_url, price: p.price_thb,
@@ -612,9 +612,9 @@ const DinoChat = () => {
             tracking_link: p.tracking_link, discount_percentage: p.discount_percentage, source: "feed",
             commission_rate: (p as any).commission_rate,
           }));
-          items = fbItems.slice(0, 5);
+          items = fbItems.slice(0, 10);
         } else {
-          items = deduped.slice(0, 5);
+          items = deduped.slice(0, 10);
         }
       } else {
         let q = supabase.from("aliexpress_feed_products")
@@ -626,9 +626,9 @@ const DinoChat = () => {
           q = q.gte("commission_rate", 0.15);
           q = q.order("commission_rate", { ascending: false }).order("sales_30d", { ascending: false, nullsFirst: false });
         } else {
-          q = q.order("sales_30d", { ascending: false, nullsFirst: false });
+          q = q.order("sales_30d", { ascending: false, nullsFirst: false }).order("rating", { ascending: false, nullsFirst: false }).order("commission_rate", { ascending: false, nullsFirst: false });
         }
-        const { data } = await q.limit(5);
+        const { data } = await q.limit(20);
 
         // Fallback: if high commission returned 0, retry without filter
         if (flowHighCommission && (!data || data.length === 0)) {
@@ -638,7 +638,9 @@ const DinoChat = () => {
             .eq("out_of_stock", false)
             .in("category_id", cat.filterValues === "all" ? [] : cat.filterValues as string[])
             .order("sales_30d", { ascending: false, nullsFirst: false })
-            .limit(5);
+            .order("rating", { ascending: false, nullsFirst: false })
+            .order("commission_rate", { ascending: false, nullsFirst: false })
+            .limit(20);
           items = (fallbackData || []).map(p => ({
             id: p.id, name: p.product_name_hebrew || p.product_name, image_url: p.image_url,
             price: p.price_usd, sales: p.sales_30d, rating: p.rating, brand: null,
@@ -646,7 +648,7 @@ const DinoChat = () => {
             tracking_link: `https://www.aliexpress.com/item/${p.aliexpress_product_id}.html`,
             discount_percentage: p.discount_percentage,
             commission_rate: p.commission_rate,
-          }));
+          })).slice(0, 10);
         } else {
           items = (data || []).map(p => ({
             id: p.id, name: p.product_name_hebrew || p.product_name, image_url: p.image_url,
@@ -655,7 +657,7 @@ const DinoChat = () => {
             tracking_link: `https://www.aliexpress.com/item/${p.aliexpress_product_id}.html`,
             discount_percentage: p.discount_percentage,
             commission_rate: p.commission_rate,
-          }));
+          })).slice(0, 10);
         }
       }
 
