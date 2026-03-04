@@ -337,6 +337,7 @@ async function handleDealStart(chatId: number) {
   const keyboard = {
     inline_keyboard: [
       [{ text: "🇮🇱 ישראל", callback_data: "deal_platform:israel" }, { text: "🇹🇭 תאילנד", callback_data: "deal_platform:thailand" }],
+      [{ text: "🔥 עמלה גבוהה 🇮🇱", callback_data: "deal_platform:israel_hc" }, { text: "🔥 עמלה גבוהה 🇹🇭", callback_data: "deal_platform:thailand_hc" }],
     ],
   };
   await sendMessage(chatId, "🛒 <b>יצירת דיל</b>\n\nבחר פלטפורמה:", { reply_markup: keyboard });
