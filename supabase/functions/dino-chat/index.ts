@@ -562,30 +562,44 @@ ${productNames.map((n: string, i: number) => `${i + 1}. ${n}`).join("\n")}
     if (action === "conversions_lazada") {
       try {
         const now = new Date();
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        const lazadaResp = await fetch(`${SUPABASE_URL}/functions/v1/lazada-api`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
-          body: JSON.stringify({
-            action: "conversion-report",
-            dateStart: thirtyDaysAgo.toISOString().split("T")[0],
-            dateEnd: now.toISOString().split("T")[0],
-          }),
-        });
-        const lazData = await lazadaResp.json();
-        
-        if (!lazadaResp.ok || lazData.error) {
-          return new Response(JSON.stringify({ message: `⚠️ Lazada conversion report: ${lazData.error || "שגיאה"}` }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
+        // Split into calendar month calls (API requires single-month queries)
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const formatDateStr = (d: Date) => d.toISOString().split("T")[0];
 
-        const orders = lazData.data?.orders || [];
-        const totalCommission = orders.reduce((sum: number, o: any) => sum + (parseFloat(o.commission) || 0), 0);
+        const fetchLazMonth = async (start: Date, end: Date) => {
+          const resp = await fetch(`${SUPABASE_URL}/functions/v1/lazada-api`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+            body: JSON.stringify({
+              action: "conversion-report",
+              dateStart: formatDateStr(start),
+              dateEnd: formatDateStr(end),
+            }),
+          });
+          return await resp.json();
+        };
+
+        // Fetch previous month + current month in parallel
+        const [prevData, currData] = await Promise.all([
+          fetchLazMonth(prevMonthStart, new Date(currentMonthStart.getTime() - 1)),
+          fetchLazMonth(currentMonthStart, now),
+        ]);
+
+        // Correct data path: data.result.data (array of order objects)
+        const prevOrders = prevData.data?.result?.data || [];
+        const currOrders = currData.data?.result?.data || [];
+        const allOrders = [...prevOrders, ...currOrders];
+
+        // Correct commission field: estPayout (THB)
+        const totalCommission = allOrders.reduce((sum: number, o: any) => sum + (parseFloat(o.estPayout) || 0), 0);
+        const totalSales = allOrders.reduce((sum: number, o: any) => sum + (parseFloat(o.orderAmt) || 0), 0);
         const ilsAmount = Math.round(totalCommission * 0.36);
 
-        const msg = orders.length > 0
-          ? `🇹🇭 לזדה (30 יום):\n${orders.length} הזמנות | ฿${totalCommission.toFixed(0)} עמלה (≈₪${ilsAmount})`
+        console.log(`Lazada conversions: ${allOrders.length} orders, ฿${totalCommission.toFixed(0)} commission, ฿${totalSales.toFixed(0)} sales`);
+
+        const msg = allOrders.length > 0
+          ? `🇹🇭 לזדה (30 יום):\n${allOrders.length} הזמנות | ฿${totalSales.toFixed(0)} מכירות | ฿${totalCommission.toFixed(0)} עמלה (≈₪${ilsAmount})`
           : `🇹🇭 לזדה: אין הזמנות ב-30 יום האחרונים\n💡 טיפ: שתף עוד דילים בקבוצה כדי להגדיל המרות`;
 
         return new Response(JSON.stringify({ message: msg }), {
@@ -601,34 +615,46 @@ ${productNames.map((n: string, i: number) => `${i + 1}. ${n}`).join("\n")}
 
     if (action === "conversions_aliexpress") {
       try {
-        const aliResp = await fetch(`${SUPABASE_URL}/functions/v1/aliexpress-api`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
-          body: JSON.stringify({ action: "order-list" }),
-        });
-        const aliData = await aliResp.json();
+        // Fetch TWO statuses in parallel: "Payment Completed" + "Buyer Confirmed Receipt"
+        const fetchAliOrders = async (status: string) => {
+          const resp = await fetch(`${SUPABASE_URL}/functions/v1/aliexpress-api`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+            body: JSON.stringify({ action: "order-list", status }),
+          });
+          return await resp.json();
+        };
 
-        if (!aliResp.ok || aliData.error) {
-          const errMsg = aliData.error || "שגיאה";
-          const isApiLimit = errMsg.includes("Insufficient") || errMsg.includes("permission") || errMsg.includes("ISP");
-          return new Response(JSON.stringify({
-            message: isApiLimit
-              ? "⚠️ AliExpress order tracking לא זמין — נדרש שדרוג API ל-Advanced.\nלזדה ממשיך לעבוד כרגיל ✅"
-              : `⚠️ AliExpress: ${errMsg}`,
-          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
+        const [paidData, confirmedData] = await Promise.all([
+          fetchAliOrders("Payment Completed"),
+          fetchAliOrders("Buyer Confirmed Receipt"),
+        ]);
 
-        // Parse order response — amounts are in cents (USD)
-        const orderResp = aliData.data?.aliexpress_affiliate_order_list_response?.resp_result?.result;
-        const orders = orderResp?.orders?.order || [];
-        const totalCommissionCents = orders.reduce((sum: number, o: any) => sum + (parseFloat(o.estimated_paid_commission) || 0), 0);
-        const totalAmountCents = orders.reduce((sum: number, o: any) => sum + (parseFloat(o.paid_amount) || 0), 0);
+        // Extract orders from both responses
+        const paidOrders = paidData.data?.aliexpress_affiliate_order_list_response?.resp_result?.result?.orders?.order || [];
+        const confirmedOrders = confirmedData.data?.aliexpress_affiliate_order_list_response?.resp_result?.result?.orders?.order || [];
+
+        // Deduplicate by order_id — prefer confirmed (settled) version
+        const orderMap = new Map<string, any>();
+        for (const o of paidOrders) orderMap.set(o.order_id || o.order_number, o);
+        for (const o of confirmedOrders) orderMap.set(o.order_id || o.order_number, o); // overwrites paid with confirmed
+        const allOrders = Array.from(orderMap.values());
+
+        // Sum commissions: prefer estimated_finished_commission, fallback to estimated_paid_commission (all in cents)
+        const totalCommissionCents = allOrders.reduce((sum: number, o: any) => {
+          return sum + (parseFloat(o.estimated_finished_commission) || parseFloat(o.estimated_paid_commission) || 0);
+        }, 0);
+        const totalAmountCents = allOrders.reduce((sum: number, o: any) => {
+          return sum + (parseFloat(o.finished_amount) || parseFloat(o.paid_amount) || 0);
+        }, 0);
         const totalCommission = totalCommissionCents / 100;
         const totalAmount = totalAmountCents / 100;
         const ilsAmount = Math.round(totalCommission * 3.70);
 
-        const msg = orders.length > 0
-          ? `🇮🇱 אליאקספרס (30 יום):\n${orders.length} הזמנות | $${totalAmount.toFixed(2)} מכירות | $${totalCommission.toFixed(2)} עמלה (≈₪${ilsAmount})`
+        console.log(`AliExpress conversions: ${allOrders.length} orders (${paidOrders.length} paid + ${confirmedOrders.length} confirmed), $${totalCommission.toFixed(2)} commission`);
+
+        const msg = allOrders.length > 0
+          ? `🇮🇱 אליאקספרס (30 יום):\n${allOrders.length} הזמנות | $${totalAmount.toFixed(2)} מכירות | $${totalCommission.toFixed(2)} עמלה (≈₪${ilsAmount})`
           : `🇮🇱 אליאקספרס: אין הזמנות ב-30 יום האחרונים\n💡 טיפ: פרסם מוצרי קמפיין עם עמלה גבוהה`;
 
         return new Response(JSON.stringify({ message: msg }), {
@@ -646,22 +672,29 @@ ${productNames.map((n: string, i: number) => `${i + 1}. ${n}`).join("\n")}
       const results: string[] = [];
       let totalILS = 0;
 
-      // Lazada
+      // Lazada — calendar month split + correct data path
       try {
         const now = new Date();
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        const lazResp = await fetch(`${SUPABASE_URL}/functions/v1/lazada-api`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
-          body: JSON.stringify({
-            action: "conversion-report",
-            dateStart: thirtyDaysAgo.toISOString().split("T")[0],
-            dateEnd: now.toISOString().split("T")[0],
-          }),
-        });
-        const lazData = await lazResp.json();
-        const orders = lazData.data?.orders || [];
-        const comm = orders.reduce((s: number, o: any) => s + (parseFloat(o.commission) || 0), 0);
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const fmtD = (d: Date) => d.toISOString().split("T")[0];
+
+        const fetchLaz = async (start: Date, end: Date) => {
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/lazada-api`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+            body: JSON.stringify({ action: "conversion-report", dateStart: fmtD(start), dateEnd: fmtD(end) }),
+          });
+          return await r.json();
+        };
+
+        const [prev, curr] = await Promise.all([
+          fetchLaz(prevMonthStart, new Date(currentMonthStart.getTime() - 1)),
+          fetchLaz(currentMonthStart, now),
+        ]);
+
+        const orders = [...(prev.data?.result?.data || []), ...(curr.data?.result?.data || [])];
+        const comm = orders.reduce((s: number, o: any) => s + (parseFloat(o.estPayout) || 0), 0);
         const ils = Math.round(comm * 0.36);
         totalILS += ils;
         results.push(orders.length > 0
@@ -671,18 +704,31 @@ ${productNames.map((n: string, i: number) => `${i + 1}. ${n}`).join("\n")}
         results.push("🇹🇭 לזדה: שגיאה בטעינה");
       }
 
-      // AliExpress
+      // AliExpress — two statuses + dedup
       try {
-        const aliResp = await fetch(`${SUPABASE_URL}/functions/v1/aliexpress-api`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
-          body: JSON.stringify({ action: "order-list" }),
-        });
-        const aliData = await aliResp.json();
-        if (aliResp.ok && !aliData.error) {
-          const orderResp = aliData.data?.aliexpress_affiliate_order_list_response?.resp_result?.result;
-          const orders = orderResp?.orders?.order || [];
-          const commCents = orders.reduce((s: number, o: any) => s + (parseFloat(o.estimated_paid_commission) || 0), 0);
+        const fetchAli = async (status: string) => {
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/aliexpress-api`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+            body: JSON.stringify({ action: "order-list", status }),
+          });
+          return await r.json();
+        };
+
+        const [paidD, confD] = await Promise.all([
+          fetchAli("Payment Completed"),
+          fetchAli("Buyer Confirmed Receipt"),
+        ]);
+
+        if (!paidD.error && !confD.error) {
+          const paidO = paidD.data?.aliexpress_affiliate_order_list_response?.resp_result?.result?.orders?.order || [];
+          const confO = confD.data?.aliexpress_affiliate_order_list_response?.resp_result?.result?.orders?.order || [];
+          const oMap = new Map<string, any>();
+          for (const o of paidO) oMap.set(o.order_id || o.order_number, o);
+          for (const o of confO) oMap.set(o.order_id || o.order_number, o);
+          const orders = Array.from(oMap.values());
+
+          const commCents = orders.reduce((s: number, o: any) => s + (parseFloat(o.estimated_finished_commission) || parseFloat(o.estimated_paid_commission) || 0), 0);
           const comm = commCents / 100;
           const ils = Math.round(comm * 3.70);
           totalILS += ils;
