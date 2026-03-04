@@ -766,6 +766,11 @@ serve(async (req) => {
       else if (data === "cmd:deal") await handleDealStart(chatId);
       else if (data === "cmd:stats") await handleStats(chatId);
       else if (data === "cmd:events") await handleEvents(chatId);
+      else if (data === "deal_platform:israel_hc" || data === "deal_platform:thailand_hc") await handleDealPlatformHighCommission(chatId, messageId, data.split(":")[1]);
+      else if (data.startsWith("deal_hc_cat:")) {
+        const parts = data.split(":");
+        await handleDealCategoryHighCommission(chatId, messageId, parts[1], parts[2]);
+      }
       else if (data.startsWith("deal_platform:")) await handleDealPlatform(chatId, messageId, data.split(":")[1]);
       else if (data.startsWith("deal_cat:")) {
         const parts = data.split(":");
