@@ -1634,6 +1634,16 @@ const DinoChat = () => {
                           </div>
                         </div>
                       ))}
+                      {msg.buttons && msg.buttons.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-border">
+                          {msg.buttons.map(btn => (
+                            <Button key={btn.value} size="sm" variant="outline" onClick={() => handleButtonClick(btn.value)}
+                              disabled={isLoading} className="text-sm">
+                              {btn.label}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )
 
