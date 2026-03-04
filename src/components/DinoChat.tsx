@@ -1417,8 +1417,8 @@ const DinoChat = () => {
       return;
     }
 
-    // Commission choice (Israel deal flow)
-    if (activeFlow === "deal" && flowPlatform === "israel" && (value === "normal" || value === "high_commission")) {
+    // Commission choice (deal flow - both Israel and Thailand)
+    if (activeFlow === "deal" && flowPlatform && (value === "normal" || value === "high_commission")) {
       handleCommissionChoice(value);
       return;
     }
