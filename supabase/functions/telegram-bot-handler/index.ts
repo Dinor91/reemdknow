@@ -464,6 +464,127 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
   await editMessage(chatId, messageId, msg, { reply_markup: { inline_keyboard: rows } });
 }
 
+// ────────── HIGH COMMISSION DEAL FLOW ──────────
+
+async function handleDealPlatformHighCommission(chatId: number, messageId: number, platform: string) {
+  const serviceClient = createServiceClient();
+
+  let catCounts: Record<string, number> = {};
+
+  if (platform === "israel_hc") {
+    const { data } = await serviceClient
+      .from("aliexpress_feed_products")
+      .select("category_name_hebrew, commission_rate")
+      .eq("is_campaign_product", true)
+      .gte("commission_rate", 0.15);
+
+    for (const p of (data || [])) {
+      const cat = p.category_name_hebrew || "כללי";
+      catCounts[cat] = (catCounts[cat] || 0) + 1;
+    }
+  } else {
+    const { data } = await serviceClient
+      .from("feed_products")
+      .select("category_name_hebrew, commission_rate")
+      .gte("commission_rate", 0.15)
+      .eq("out_of_stock", false);
+
+    for (const p of (data || [])) {
+      const cat = p.category_name_hebrew || "כללי";
+      catCounts[cat] = (catCounts[cat] || 0) + 1;
+    }
+  }
+
+  const entries = Object.entries(catCounts).sort(([, a], [, b]) => b - a);
+
+  if (entries.length === 0) {
+    await editMessage(chatId, messageId, "❌ אין מוצרים עם עמלה גבוהה כרגע.\nנסה את הקטגוריות הרגילות.");
+    return;
+  }
+
+  const buttons = entries.slice(0, 10).map(([cat, count]) => ({
+    text: `${cat} (${count})`,
+    callback_data: `deal_hc_cat:${platform}:${cat}`.substring(0, 64),
+  }));
+
+  const rows = [];
+  for (let i = 0; i < buttons.length; i += 2) {
+    rows.push(buttons.slice(i, i + 2));
+  }
+
+  const flag = platform === "israel_hc" ? "🇮🇱" : "🇹🇭";
+  await editMessage(chatId, messageId, `🔥 <b>${flag} עמלה גבוהה — בחר קטגוריה:</b>`, { reply_markup: { inline_keyboard: rows } });
+}
+
+async function handleDealCategoryHighCommission(chatId: number, messageId: number, platform: string, category: string) {
+  const serviceClient = createServiceClient();
+  await editMessage(chatId, messageId, `⏳ טוען מוצרי עמלה גבוהה מ-${category}...`);
+
+  let products: any[] = [];
+
+  if (platform === "israel_hc") {
+    const { data } = await serviceClient
+      .from("aliexpress_feed_products")
+      .select("*")
+      .eq("category_name_hebrew", category)
+      .eq("is_campaign_product", true)
+      .gte("commission_rate", 0.15)
+      .order("commission_rate", { ascending: false })
+      .limit(10);
+    products = (data || []).map(p => ({
+      id: p.id,
+      name: p.product_name_hebrew || p.product_name,
+      price: p.price_usd ? `$${p.price_usd}` : "לא ידוע",
+      rating: p.rating,
+      sales_7d: p.sales_30d,
+      url: p.tracking_link,
+      commission_rate: p.commission_rate,
+      platform: "israel",
+    }));
+  } else {
+    const { data } = await serviceClient
+      .from("feed_products")
+      .select("*")
+      .eq("category_name_hebrew", category)
+      .gte("commission_rate", 0.15)
+      .eq("out_of_stock", false)
+      .order("commission_rate", { ascending: false })
+      .limit(10);
+    products = (data || []).map(p => ({
+      id: p.id,
+      name: p.product_name,
+      price: p.price_thb ? `฿${p.price_thb}` : "לא ידוע",
+      rating: p.rating,
+      sales_7d: p.sales_7d,
+      url: p.tracking_link,
+      commission_rate: p.commission_rate,
+      platform: "thailand",
+    }));
+  }
+
+  if (products.length === 0) {
+    await editMessage(chatId, messageId, `❌ אין מוצרי עמלה גבוהה בקטגוריה ${category}`);
+    return;
+  }
+
+  let msg = `🔥 <b>מוצרי עמלה גבוהה — ${category}</b>\n\n`;
+  const buttons: any[] = [];
+
+  products.forEach((p, i) => {
+    const commStr = p.commission_rate ? ` | 🔥 ${Math.round(p.commission_rate * 100)}% עמלה` : "";
+    const ratingStr = p.rating ? ` ⭐${p.rating}` : "";
+    msg += `${i + 1}. ${p.name?.substring(0, 40)}\n   💰 ${p.price}${ratingStr}${commStr}\n\n`;
+    buttons.push({ text: `${i + 1}. יצירת דיל`, callback_data: `deal_gen:${p.id}`.substring(0, 64) });
+  });
+
+  const rows = [];
+  for (let i = 0; i < buttons.length; i += 2) {
+    rows.push(buttons.slice(i, i + 2));
+  }
+
+  await editMessage(chatId, messageId, msg, { reply_markup: { inline_keyboard: rows } });
+}
+
 async function handleDealGenerate(chatId: number, productId: string) {
   await sendMessage(chatId, "⏳ מייצר הודעת דיל...");
 
