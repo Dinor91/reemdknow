@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -63,9 +63,80 @@ const DailyDeals = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const { toast } = useToast();
 
   const categories = platform === "lazada" ? LAZADA_CATEGORIES : ALIEXPRESS_CATEGORIES;
+
+  // Fetch category counts when platform changes
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        if (platform === "aliexpress") {
+          const { data, error } = await supabase
+            .from("aliexpress_feed_products")
+            .select("category_id")
+            .eq("out_of_stock", false);
+          if (error) throw error;
+          const counts: Record<string, number> = {};
+          let total = 0;
+          for (const row of data || []) {
+            if (row.category_id) {
+              counts[row.category_id] = (counts[row.category_id] || 0) + 1;
+            }
+            total++;
+          }
+          // Map category filter values to counts
+          const result: Record<string, number> = {};
+          for (const cat of ALIEXPRESS_CATEGORIES) {
+            if (cat.filterValues === "all") {
+              result[cat.label] = total;
+            } else {
+              result[cat.label] = (cat.filterValues as string[]).reduce((sum, id) => sum + (counts[id] || 0), 0);
+            }
+          }
+          setCategoryCounts(result);
+        } else {
+          // Lazada: parallel queries for feed_products and category_products
+          const [feedRes, curatedRes] = await Promise.all([
+            supabase.from("feed_products").select("category_l1").eq("out_of_stock", false),
+            supabase.from("category_products").select("category").eq("is_active", true),
+          ]);
+          const feedCounts: Record<number, number> = {};
+          let feedTotal = 0;
+          for (const row of feedRes.data || []) {
+            if (row.category_l1) {
+              feedCounts[row.category_l1] = (feedCounts[row.category_l1] || 0) + 1;
+            }
+            feedTotal++;
+          }
+          const curatedCounts: Record<string, number> = {};
+          let curatedTotal = 0;
+          for (const row of curatedRes.data || []) {
+            if (row.category) {
+              curatedCounts[row.category] = (curatedCounts[row.category] || 0) + 1;
+            }
+            curatedTotal++;
+          }
+          const result: Record<string, number> = {};
+          for (const cat of LAZADA_CATEGORIES) {
+            const lazCat = cat as LazadaCategoryOption;
+            if (cat.filterValues === "all") {
+              result[cat.label] = feedTotal + curatedTotal;
+            } else {
+              const feedCount = (cat.filterValues as number[]).reduce((sum, id) => sum + (feedCounts[id] || 0), 0);
+              const curCount = (lazCat.curatedCategories || []).reduce((sum, c) => sum + (curatedCounts[c] || 0), 0);
+              result[cat.label] = feedCount + curCount;
+            }
+          }
+          setCategoryCounts(result);
+        }
+      } catch (e) {
+        console.error("Error fetching category counts:", e);
+      }
+    };
+    fetchCounts();
+  }, [platform]);
 
   const fetchProducts = async (cat: CategoryOption) => {
     setLoadingProducts(true);
@@ -87,7 +158,7 @@ const DailyDeals = () => {
         if (cat.filterValues !== "all") {
           feedQuery = feedQuery.in("category_l1", cat.filterValues as number[]);
         }
-        feedQuery = feedQuery.order("sales_7d", { ascending: false, nullsFirst: false }).limit(10);
+        feedQuery = feedQuery.order("sales_7d", { ascending: false, nullsFirst: false }).order("rating", { ascending: false, nullsFirst: false }).limit(20);
 
         // Query category_products (curated)
         let curatedQuery = supabase
@@ -97,7 +168,7 @@ const DailyDeals = () => {
         if (lazadaCat.curatedCategories) {
           curatedQuery = curatedQuery.in("category", lazadaCat.curatedCategories);
         }
-        curatedQuery = curatedQuery.order("sales_count", { ascending: false, nullsFirst: false }).limit(10);
+        curatedQuery = curatedQuery.order("sales_count", { ascending: false, nullsFirst: false }).order("rating", { ascending: false, nullsFirst: false }).limit(20);
 
         const [feedRes, curatedRes] = await Promise.all([feedQuery, curatedQuery]);
         if (feedRes.error) throw feedRes.error;
@@ -133,7 +204,7 @@ const DailyDeals = () => {
           source: "curated" as const,
         }));
 
-        // Merge, deduplicate by first 40 chars of name, sort by sales, limit 5
+        // Merge, deduplicate by first 40 chars of name, sort by sales then rating, limit 10
         const merged = [...curatedItems, ...feedItems];
         const seen = new Set<string>();
         const deduped: ProductItem[] = [];
@@ -144,18 +215,26 @@ const DailyDeals = () => {
             deduped.push(item);
           }
         }
-        deduped.sort((a, b) => (b.sales || 0) - (a.sales || 0));
-        items = deduped.slice(0, 5);
+        deduped.sort((a, b) => {
+          const salesDiff = (b.sales || 0) - (a.sales || 0);
+          if (salesDiff !== 0) return salesDiff;
+          return (b.rating || 0) - (a.rating || 0);
+        });
+        items = deduped.slice(0, 10);
 
       } else {
         let query = supabase
           .from("aliexpress_feed_products")
-          .select("id, aliexpress_product_id, product_name, product_name_hebrew, image_url, price_usd, original_price_usd, sales_30d, rating, category_name_hebrew, tracking_link, discount_percentage, category_id")
+          .select("id, aliexpress_product_id, product_name, product_name_hebrew, image_url, price_usd, original_price_usd, sales_30d, rating, category_name_hebrew, tracking_link, discount_percentage, category_id, commission_rate")
           .eq("out_of_stock", false);
         if (cat.filterValues !== "all") {
           query = query.in("category_id", cat.filterValues as string[]);
         }
-        const { data, error } = await query.order("sales_30d", { ascending: false, nullsFirst: false }).limit(5);
+        const { data, error } = await query
+          .order("sales_30d", { ascending: false, nullsFirst: false })
+          .order("rating", { ascending: false, nullsFirst: false })
+          .order("commission_rate", { ascending: false, nullsFirst: false })
+          .limit(20);
         if (error) throw error;
 
         items = (data || []).map((p) => {
@@ -173,7 +252,7 @@ const DailyDeals = () => {
             tracking_link: shortLink,
             discount_percentage: p.discount_percentage,
           };
-        });
+        }).slice(0, 10);
       }
 
       setProducts(items);
@@ -273,18 +352,21 @@ const DailyDeals = () => {
           </Button>
         </div>
 
-        {/* Category Buttons */}
+        {/* Category Buttons with counts */}
         <div className="flex flex-wrap gap-3 justify-center mb-8">
-          {categories.map((cat) => (
-            <Button
-              key={cat.label}
-              variant={selectedCategory === cat.label ? "default" : "outline"}
-              onClick={() => fetchProducts(cat)}
-              className="text-base"
-            >
-              {cat.emoji} {cat.label}
-            </Button>
-          ))}
+          {categories.map((cat) => {
+            const count = categoryCounts[cat.label];
+            return (
+              <Button
+                key={cat.label}
+                variant={selectedCategory === cat.label ? "default" : "outline"}
+                onClick={() => fetchProducts(cat)}
+                className="text-base"
+              >
+                {cat.emoji} {cat.label}{count != null ? ` (${count})` : ""}
+              </Button>
+            );
+          })}
         </div>
 
         {/* Loading */}
