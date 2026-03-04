@@ -14,6 +14,30 @@ const ALIEXPRESS_API_URL = 'https://api-sg.aliexpress.com/sync'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
+// Hebrew category mapping using keywords
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  "רכב": ["car", "auto", "vehicle", "tire", "wheel", "motor", "engine", "dashboard", "gps", "driving", "parking", "seat cover", "steering", "headlight", "brake", "motorcycle", "bike holder", "trunk", "windshield", "charger car", "obd", "fuel", "rearview", "mirror car", "bumper", "wiper", "car seat"],
+  "גאדג׳טים": ["gadget", "electronic", "usb", "bluetooth", "wireless", "speaker", "headphone", "earphone", "power bank", "cable", "charger", "adapter", "mouse", "keyboard", "webcam", "microphone", "led", "light strip", "drone", "camera", "tripod", "phone holder", "tablet", "smart watch", "fitness tracker", "vr", "gaming", "earbuds", "tws", "headset", "portable", "hub", "dock", "stand phone"],
+  "ילדים": ["kid", "child", "baby", "toy", "game", "puzzle", "doll", "lego", "educational", "stroller", "diaper", "bottle", "pacifier", "infant", "toddler", "children", "school", "backpack kid", "lunch box", "playmat", "breast pump", "breastfeeding", "nursing", "newborn", "balloon", "party kids", "birthday"],
+  "בית": ["home", "kitchen", "bathroom", "bedroom", "living room", "furniture", "decor", "storage", "organizer", "shelf", "hook", "hanger", "towel", "curtain", "rug", "mat", "pillow", "blanket", "bedding", "lamp", "vase", "plant", "garden", "cleaning", "trash", "laundry", "iron", "vacuum", "pot", "pan", "bowl", "container", "lid", "utensil", "knife", "cutting board", "spoon", "fork", "plate", "cup", "mug", "glass", "blender", "mixer", "oven", "microwave", "coffee", "tea", "bbq", "grill", "cover pot", "silicone", "opener", "beverage"],
+  "בית חכם": ["smart home", "wifi", "alexa", "google home", "automation", "sensor", "switch", "socket", "plug smart", "bulb smart", "camera security", "doorbell", "lock smart", "thermostat", "remote control", "zigbee", "tuya", "robot vacuum", "dreame", "xiaomi robot", "roborock", "roomba", "ecovacs"],
+  "אופנה": ["fashion", "clothing", "shirt", "dress", "pants", "jeans", "jacket", "coat", "shoes", "sneakers", "boots", "sandals", "bag", "handbag", "wallet", "belt", "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "sunglasses", "hat", "scarf", "gloves", "underwear", "socks", "swimwear", "bikini", "shorts", "cotton", "t-shirt"],
+  "נסיעות": ["travel", "luggage", "suitcase", "backpack", "passport", "neck pillow", "travel adapter", "packing", "organizer bag", "camping", "hiking", "outdoor", "tent", "sleeping bag", "flashlight", "compass", "water bottle travel"],
+  "בריאות": ["health", "medical", "massage", "fitness", "exercise", "yoga", "gym", "weight", "scale", "blood pressure", "thermometer", "first aid", "vitamin", "supplement", "posture", "back support", "knee", "wrist", "ankle", "pain relief", "sleep", "trimmer", "clipper", "shaver", "beard", "hair cut", "barber", "razor", "essential oil", "aromatherapy", "diffuser"],
+  "כלי עבודה": ["tool", "drill", "screwdriver", "wrench", "hammer", "plier", "saw", "measure", "tape", "level", "multimeter", "soldering", "welding", "cutting", "grinding", "toolbox", "work light", "gloves work", "safety", "ladder", "pump inflat"],
+};
+
+function detectHebrewCategory(productName: string): string {
+  if (!productName) return "כללי";
+  const lowerName = productName.toLowerCase();
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    for (const keyword of keywords) {
+      if (lowerName.includes(keyword.toLowerCase())) return category;
+    }
+  }
+  return "כללי";
+}
+
 function toHex(buffer: Uint8Array): string {
   return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
 }
