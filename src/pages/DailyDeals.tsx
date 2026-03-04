@@ -63,20 +63,23 @@ const DailyDeals = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [highCommission, setHighCommission] = useState(false);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const { toast } = useToast();
 
   const categories = platform === "lazada" ? LAZADA_CATEGORIES : ALIEXPRESS_CATEGORIES;
 
-  // Fetch category counts when platform changes
+  // Fetch category counts when platform or commission mode changes
   useEffect(() => {
     const fetchCounts = async () => {
       try {
         if (platform === "aliexpress") {
-          const { data, error } = await supabase
+          let query = supabase
             .from("aliexpress_feed_products")
             .select("category_id")
             .eq("out_of_stock", false);
+          if (highCommission) query = query.eq("is_campaign_product", true);
+          const { data, error } = await query;
           if (error) throw error;
           const counts: Record<string, number> = {};
           let total = 0;
@@ -86,7 +89,6 @@ const DailyDeals = () => {
             }
             total++;
           }
-          // Map category filter values to counts
           const result: Record<string, number> = {};
           for (const cat of ALIEXPRESS_CATEGORIES) {
             if (cat.filterValues === "all") {
@@ -97,9 +99,10 @@ const DailyDeals = () => {
           }
           setCategoryCounts(result);
         } else {
-          // Lazada: parallel queries for feed_products and category_products
+          let feedQuery = supabase.from("feed_products").select("category_l1").eq("out_of_stock", false);
+          if (highCommission) feedQuery = feedQuery.gte("commission_rate", 0.15);
           const [feedRes, curatedRes] = await Promise.all([
-            supabase.from("feed_products").select("category_l1").eq("out_of_stock", false),
+            feedQuery,
             supabase.from("category_products").select("category").eq("is_active", true),
           ]);
           const feedCounts: Record<number, number> = {};
@@ -122,10 +125,10 @@ const DailyDeals = () => {
           for (const cat of LAZADA_CATEGORIES) {
             const lazCat = cat as LazadaCategoryOption;
             if (cat.filterValues === "all") {
-              result[cat.label] = feedTotal + curatedTotal;
+              result[cat.label] = feedTotal + (highCommission ? 0 : curatedTotal);
             } else {
               const feedCount = (cat.filterValues as number[]).reduce((sum, id) => sum + (feedCounts[id] || 0), 0);
-              const curCount = (lazCat.curatedCategories || []).reduce((sum, c) => sum + (curatedCounts[c] || 0), 0);
+              const curCount = highCommission ? 0 : (lazCat.curatedCategories || []).reduce((sum, c) => sum + (curatedCounts[c] || 0), 0);
               result[cat.label] = feedCount + curCount;
             }
           }
@@ -136,7 +139,7 @@ const DailyDeals = () => {
       }
     };
     fetchCounts();
-  }, [platform]);
+  }, [platform, highCommission]);
 
   const fetchProducts = async (cat: CategoryOption) => {
     setLoadingProducts(true);
@@ -320,6 +323,7 @@ const DailyDeals = () => {
     setSelectedProduct(null);
     setGeneratedMessage("");
     setCoupon("");
+    setHighCommission(false);
   };
 
   return (
@@ -349,6 +353,17 @@ const DailyDeals = () => {
             onClick={() => handlePlatformSwitch("aliexpress")}
           >
             🇮🇱 AliExpress Israel
+          </Button>
+        </div>
+
+        {/* High Commission Toggle */}
+        <div className="flex justify-center mb-6">
+          <Button
+            variant={highCommission ? "default" : "outline"}
+            onClick={() => setHighCommission(!highCommission)}
+            className={`gap-2 ${highCommission ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
+          >
+            💰 {highCommission ? "עמלה גבוהה ✓" : "עמלה גבוהה"}
           </Button>
         </div>
 
