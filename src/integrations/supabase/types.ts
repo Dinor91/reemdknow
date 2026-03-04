@@ -458,6 +458,84 @@ export type Database = {
         }
         Relationships: []
       }
+      orders_aliexpress: {
+        Row: {
+          category_name: string | null
+          commission_usd: number | null
+          created_at: string | null
+          id: string
+          order_date: string | null
+          order_id: string
+          order_status: string | null
+          paid_amount_usd: number | null
+          product_name: string | null
+          raw_data: Json | null
+        }
+        Insert: {
+          category_name?: string | null
+          commission_usd?: number | null
+          created_at?: string | null
+          id?: string
+          order_date?: string | null
+          order_id: string
+          order_status?: string | null
+          paid_amount_usd?: number | null
+          product_name?: string | null
+          raw_data?: Json | null
+        }
+        Update: {
+          category_name?: string | null
+          commission_usd?: number | null
+          created_at?: string | null
+          id?: string
+          order_date?: string | null
+          order_id?: string
+          order_status?: string | null
+          paid_amount_usd?: number | null
+          product_name?: string | null
+          raw_data?: Json | null
+        }
+        Relationships: []
+      }
+      orders_lazada: {
+        Row: {
+          category_name: string | null
+          commission_thb: number | null
+          created_at: string | null
+          id: string
+          order_amount_thb: number | null
+          order_date: string | null
+          order_id: string
+          order_status: string | null
+          product_name: string | null
+          raw_data: Json | null
+        }
+        Insert: {
+          category_name?: string | null
+          commission_thb?: number | null
+          created_at?: string | null
+          id?: string
+          order_amount_thb?: number | null
+          order_date?: string | null
+          order_id: string
+          order_status?: string | null
+          product_name?: string | null
+          raw_data?: Json | null
+        }
+        Update: {
+          category_name?: string | null
+          commission_thb?: number | null
+          created_at?: string | null
+          id?: string
+          order_amount_thb?: number | null
+          order_date?: string | null
+          order_id?: string
+          order_status?: string | null
+          product_name?: string | null
+          raw_data?: Json | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null

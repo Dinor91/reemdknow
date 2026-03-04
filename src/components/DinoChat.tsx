@@ -102,6 +102,14 @@ const TEMPLATE_OPTIONS = [
 
 const BACK_KEYWORDS = ["חזרה", "תפריט", "ביטול", "back", "cancel", "menu"];
 
+// Helper: findLastIndex polyfill for ES2022 compat
+function findLastIdx<T>(arr: T[], predicate: (item: T) => boolean): number {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (predicate(arr[i])) return i;
+  }
+  return -1;
+}
+
 // ────────────────── Helpers ──────────────────
 
 function detectIntentLocally(text: string): { intent: FlowType | "stats" | "tasks" | "chat"; searchQuery?: string } {
@@ -905,8 +913,22 @@ const DinoChat = () => {
     setIsLoading(true);
 
     const productName = text.trim().toLowerCase() === "דלג" ? undefined : text.trim();
+    const platformLabel = pendingImport!.platform === "israel" ? "ישראל" : "תאילנד";
+
+    // Step 1: Identifying
+    addAssistant("🔍 מזהה מוצר מהקישור...");
 
     try {
+      // Step 2: Scraping
+      setTimeout(() => {
+        setMessages(prev => {
+          const updated = [...prev];
+          const idx = findLastIdx(updated, m => m.content === "🔍 מזהה מוצר מהקישור...");
+          if (idx >= 0) updated[idx] = { ...updated[idx], content: "📸 מושך תמונות ופרטים..." };
+          return updated;
+        });
+      }, 800);
+
       const data = await invokeAction("import_product", {
         confirmed: true,
         platform: pendingImport!.platform,
@@ -914,10 +936,38 @@ const DinoChat = () => {
         product_name: productName,
       });
 
+      // Step 3: Update to saving
+      setMessages(prev => {
+        const updated = [...prev];
+        const idx = findLastIdx(updated, m => 
+          m.content === "📸 מושך תמונות ופרטים..." || m.content === "🔍 מזהה מוצר מהקישור..."
+        );
+        if (idx >= 0) updated[idx] = { ...updated[idx], content: "💾 שומר למאגר..." };
+        return updated;
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       if (data?.success && data.step === "saved") {
-        addAssistant(data.message);
+        // Step 4: Done!
+        setMessages(prev => {
+          const updated = [...prev];
+          const idx = findLastIdx(updated, m => m.content === "💾 שומר למאגר...");
+          if (idx >= 0) {
+            updated[idx] = { 
+              ...updated[idx], 
+              content: `✅ המוצר נוסף להמלצות העורך!\n\n${data.message}\n\n📊 סטטוס: פעיל בדף ${platformLabel}\n🔗 [צפה בדף הציבורי](/${pendingImport!.platform === "israel" ? "israel" : "thailand"})` 
+            };
+          }
+          return updated;
+        });
       } else {
-        addAssistant(data?.error || "שגיאה בשמירה ❌");
+        setMessages(prev => {
+          const updated = [...prev];
+          const idx = findLastIdx(updated, m => m.content === "💾 שומר למאגר...");
+          if (idx >= 0) updated[idx] = { ...updated[idx], content: data?.error || "שגיאה בשמירה ❌" };
+          return updated;
+        });
       }
       resetFlow();
     } catch (e: any) {
@@ -929,14 +979,127 @@ const DinoChat = () => {
     }
   };
 
-  // ────────── SUMMARY FLOW ──────────
+  // ────────── SUMMARY FLOW (DATA-DRIVEN) ──────────
 
-  const startSummaryFlow = () => {
+  const startSummaryFlow = async () => {
     setActiveFlow("summary");
-    addAssistant("📝 כתוב את שמות 3 המוצרים של השבוע (מופרדים בפסיקים או שורות):");
+    setIsLoading(true);
+    addAssistant("📊 טוען ניתוח שבועי...");
+
+    try {
+      const data = await invokeAction("weekly_analytics");
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      const { topProducts, topCategories, totalOrders, totalCommissionILS, trend, lazadaOrders, aliexpressOrders } = data;
+
+      // Build internal analytics view
+      let report = "📊 **סיכום שבועי — ניתוח ביצועים**\n\n";
+      
+      // Totals
+      report += `📦 סה\"כ הזמנות: **${totalOrders}** (🇹🇭 ${lazadaOrders} | 🇮🇱 ${aliexpressOrders})\n`;
+      report += `💰 סה\"כ עמלה: **₪${totalCommissionILS}**`;
+      if (trend !== null) {
+        const trendEmoji = trend > 0 ? "📈" : trend < 0 ? "📉" : "➡️";
+        report += ` ${trendEmoji} ${trend > 0 ? "+" : ""}${trend}% מהשבוע הקודם`;
+      }
+      report += "\n\n";
+
+      // Top products
+      if (topProducts && topProducts.length > 0) {
+        report += "🏆 **מוצרים מובילים:**\n";
+        const medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"];
+        topProducts.forEach((p: any, i: number) => {
+          report += `${medals[i] || `${i + 1}.`} ${p.platform} ${p.name} — ${p.count} מכירות (₪${Math.round(p.commission_ils)})\n`;
+        });
+        report += "\n";
+      }
+
+      // Category breakdown
+      if (topCategories && topCategories.length > 0) {
+        report += "📂 **קטגוריות:**\n";
+        topCategories.forEach((c: any) => {
+          report += `• ${c.name} — ${c.count} הזמנות (₪${Math.round(c.commission_ils)})\n`;
+        });
+        report += "\n";
+      }
+
+      if (totalOrders === 0) {
+        report += "⚠️ אין נתוני הזמנות השבוע. הפעל דוח רווחים קודם כדי למלא את בסיס הנתונים.\n";
+      }
+
+      // Remove loading message and show report
+      setMessages(prev => {
+        const withoutLoading = prev.filter(m => m.content !== "📊 טוען ניתוח שבועי...");
+        return [...withoutLoading, { 
+          role: "assistant" as const, 
+          content: report,
+          type: "text" as const,
+        }];
+      });
+      scrollToBottom();
+
+      // Show action button for group message
+      if (totalOrders > 0) {
+        addAssistant("מה לעשות עם הדוח?", {
+          type: "buttons",
+          buttons: [
+            { label: "📱 צור הודעה לקבוצה", value: "generate_weekly_msg" },
+            { label: "🏠 תפריט ראשי", value: "back_to_menu" },
+          ],
+        });
+      } else {
+        resetFlow();
+      }
+    } catch (e: any) {
+      console.error("Weekly analytics error:", e);
+      setMessages(prev => prev.filter(m => m.content !== "📊 טוען ניתוח שבועי..."));
+      addAssistant(`שגיאה בטעינת ניתוח שבועי: ${e.message} ❌`);
+      resetFlow();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGenerateWeeklyMessage = async () => {
+    setIsLoading(true);
+    addAssistant("📝 יוצר הודעה לקבוצה...");
+
+    try {
+      // Fetch analytics data again for the message
+      const analyticsData = await invokeAction("weekly_analytics");
+      const { topProducts, totalCommissionILS, totalOrders } = analyticsData;
+
+      const data = await invokeAction("generate_weekly_message", {
+        topProducts: topProducts || [],
+        totalCommissionILS: totalCommissionILS || 0,
+        totalOrders: totalOrders || 0,
+      });
+
+      setMessages(prev => {
+        const withoutLoading = prev.filter(m => m.content !== "📝 יוצר הודעה לקבוצה...");
+        return [...withoutLoading, {
+          role: "assistant" as const,
+          content: data?.message || "שגיאה ביצירת הודעה",
+          type: "deal_message" as const,
+        }];
+      });
+      scrollToBottom();
+      resetFlow();
+    } catch (e: any) {
+      console.error("Weekly message error:", e);
+      setMessages(prev => prev.filter(m => m.content !== "📝 יוצר הודעה לקבוצה..."));
+      addAssistant(`שגיאה: ${e.message} ❌`);
+      resetFlow();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSummaryProducts = async (text: string) => {
+    // Legacy fallback - shouldn't normally be called anymore
     addUser(text);
     setIsLoading(true);
 
@@ -1414,6 +1577,11 @@ const DinoChat = () => {
       resetFlow();
       setShowSecondaryMenu(false);
       addAssistant("חזרנו לתפריט 🦕", { type: "menu" });
+      return;
+    }
+    if (value === "generate_weekly_msg") {
+      addUser("📱 צור הודעה לקבוצה");
+      handleGenerateWeeklyMessage();
       return;
     }
 
