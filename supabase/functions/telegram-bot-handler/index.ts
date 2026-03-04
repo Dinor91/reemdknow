@@ -145,20 +145,33 @@ async function handleRevenue(chatId: number) {
     // Upsert Lazada orders to persistent history
     if (orders.length > 0) {
       const sc = createServiceClient();
-      const rows = orders.map((o: any) => ({
+      const rawRows = orders.map((o: any) => ({
         order_id: String(o.orderId || o.order_id || ""),
-        product_name: o.productName || o.product_name || null,
-        category_name: o.categoryName || o.category_name || null,
-        order_amount_thb: parseFloat(o.orderAmt || "0") || 0,
-        commission_thb: parseFloat(o.estPayout || "0") || 0,
-        order_status: o.orderStatus || o.status || null,
-        order_date: o.orderDate ? new Date(o.orderDate).toISOString() : null,
+        product_name: o.skuName || o.productName || o.product_name || null,
+        category_name: o.categoryL1 || o.categoryName || o.category_name || null,
+        order_amount_thb: parseFloat(String(o.orderAmt || "0")) || 0,
+        commission_thb: parseFloat(String(o.estPayout || "0")) || 0,
+        order_status: o.status || o.orderStatus || null,
+        order_date: (o.conversionTime || o.orderDate)
+          ? new Date(o.conversionTime || o.orderDate).toISOString() : null,
         raw_data: o,
       })).filter((r: any) => r.order_id);
+      // Deduplicate by order_id
+      const dedupMap = new Map<string, any>();
+      for (const row of rawRows) {
+        if (dedupMap.has(row.order_id)) {
+          const ex = dedupMap.get(row.order_id);
+          ex.order_amount_thb += row.order_amount_thb;
+          ex.commission_thb += row.commission_thb;
+        } else {
+          dedupMap.set(row.order_id, { ...row });
+        }
+      }
+      const rows = Array.from(dedupMap.values());
       if (rows.length > 0) {
         const { error: uErr } = await sc.from("orders_lazada").upsert(rows, { onConflict: "order_id" });
         if (uErr) console.error("TG Lazada upsert error:", uErr);
-        else console.log(`TG: Upserted ${rows.length} Lazada orders`);
+        else console.log(`TG: Upserted ${rows.length} deduplicated Lazada orders`);
       }
     }
   } catch {

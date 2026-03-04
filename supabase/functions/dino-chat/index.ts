@@ -68,22 +68,36 @@ async function upsertLazadaOrders(orders: any[]) {
     console.log(`Sample order snippet: orderId=${sample.orderId}, order_id=${sample.order_id}, estPayout=${sample.estPayout}, orderAmt=${sample.orderAmt}`);
   }
   const serviceClient = createServiceClient();
-  const rows = orders.map((o: any) => ({
+  const rawRows = orders.map((o: any) => ({
     order_id: String(o.orderId || o.order_id || ""),
-    product_name: o.productName || o.product_name || null,
-    category_name: o.categoryName || o.category_name || null,
-    order_amount_thb: parseFloat(o.orderAmt || o.order_amount || "0") || 0,
-    commission_thb: parseFloat(o.estPayout || o.est_payout || "0") || 0,
-    order_status: o.orderStatus || o.status || null,
-    order_date: o.orderDate || o.order_date ? new Date(o.orderDate || o.order_date).toISOString() : null,
+    product_name: o.skuName || o.productName || o.product_name || null,
+    category_name: o.categoryL1 || o.categoryName || o.category_name || null,
+    order_amount_thb: parseFloat(String(o.orderAmt || o.order_amount || "0")) || 0,
+    commission_thb: parseFloat(String(o.estPayout || o.est_payout || "0")) || 0,
+    order_status: o.status || o.orderStatus || null,
+    order_date: (o.conversionTime || o.orderDate || o.order_date)
+      ? new Date(o.conversionTime || o.orderDate || o.order_date).toISOString() : null,
     raw_data: o,
   })).filter(r => r.order_id);
+
+  // Deduplicate by order_id — aggregate amounts for sub-orders
+  const deduped = new Map<string, any>();
+  for (const row of rawRows) {
+    if (deduped.has(row.order_id)) {
+      const existing = deduped.get(row.order_id);
+      existing.order_amount_thb += row.order_amount_thb;
+      existing.commission_thb += row.commission_thb;
+    } else {
+      deduped.set(row.order_id, { ...row });
+    }
+  }
+  const rows = Array.from(deduped.values());
 
   if (rows.length === 0) {
     console.log("upsertLazadaOrders: all rows filtered out (no order_id)");
     return;
   }
-  console.log(`upsertLazadaOrders: upserting ${rows.length} rows, first order_id=${rows[0].order_id}`);
+  console.log(`upsertLazadaOrders: upserting ${rows.length} deduplicated rows (from ${rawRows.length} raw), first order_id=${rows[0].order_id}`);
   const { error } = await serviceClient.from("orders_lazada").upsert(rows, { onConflict: "order_id" });
   if (error) console.error("Lazada upsert error:", JSON.stringify(error));
   else console.log(`Upserted ${rows.length} Lazada orders successfully`);
