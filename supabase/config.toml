@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.aliexpress-api]
 verify_jwt = false
+
+[functions.telegram-bot-handler]
+verify_jwt = false
