@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Send, Copy, Check, Loader2, ArrowRight } from "lucide-react";
+import { X, Send, Copy, Check, Loader2, ArrowRight, Maximize2, Minimize2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -62,6 +62,7 @@ type TemplateStep = "pick" | "edit" | "confirming" | "done";
 // ────────────────── Constants ──────────────────
 
 const STORAGE_KEY = "dino_chat_history";
+const DINO_UI_KEY = "dino_ui_state";
 const MAX_STORED = 10;
 
 const PRIMARY_ACTIONS = [
@@ -195,6 +196,125 @@ const DinoChat = () => {
   const [flowHighCommission, setFlowHighCommission] = useState(false);
   const [showSecondaryMenu, setShowSecondaryMenu] = useState(false);
 
+  // ── NEW: Drag, Expand, Minimize states ──
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isMinimizing, setIsMinimizing] = useState(false);
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load saved UI state from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DINO_UI_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.isExpanded) setIsExpanded(parsed.isExpanded);
+        if (parsed.position) setPosition(parsed.position);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // Save UI state to localStorage
+  const saveUIState = useCallback((expanded: boolean, pos: { x: number; y: number } | null) => {
+    try {
+      localStorage.setItem(DINO_UI_KEY, JSON.stringify({ isExpanded: expanded, position: pos }));
+    } catch { /* ignore */ }
+  }, []);
+
+  // ── Keyboard shortcuts (Ctrl+K to toggle, Escape to close) ──
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        if (!isAdmin) return;
+        setIsOpen(prev => {
+          if (!prev) {
+            // Will trigger handleOpen logic via separate effect
+            return true;
+          }
+          return false;
+        });
+      }
+      if (e.key === "Escape" && isOpen) {
+        e.preventDefault();
+        handleMinimize();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isAdmin]);
+
+  // ── Drag handlers ──
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      setPosition({
+        x: e.clientX - dragOffset.current.x,
+        y: e.clientY - dragOffset.current.y,
+      });
+    };
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      // Save position
+      setPosition(prev => {
+        saveUIState(isExpanded, prev);
+        return prev;
+      });
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, isExpanded, saveUIState]);
+
+  const handleDragStart = (e: React.MouseEvent) => {
+    // Only on desktop (not mobile), and only on the header area
+    if (window.innerWidth < 640) return;
+    const rect = (e.currentTarget as HTMLElement).closest("[data-dino-window]")?.getBoundingClientRect();
+    if (!rect) return;
+    dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    setIsDragging(true);
+  };
+
+  // ── Mobile body scroll lock ──
+  useEffect(() => {
+    if (isOpen && window.innerWidth < 640) {
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [isOpen]);
+
+  // ── Minimize animation ──
+  const handleMinimize = () => {
+    setIsMinimizing(true);
+    setTimeout(() => {
+      setIsOpen(false);
+      setIsMinimizing(false);
+    }, 250);
+  };
+
+  // ── Clear chat ──
+  const handleClearChat = () => {
+    setMessages([]);
+    localStorage.removeItem(STORAGE_KEY);
+    resetFlow();
+    showWelcomeMenu();
+  };
+
+  // ── Toggle expand ──
+  const toggleExpand = () => {
+    const newExpanded = !isExpanded;
+    setIsExpanded(newExpanded);
+    if (newExpanded) {
+      setPosition(null); // Center when expanding
+    }
+    saveUIState(newExpanded, newExpanded ? null : position);
+  };
+
   if (!isAdmin) return null;
 
   /* eslint-disable react-hooks/rules-of-hooks -- all hooks declared above */
@@ -276,7 +396,7 @@ const DinoChat = () => {
   };
 
   const handleOpen = () => {
-    setIsOpen(true);
+    if (!isOpen) setIsOpen(true);
     resetFlow();
     const stored = loadFromStorage();
     if (stored.length > 0) {
@@ -1273,9 +1393,9 @@ const DinoChat = () => {
       {/* Floating Button */}
       {!isOpen && (
         <button
-          onClick={handleOpen}
+          onClick={() => { setIsOpen(true); handleOpen(); }}
           className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center overflow-hidden animate-in fade-in slide-in-from-bottom-4 ring-2 ring-teal-400 hover:ring-teal-300"
-          aria-label="פתח את דינו"
+          aria-label="פתח את דינו (Ctrl+K)"
         >
           <img src={dinoAvatar} alt="דינו" className="w-full h-full object-cover" />
         </button>
@@ -1283,9 +1403,32 @@ const DinoChat = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed z-50 bg-background border border-border shadow-2xl flex flex-col animate-in fade-in slide-in-from-bottom-4 bottom-0 right-0 w-full h-full sm:bottom-6 sm:right-6 sm:w-[380px] sm:h-[560px] sm:max-h-[calc(100vh-6rem)] sm:rounded-2xl" dir="rtl">
+        <div
+          data-dino-window
+          className={`fixed z-50 bg-background border border-border shadow-2xl flex flex-col
+            ${isMinimizing ? "animate-out fade-out slide-out-to-bottom-4 duration-200" : "animate-in fade-in slide-in-from-bottom-4"}
+            bottom-0 right-0 w-full h-full
+            ${isExpanded
+              ? "sm:w-[70vw] sm:h-[80vh] sm:max-w-[1200px]"
+              : "sm:w-[380px] sm:h-[560px]"
+            }
+            sm:max-h-[calc(100vh-2rem)] sm:rounded-2xl`}
+          style={
+            window.innerWidth >= 640 && position && !isExpanded
+              ? { left: position.x, top: position.y, right: "auto", bottom: "auto" }
+              : window.innerWidth >= 640 && !position && !isExpanded
+              ? { bottom: 24, right: 24, top: "auto", left: "auto" }
+              : window.innerWidth >= 640 && isExpanded
+              ? { top: "50%", left: "50%", transform: "translate(-50%, -50%)", right: "auto", bottom: "auto" }
+              : undefined
+          }
+          dir="rtl"
+        >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b bg-teal-500 sm:rounded-t-2xl">
+          <div
+            className={`flex items-center justify-between px-4 py-3 border-b bg-teal-500 sm:rounded-t-2xl ${isDragging ? "cursor-grabbing" : "sm:cursor-grab"}`}
+            onMouseDown={handleDragStart}
+          >
             <div className="flex items-center gap-2">
               <img src={dinoAvatar} alt="דינו" className="w-8 h-8 rounded-full object-cover" />
               <span className="font-bold text-white text-lg">דינו</span>
@@ -1307,9 +1450,17 @@ const DinoChat = () => {
                 );
               })()}
             </div>
-            <button onClick={() => { setIsOpen(false); resetFlow(); }} className="text-white/80 hover:text-white transition-colors">
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button onClick={handleClearChat} className="text-white/60 hover:text-white transition-colors p-1" title="נקה שיחה">
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button onClick={toggleExpand} className="text-white/60 hover:text-white transition-colors p-1 hidden sm:block" title={isExpanded ? "הקטן" : "הגדל"}>
+                {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+              <button onClick={handleMinimize} className="text-white/80 hover:text-white transition-colors p-1" title="סגור (Esc)">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Alerts */}
@@ -1349,7 +1500,7 @@ const DinoChat = () => {
 
           {/* Messages */}
           {!showResumePrompt && (
-            <div className="flex-1 overflow-y-auto p-3 space-y-3" ref={scrollRef}>
+            <div className="flex-1 overflow-y-auto p-3 space-y-3" ref={scrollRef} style={{ overscrollBehavior: "contain" }}>
               {messages.map((msg, i) => (
                 <div key={i}>
                   {/* Menu */}
