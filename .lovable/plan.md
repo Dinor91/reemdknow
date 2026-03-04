@@ -1,115 +1,57 @@
 
 
-## תוכנית ביצוע: פאזה 0 + פאזה 1 (2.4 קרדיטים)
+# Telegram Bot Integration Plan
 
-### סקירת מצב קיים
+## Step 1: Add Secrets
 
-- **דוחות המרות:** `dino-chat` כבר שולף הזמנות מ-Lazada (שדות: `estPayout`, `orderAmt`, `productName`, `categoryName`, `orderId`) ו-AliExpress (שדות: `order_id`, `estimated_paid_commission`, `paid_amount`, `product_name`). אין שמירה מקומית.
-- **סיכום שבועי:** קיים flow ידני (`startSummaryFlow`) שמבקש מהמשתמש להזין 3 מוצרים ידנית ומייצר הודעה עם AI. לא מבוסס דאטה אמיתי.
-- **לוח שנה שיווקי:** המזכרון מציין שקיים `MARKETING_CALENDAR` אבל בפועל **לא קיים בקוד** — צריך ליצור מאפס.
-- **ייבוא הודעות:** UX נוכחי: זיהוי → אישור → שם → שמירה. אין שלבי התקדמות מתוארים ("1/5") — כנראה הכוונה לזרימת Smart Import שכרגע לא ממומשת עדיין.
+Two secrets need to be stored:
+- `TELEGRAM_BOT_TOKEN`: `8259324797:AAEijOxVM9h33ZpbZ_inBZTyCQQcPdGTN48`
+- `TELEGRAM_USER_ID`: `5524069980`
 
----
+## Step 2: Create Edge Function `telegram-bot-handler/index.ts`
 
-### פאזה 0: שמירת היסטוריית הזמנות (1.0 קרדיט)
+Single file (~450 lines). Receives Telegram webhook POSTs and routes commands.
 
-**משימה 1 — יצירת טבלאות (migration)**
+**Security**: Compare `message.from.id` against `TELEGRAM_USER_ID`. Return 200 silently for unauthorized users.
 
-```sql
-CREATE TABLE orders_lazada (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id text UNIQUE NOT NULL,
-  product_name text,
-  category_name text,
-  order_amount_thb numeric DEFAULT 0,
-  commission_thb numeric DEFAULT 0,
-  order_status text,
-  order_date timestamptz,
-  raw_data jsonb,
-  created_at timestamptz DEFAULT now()
-);
+**Commands**:
 
-CREATE TABLE orders_aliexpress (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id text UNIQUE NOT NULL,
-  product_name text,
-  category_name text,
-  paid_amount_usd numeric DEFAULT 0,
-  commission_usd numeric DEFAULT 0,
-  order_status text,
-  order_date timestamptz,
-  raw_data jsonb,
-  created_at timestamptz DEFAULT now()
-);
+| Command | What it does |
+|---------|-------------|
+| `/start` | Reemdknow welcome message + inline keyboard with all commands |
+| `/revenue` | Fetches Lazada + AliExpress APIs (same logic as `conversions_all`), formats for mobile |
+| `/weekly` | Calls `handleWeeklyAnalytics()` logic, shows report + "הודעה לקבוצה" button |
+| `/deal` | Interactive flow: platform → category → top products → generate message |
+| `/stats` | Queries `button_clicks` for performance stats |
+| `/events` | Shows active marketing calendar events |
+
+**Callback queries** (`callback_query.data`): Handles multi-step `/deal` flow and "generate weekly message" button via prefixed data strings like `deal_platform:israel`, `deal_cat:toys`, `weekly_msg`.
+
+**Shared logic**: The function copies the same patterns from `dino-chat` (API calls to lazada-api/aliexpress-api, DB queries, event calendar, upsert functions) since edge functions can't share imports across directories.
+
+**Telegram API helper**: A `sendMessage(chatId, text, options?)` function that calls `https://api.telegram.org/bot<TOKEN>/sendMessage` with optional `reply_markup` for inline keyboards.
+
+**Webhook self-registration**: On first `/start`, calls `setWebhook` to register the function URL automatically.
+
+## Step 3: Update `supabase/config.toml`
+
+Add:
+```toml
+[functions.telegram-bot-handler]
+verify_jwt = false
 ```
 
-RLS: SELECT + ALL לאדמינים בלבד (כמו `button_clicks`).
+## File Changes Summary
 
-**משימה 2 — upsert בזמן שליפת המרות**
+| File | Action |
+|------|--------|
+| `supabase/functions/telegram-bot-handler/index.ts` | New (~450 lines) |
+| `supabase/config.toml` | Add 2 lines |
 
-ב-`dino-chat/index.ts`, אחרי שליפת `allOrders` בכל אחד מ-3 ה-actions (`conversions_lazada`, `conversions_aliexpress`, `conversions_all`):
-- Lazada: upsert כל הזמנה ל-`orders_lazada` (key: `order_id`)
-- AliExpress: upsert כל הזמנה ל-`orders_aliexpress` (key: `order_id`)
-- פעולה שקופה — לא משנה את התגובה למשתמש
+## Implementation Order
 
----
-
-### פאזה 1: סיכום שבועי חכם + שיפורים (1.0 + 0.4 קרדיט)
-
-**משימה 3 — action חדש `weekly_analytics` ב-edge function**
-
-- שאילתה מ-`orders_lazada` + `orders_aliexpress` ל-7 ימים אחרונים
-- Group by `product_name` → TOP 5 לפי סכום עמלות
-- Group by `category_name` → דירוג קטגוריות
-- סיכום כולל: סה"כ הזמנות, סה"כ עמלה (₪), השוואה לשבוע קודם (אם יש דאטה)
-- מחזיר JSON מובנה
-
-**משימה 4 — עדכון DinoChat.tsx**
-
-- החלפת `startSummaryFlow` הידני → קריאה ל-`weekly_analytics`
-- הצגת דוח פנימי (top 5 מוצרים, קטגוריות, סה"כ)
-- כפתור "📱 צור הודעה לקבוצה" → שימוש בתבנית `סיכום_שבועי` מ-`message_templates` עם הנתונים האמיתיים
-- ההודעה מועתקת ל-clipboard בסגנון reemdknow (אישי, חם, לא תאגידי)
-
-**משימה 5 — לוח אירועים שיווקי (Enhancement 1)**
-
-הוספת `PLATFORM_EVENTS` constant ב-`dino-chat/index.ts`:
-```typescript
-const PLATFORM_EVENTS = [
-  { name: "11.11 Singles Day", start: "11-08", end: "11-12", platforms: ["aliexpress","lazada"], code: "DS11" },
-  { name: "Black Friday", start: "11-25", end: "11-30", platforms: ["aliexpress","lazada"] },
-  { name: "Lazada Birthday", start: "03-25", end: "03-28", platforms: ["lazada"], code: "BDAY27" },
-  // ... 6.6, 9.9, חגים ישראליים
-];
-```
-
-- פונקציה `getActiveEvents(platform)` → בודקת תאריך נוכחי מול הלוח
-- ב-action `generate_deal_message`: אם יש אירוע פעיל, מוסיף אוטומטית שורת קופון לסוף ההודעה:
-  `🎉 מבצע מיוחד: [Event Name]\n🎫 קוד קופון: [CODE]\n💰 הנחה: [Description]`
-
-**משימה 6 — שיפור UX ייבוא (Enhancement 2)**
-
-ב-`DinoChat.tsx`, עדכון `handleImportConfirm` ו-`handleImportName`:
-- הצגת שלבי התקדמות מתוארים: `🔍 מזהה מוצר...` → `📸 מושך פרטים...` → `💾 שומר...` → `✅ נוסף!`
-- הודעה סופית: `📊 סטטוס: פעיל בדף [platform] | 🔗 צפה בדף הציבורי`
-- שינוי בצד הקליינט בלבד (הוספת הודעות assistant ביניים לפני/אחרי כל קריאה)
-
----
-
-### פרטים טכניים
-
-| רכיב | קבצים שמשתנים |
-|-------|---------------|
-| טבלאות חדשות | migration SQL (2 טבלאות + RLS) |
-| Upsert הזמנות | `supabase/functions/dino-chat/index.ts` (3 sections) |
-| Weekly analytics | `supabase/functions/dino-chat/index.ts` (action חדש) |
-| UI סיכום שבועי | `src/components/DinoChat.tsx` (החלפת startSummaryFlow) |
-| לוח אירועים | `supabase/functions/dino-chat/index.ts` (constant + helper) |
-| UX ייבוא | `src/components/DinoChat.tsx` (handleImportConfirm/Name) |
-
-### סדר ביצוע
-
-1. Migration → טבלאות הזמנות
-2. Edge function → upsert + weekly_analytics + events calendar
-3. DinoChat.tsx → UI סיכום שבועי + UX ייבוא
+1. Add both secrets via `add_secret` tool
+2. Create edge function with all commands
+3. Update config.toml
+4. Deploy and test `/start`
 
