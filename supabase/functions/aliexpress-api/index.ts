@@ -328,9 +328,10 @@ serve(async (req) => {
         const formatDate = (d: Date) => d.toISOString().replace('T', ' ').substring(0, 19)
         const st = body.startTime || formatDate(thirtyDaysAgo)
         const et = body.endTime || formatDate(now)
-        const status = body.status || 'Payment Completed'
-        console.log('📋 Order list request params:', JSON.stringify({ startTime: st, endTime: et, status, trackingId: ALIEXPRESS_TRACKING_ID }))
-        result = await getOrderList(st, et, status, body.pageNo || 1, body.pageSize || 50)
+        // Only send status if explicitly provided — let caller control filtering
+        const orderStatus = body.status || undefined
+        console.log('📋 Order list request params:', JSON.stringify({ startTime: st, endTime: et, status: orderStatus || 'ALL', trackingId: ALIEXPRESS_TRACKING_ID }))
+        result = await getOrderList(st, et, orderStatus, body.pageNo || 1, body.pageSize || 50)
         
         // Check for permission errors
         const respResult = result?.aliexpress_affiliate_order_list_response?.resp_result
