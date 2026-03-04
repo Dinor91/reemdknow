@@ -141,6 +141,26 @@ async function handleRevenue(chatId: number) {
     results.push(orders.length > 0
       ? `🇹🇭 <b>לזדה:</b> ${orders.length} הזמנות | ฿${comm.toFixed(0)} עמלה (≈₪${ils})`
       : `🇹🇭 <b>לזדה:</b> אין הזמנות`);
+
+    // Upsert Lazada orders to persistent history
+    if (orders.length > 0) {
+      const sc = createServiceClient();
+      const rows = orders.map((o: any) => ({
+        order_id: String(o.orderId || o.order_id || ""),
+        product_name: o.productName || o.product_name || null,
+        category_name: o.categoryName || o.category_name || null,
+        order_amount_thb: parseFloat(o.orderAmt || "0") || 0,
+        commission_thb: parseFloat(o.estPayout || "0") || 0,
+        order_status: o.orderStatus || o.status || null,
+        order_date: o.orderDate ? new Date(o.orderDate).toISOString() : null,
+        raw_data: o,
+      })).filter((r: any) => r.order_id);
+      if (rows.length > 0) {
+        const { error: uErr } = await sc.from("orders_lazada").upsert(rows, { onConflict: "order_id" });
+        if (uErr) console.error("TG Lazada upsert error:", uErr);
+        else console.log(`TG: Upserted ${rows.length} Lazada orders`);
+      }
+    }
   } catch {
     results.push("🇹🇭 לזדה: שגיאה בטעינה");
   }

@@ -215,6 +215,9 @@ serve(async (req) => {
         console.log(`📊 Raw fields: commission_rate=${product.commission_rate}, hot_product_commission_rate=${product.hot_product_commission_rate}`)
       }
 
+      // Auto-detect Hebrew category from product title
+      const hebrewCategory = detectHebrewCategory(product.product_title || '');
+
       const { error } = await supabase.from('aliexpress_feed_products').upsert({
         aliexpress_product_id: productId,
         product_name: product.product_title || 'Unknown Product',
@@ -227,6 +230,7 @@ serve(async (req) => {
         rating: product.evaluate_rate ? parseFloat(String(product.evaluate_rate).replace('%', '')) / 20 : null,
         reviews_count: product.product_reviews || 0,
         category_id: product.first_level_category_id ? String(product.first_level_category_id) : null,
+        category_name_hebrew: hebrewCategory,
         tracking_link: trackingLink,
         out_of_stock: false,
         is_campaign_product: true,

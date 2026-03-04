@@ -177,17 +177,24 @@ serve(async (req) => {
   }
 
   try {
-    // Verify admin authentication
+    // Allow service role key bypass for cron jobs, otherwise require admin auth
     const authHeader = req.headers.get('Authorization')
-    const authResult = await verifyAdminAuth(authHeader)
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const isCronCall = authHeader === `Bearer ${serviceRoleKey}`
     
-    if (authResult.error === 'Missing authorization header' || authResult.error === 'Invalid auth token') {
-      return createUnauthorizedResponse(authResult.error, corsHeaders)
+    if (!isCronCall) {
+      const authResult = await verifyAdminAuth(authHeader)
+      
+      if (authResult.error === 'Missing authorization header' || authResult.error === 'Invalid auth token') {
+        return createUnauthorizedResponse(authResult.error, corsHeaders)
+      }
+      
+      if (!authResult.isAdmin) {
+        return createForbiddenResponse('Admin access required', corsHeaders)
+      }
     }
     
-    if (!authResult.isAdmin) {
-      return createForbiddenResponse('Admin access required', corsHeaders)
-    }
+    console.log(`Auth: ${isCronCall ? 'cron/service-role' : 'admin user'}`)
 
     if (!LAZADA_APP_KEY || !LAZADA_APP_SECRET || !LAZADA_USER_TOKEN) {
       return new Response(
