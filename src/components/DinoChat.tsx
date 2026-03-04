@@ -531,11 +531,67 @@ const DinoChat = () => {
 
   // ────────── DEAL FLOW ──────────
 
-  const showCategoryPicker = (platform: "israel" | "thailand") => {
+  const showCategoryPicker = async (platform: "israel" | "thailand") => {
     const cats = platform === "thailand" ? LAZADA_CATEGORIES : ALIEXPRESS_CATEGORIES;
+    let counts: Record<string, number> = {};
+
+    try {
+      if (platform === "israel") {
+        let query = supabase.from("aliexpress_feed_products")
+          .select("category_id").eq("out_of_stock", false);
+        if (flowHighCommission) query = query.eq("is_campaign_product", true);
+        const { data } = await query;
+        const rawCounts: Record<string, number> = {};
+        let total = 0;
+        for (const row of data || []) {
+          if (row.category_id) rawCounts[row.category_id] = (rawCounts[row.category_id] || 0) + 1;
+          total++;
+        }
+        for (const cat of cats) {
+          if (cat.filterValues === "all") counts[cat.value] = total;
+          else counts[cat.value] = (cat.filterValues as string[]).reduce((s, id) => s + (rawCounts[id] || 0), 0);
+        }
+      } else {
+        let feedQuery = supabase.from("feed_products")
+          .select("category_l1").eq("out_of_stock", false);
+        if (flowHighCommission) feedQuery = feedQuery.gte("commission_rate", 0.15);
+        const [feedRes, curatedRes] = await Promise.all([
+          feedQuery,
+          supabase.from("category_products").select("category").eq("is_active", true),
+        ]);
+        const feedCounts: Record<number, number> = {};
+        let feedTotal = 0;
+        for (const row of feedRes.data || []) {
+          if (row.category_l1) feedCounts[row.category_l1] = (feedCounts[row.category_l1] || 0) + 1;
+          feedTotal++;
+        }
+        const curatedCounts: Record<string, number> = {};
+        let curatedTotal = 0;
+        for (const row of curatedRes.data || []) {
+          if (row.category) curatedCounts[row.category] = (curatedCounts[row.category] || 0) + 1;
+          curatedTotal++;
+        }
+        for (const cat of cats) {
+          const lazCat = cat as typeof LAZADA_CATEGORIES[0];
+          if (cat.filterValues === "all") {
+            counts[cat.value] = feedTotal + (flowHighCommission ? 0 : curatedTotal);
+          } else {
+            const feedCount = (cat.filterValues as number[]).reduce((s, id) => s + (feedCounts[id] || 0), 0);
+            const curCount = flowHighCommission ? 0 : (lazCat.curatedCategories || []).reduce((s, c) => s + (curatedCounts[c] || 0), 0);
+            counts[cat.value] = feedCount + curCount;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching category counts:", e);
+    }
+
     addAssistant("בחר קטגוריה:", {
       type: "buttons",
-      buttons: cats.map(c => ({ label: c.label, value: c.value })),
+      buttons: cats.map(c => ({
+        label: counts[c.value] !== undefined ? `${c.label} (${counts[c.value]})` : c.label,
+        value: c.value,
+      })),
     });
   };
 
