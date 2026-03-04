@@ -666,7 +666,7 @@ const DinoChat = () => {
         addAssistant("לא נמצאו מוצרים בקטגוריה הזו 😕");
         resetFlow();
       } else {
-        addAssistant(`נמצאו ${items.length} מוצרים, בחר מספר:`, { type: "products", products: items });
+        addAssistant(`נמצאו ${items.length} מוצרים, בחר מספר:`, { type: "products", products: items, buttons: [{ label: "🔄 קטגוריה אחרת", value: "change_category" }] });
       }
     } catch (e: any) {
       console.error("Category fetch error:", e);
@@ -715,7 +715,15 @@ const DinoChat = () => {
       addAssistant(data.message || "שגיאה ביצירת הודעה", { type: "deal_message" });
       // Track daily goal
       await trackDealGenerated();
-      resetFlow();
+      setFlowProducts([]);
+      setSelectedProduct(null);
+      addAssistant("מה עכשיו? 🦕", {
+        type: "buttons",
+        buttons: [
+          { label: "🔄 קטגוריה אחרת", value: "change_category" },
+          { label: "🏠 תפריט ראשי", value: "back_to_menu" },
+        ],
+      });
     } catch (e: any) {
       console.error("Deal generation error:", e);
       addAssistant(`שגיאה: ${e.message} ❌`);
@@ -1338,6 +1346,18 @@ const DinoChat = () => {
     }
     if (value === "continue_categories") {
       showCategoryPicker(flowPlatform!);
+      return;
+    }
+    if (value === "change_category") {
+      setFlowProducts([]);
+      setSelectedProduct(null);
+      showCategoryPicker(flowPlatform!);
+      return;
+    }
+    if (value === "back_to_menu") {
+      resetFlow();
+      setShowSecondaryMenu(false);
+      addAssistant("חזרנו לתפריט 🦕", { type: "menu" });
       return;
     }
 
