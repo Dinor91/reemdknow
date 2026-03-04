@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useTheme } from "@/hooks/useTheme";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter, Link2, Search } from "lucide-react";
+import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter, Link2, Search, Moon, Sun } from "lucide-react";
 import { LinkConverter } from "@/components/admin/LinkConverter";
 import { ProductSearchTab } from "@/components/admin/ProductSearchTab";
 import { useAuth } from "@/contexts/AuthContext";
@@ -2600,6 +2601,7 @@ const StatsTab = () => {
 const Admin = () => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const { isDark, toggleTheme } = useTheme();
 
   const handleSignOut = async () => {
     await signOut();
@@ -2623,7 +2625,10 @@ const Admin = () => {
               <span className="text-sm text-muted-foreground hidden md:inline">({user.email})</span>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <Button onClick={toggleTheme} variant="outline" size="icon" className="h-9 w-9" title={isDark ? "מצב בהיר" : "מצב לילה"}>
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
             <Link to="/daily-deals">
               <Button variant="outline" size="sm" className="gap-1">
                 📦 Daily Deals
