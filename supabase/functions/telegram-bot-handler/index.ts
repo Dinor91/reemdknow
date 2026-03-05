@@ -360,6 +360,17 @@ async function handleWeeklyPlatformMessage(chatId: number, platform: string) {
     if (deals.length >= 3) break;
   }
 
+  // Exclude deals whose affiliate_url was used 8-28 days ago
+  const fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: recentUrls } = await serviceClient
+    .from("deals_sent")
+    .select("affiliate_url")
+    .gte("sent_at", fourWeeksAgo)
+    .lt("sent_at", oneWeekAgo);
+  const excludeUrls = new Set((recentUrls || []).map((r: any) => r.affiliate_url));
+  deals = deals.filter((d: any) => !excludeUrls.has(d.affiliate_url));
+
   if (deals.length === 0) {
     await sendMessage(chatId, "לא פורסמו דילים השבוע - צור דיל עם /deal 📊");
     return;
@@ -425,7 +436,9 @@ async function handleWeeklyPlatformMessage(chatId: number, platform: string) {
     });
     const data = await resp.json();
     const shortNames = (data.choices?.[0]?.message?.content || "")
-      .split("---").map((n: string) => n.trim()).filter((n: string) => n);
+      .split(/---|\n/)
+      .map((n: string) => n.replace(/^\d+[\.\)]\s*/, "").trim())
+      .filter((n: string) => n);
 
     // Step 4: Assemble final message
     let message = `השבת כבר בפתח ורציתי להגיד תודה על הפידבקים והשיתופים שלכם השבוע האחרון 🙌\nבזכותכם אני מוצא את המוצרים שבאמת שווים, במחירים טובים ובונים כאן קהילה איכותית.\n\nאז רק רציתי לסכם לכם את ה־Top 3 שלכם השבוע 👇\n`;
@@ -1074,8 +1087,22 @@ async function handleDealGenerate(chatId: number, productId: string) {
 
       await sendMessage(chatId, `📋 <b>הודעה מוכנה לשליחה:</b>\n\n${finalMsg}`);
 
-      // Save to deals_sent for weekly message
+      // Check for recent duplicate before saving
       try {
+        const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: recentDeal } = await serviceClient
+          .from("deals_sent")
+          .select("sent_at")
+          .eq("affiliate_url", product.url)
+          .gte("sent_at", twoWeeksAgo)
+          .order("sent_at", { ascending: false })
+          .limit(1);
+        if (recentDeal && recentDeal.length > 0) {
+          const daysAgo = Math.round((Date.now() - new Date(recentDeal[0].sent_at).getTime()) / (1000 * 60 * 60 * 24));
+          await sendMessage(chatId, `⚠️ מוצר זה פורסם לפני ${daysAgo} ימים`);
+        }
+
+        // Save to deals_sent for weekly message
         await serviceClient.from("deals_sent").insert({
           product_id: productId,
           product_name: product.name,
