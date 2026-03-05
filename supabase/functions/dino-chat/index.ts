@@ -724,6 +724,28 @@ serve(async (req) => {
       });
     }
 
+    if (action === "save_deal") {
+      const { product_id, product_name, product_name_hebrew, affiliate_url, platform, category, commission_rate } = params;
+      const { error } = await supabase.from("deals_sent").insert({
+        product_id: product_id || null,
+        product_name: product_name || null,
+        product_name_hebrew: product_name_hebrew || null,
+        affiliate_url: affiliate_url || null,
+        platform: platform || "unknown",
+        category: category || null,
+        commission_rate: commission_rate || null,
+      });
+      if (error) {
+        console.error("save_deal error:", error);
+        return new Response(JSON.stringify({ success: false, error: error.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "fetch_template") {
       const { data, error } = await supabase
         .from("message_templates")
