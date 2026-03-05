@@ -416,10 +416,15 @@ async function handleWeeklyPlatformMessage(chatId: number, platform: string) {
       }
     }
 
-    productsWithLinks.push({ name: p.name, link });
+    if (link) {
+      productsWithLinks.push({ name: p.name, link });
+    }
   }
 
-  // No feed fallback — show products from orders even without links
+  if (productsWithLinks.length === 0) {
+    await sendMessage(chatId, "אין מספיק נתונים השבוע - נסה שוב בשבוע הבא 📊");
+    return;
+  }
 
   // Step 3: Use AI to generate short Hebrew names (max 5 words each)
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
