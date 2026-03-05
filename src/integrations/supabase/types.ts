@@ -189,6 +189,7 @@ export type Database = {
           price_thb: number | null
           rating: number | null
           sales_count: number | null
+          source: string | null
           updated_at: string
         }
         Insert: {
@@ -206,6 +207,7 @@ export type Database = {
           price_thb?: number | null
           rating?: number | null
           sales_count?: number | null
+          source?: string | null
           updated_at?: string
         }
         Update: {
@@ -223,6 +225,7 @@ export type Database = {
           price_thb?: number | null
           rating?: number | null
           sales_count?: number | null
+          source?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -432,6 +435,7 @@ export type Database = {
           product_name_hebrew: string
           rating: number | null
           sales_count: number | null
+          source: string | null
           tracking_link: string
           updated_at: string
         }
@@ -450,6 +454,7 @@ export type Database = {
           product_name_hebrew: string
           rating?: number | null
           sales_count?: number | null
+          source?: string | null
           tracking_link: string
           updated_at?: string
         }
@@ -468,6 +473,7 @@ export type Database = {
           product_name_hebrew?: string
           rating?: number | null
           sales_count?: number | null
+          source?: string | null
           tracking_link?: string
           updated_at?: string
         }
