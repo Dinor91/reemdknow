@@ -1,30 +1,66 @@
 
 
-# Add "📝 צור דיל" Button to Admin ProductSearchTab
+# שני תיקונים: האזנה לקבוצות + כפתור חיפוש
 
-## Single file change: `src/components/admin/ProductSearchTab.tsx`
+## שלב 1: הוספת Secrets
+- `TELEGRAM_ISRAEL_GROUP_ID` = `-3542210795`
+- `TELEGRAM_THAILAND_GROUP_ID` = `-3488760258`
 
-### 1. New state variables (after line 72)
-- `dealLoadingIdx: number | null` — tracks which card is generating
-- `generatedDeal: { idx: number; message: string } | null` — stores the generated message
-- `dealCopied: boolean` — tracks copy confirmation
+## שלב 2: מיגרציה — עמודת `source`
+```sql
+ALTER TABLE israel_editor_products ADD COLUMN IF NOT EXISTS source text DEFAULT 'manual';
+ALTER TABLE category_products ADD COLUMN IF NOT EXISTS source text DEFAULT 'manual';
+```
 
-### 2. New handler: `handleCreateDeal(result, idx)`
-- Sets `dealLoadingIdx = idx`
-- Calls `supabase.functions.invoke("generate-deal-message", { body: { product: { name: result.product_name, price: result.price_display, rating: result.rating, sales_7d: result.sales_count, category: result.category, url: result.tracking_link } } })`
-- Sets `generatedDeal = { idx, message: data.message }`
-- 14-day duplicate check: query `deals_sent` for matching `affiliate_url` — show toast warning if found
-- Save to `deals_sent`: `{ product_name: result.product_name, platform: result.platform === "aliexpress" ? "israel" : "thailand", category: result.category, affiliate_url: result.tracking_link }`
-- Clears `dealLoadingIdx`
+## שלב 3: שינויים ב-`telegram-bot-handler/index.ts`
 
-### 3. UI changes in button row (lines 373-391)
-Add a third button "📝 צור דיל" next to existing "צפה במוצר" and "העתק" buttons. Shows `Loader2` spinner when `dealLoadingIdx === i`.
+### 3a. קריאת secrets (שורה 8)
+```typescript
+const ISRAEL_GROUP_ID = parseInt(Deno.env.get("TELEGRAM_ISRAEL_GROUP_ID") || "0");
+const THAILAND_GROUP_ID = parseInt(Deno.env.get("TELEGRAM_THAILAND_GROUP_ID") || "0");
+```
 
-### 4. Generated deal display (after button row, before `</CardContent>`)
-When `generatedDeal?.idx === i`, render:
-- A styled `div` with whitespace-pre-wrap showing the generated message
-- A "📋 העתק הודעה" button that copies to clipboard
-- A small "סגור" button to dismiss
+### 3b. Whitelists + helper functions (אחרי שורה 72)
+- `ISRAEL_DOMAINS` / `THAILAND_DOMAINS` arrays
+- `extractUrlsFromMessage(message)` — חילוץ מ-entities (type url/text_link) + regex fallback
+- `matchesWhitelist(url, domains)` — בדיקה אם hostname תואם
+- `extractAliExpressProductId(url)` — regex patterns: `/item/(\d+)`, `/i/(\d+)`, `productId=(\d+)`
+- `extractLazadaProductId(url)` — regex: `-i(\d+)-s\d+`, `products_i(\d+)`, `offer_id=(\d+)`
 
-No DB changes needed — uses existing `deals_sent` table and `generate-deal-message` edge function.
+### 3c. פונקציה `handleGroupMessage(chatId, message)`
+1. זיהוי קבוצה (`ISRAEL_GROUP_ID` / `THAILAND_GROUP_ID`)
+2. חילוץ URLs מההודעה
+3. סינון whitelist — לא תואם → return (שתיקה)
+4. Short links → קריאה ל-`resolve-short-links` edge function
+5. חילוץ product ID
+6. בדיקת כפילות: `SELECT id FROM [table] WHERE tracking_link/affiliate_link = url LIMIT 1`
+7. כפילות → הגב `⚠️ קישור זה כבר קיים במאגר`
+8. שמירה עם `source: "telegram_group"` + הגבה `✅ קישור נשמר למאגר [ישראל/תאילנד]`
+
+### 3d. שינוי main handler (שורות 1425-1437)
+לפני בדיקת `userId !== AUTHORIZED_USER_ID`:
+```
+if (chat.type === "group" || chat.type === "supergroup") {
+  if (chatId === ISRAEL_GROUP_ID || chatId === THAILAND_GROUP_ID) {
+    await handleGroupMessage(chatId, message);
+  }
+  return new Response("OK"); // שתיקה על כל קבוצה אחרת
+}
+```
+
+### 3e. כפתור חיפוש ב-/start (שורה 276-278)
+הוספת שורה חדשה ל-inline keyboard:
+```
+[{ text: "🔍 חיפוש מוצר", callback_data: "cmd:search" }]
+```
+
+### 3f. טיפול ב-callback `cmd:search` (באזור ה-callback handler ~שורה 1390)
+```
+else if (data === "cmd:search") {
+  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
+}
+```
+
+## קבצים
+- `supabase/functions/telegram-bot-handler/index.ts` — כל השינויים
 
