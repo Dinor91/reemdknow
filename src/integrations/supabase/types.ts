@@ -536,6 +536,36 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_coupons: {
+        Row: {
+          coupon_code: string
+          created_at: string
+          discount_description: string
+          id: string
+          is_active: boolean
+          platform: string
+          valid_until: string
+        }
+        Insert: {
+          coupon_code: string
+          created_at?: string
+          discount_description: string
+          id?: string
+          is_active?: boolean
+          platform: string
+          valid_until: string
+        }
+        Update: {
+          coupon_code?: string
+          created_at?: string
+          discount_description?: string
+          id?: string
+          is_active?: boolean
+          platform?: string
+          valid_until?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
