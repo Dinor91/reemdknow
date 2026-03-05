@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { trackButtonClick } from "@/lib/trackClick";
+import { toast } from "@/hooks/use-toast";
 
 interface SearchResult {
   rank: number;
@@ -70,6 +71,9 @@ export const ProductSearchTab = () => {
   const [response, setResponse] = useState<SearchResponse | null>(null);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [tierBannerDismissed, setTierBannerDismissed] = useState(false);
+  const [dealLoadingIdx, setDealLoadingIdx] = useState<number | null>(null);
+  const [generatedDeal, setGeneratedDeal] = useState<{ idx: number; message: string } | null>(null);
+  const [dealCopied, setDealCopied] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const handleCopyWhatsApp = useCallback((result: SearchResult, idx: number) => {
@@ -83,6 +87,41 @@ export const ProductSearchTab = () => {
     setCopiedIdx(idx);
     setTimeout(() => setCopiedIdx(null), 3000);
     trackButtonClick("whatsapp_copy", `product_search_${result.platform}`);
+  }, []);
+
+  const handleCreateDeal = useCallback(async (result: SearchResult, idx: number) => {
+    setDealLoadingIdx(idx);
+    setGeneratedDeal(null);
+    setDealCopied(false);
+    try {
+      const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: dupes } = await supabase
+        .from("deals_sent")
+        .select("sent_at")
+        .eq("affiliate_url", result.tracking_link)
+        .gte("sent_at", fourteenDaysAgo)
+        .limit(1);
+      if (dupes && dupes.length > 0) {
+        const daysAgo = Math.round((Date.now() - new Date(dupes[0].sent_at!).getTime()) / (1000 * 60 * 60 * 24));
+        toast({ title: "⚠️ מוצר כפול", description: `מוצר זה פורסם לפני ${daysAgo} ימים`, variant: "destructive" });
+      }
+      const { data, error } = await supabase.functions.invoke("generate-deal-message", {
+        body: { product: { name: result.product_name, price: result.price_display, rating: result.rating, sales_7d: result.sales_count, category: result.category, url: result.tracking_link } },
+      });
+      if (error) throw error;
+      setGeneratedDeal({ idx, message: data.message });
+      await supabase.from("deals_sent").insert({
+        product_name: result.product_name,
+        platform: result.platform === "aliexpress" ? "israel" : "thailand",
+        category: result.category,
+        affiliate_url: result.tracking_link,
+      });
+    } catch (err) {
+      console.error("Deal generation error:", err);
+      toast({ title: "שגיאה", description: "לא הצלחנו ליצור דיל, נסה שוב", variant: "destructive" });
+    } finally {
+      setDealLoadingIdx(null);
+    }
   }, []);
 
   // Rotate loading messages
@@ -370,7 +409,7 @@ export const ProductSearchTab = () => {
 
                       <hr className="border-border" />
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           variant="outline"
                           className="flex-1 gap-2"
@@ -388,7 +427,46 @@ export const ProductSearchTab = () => {
                           {copiedIdx === i ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                           {copiedIdx === i ? "הועתק!" : "העתק"}
                         </Button>
+                        <Button
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => handleCreateDeal(result, i)}
+                          disabled={dealLoadingIdx === i || !result.tracking_link}
+                        >
+                          {dealLoadingIdx === i ? <Loader2 className="h-4 w-4 animate-spin" /> : <>📝</>}
+                          {dealLoadingIdx === i ? "יוצר..." : "צור דיל"}
+                        </Button>
                       </div>
+
+                      {generatedDeal?.idx === i && (
+                        <div className="mt-3 space-y-2 rounded-lg border border-border bg-muted/50 p-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-foreground">📝 הודעת דיל:</p>
+                            <button
+                              onClick={() => setGeneratedDeal(null)}
+                              className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          <pre className="whitespace-pre-wrap text-sm text-foreground bg-background rounded p-2 border border-border">
+                            {generatedDeal.message}
+                          </pre>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 w-full"
+                            onClick={() => {
+                              navigator.clipboard.writeText(generatedDeal.message);
+                              setDealCopied(true);
+                              setTimeout(() => setDealCopied(false), 3000);
+                            }}
+                          >
+                            {dealCopied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                            {dealCopied ? "הועתק!" : "📋 העתק הודעה"}
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
