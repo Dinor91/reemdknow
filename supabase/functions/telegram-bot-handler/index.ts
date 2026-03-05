@@ -345,41 +345,47 @@ async function handleWeeklyPlatformMessage(chatId: number, platform: string) {
   await sendMessage(chatId, `⏳ מייצר הודעה שבועית ל${platform === "thailand" ? "תאילנד" : "ישראל"}...`);
 
   const serviceClient = createServiceClient();
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Step 1: Get top 3 products by commission from orders
+  // Step 1: Get top products from ORDERS ONLY (7 days, expand to 30 if needed)
   let topProducts: Array<{ name: string; commission: number; count: number }> = [];
 
-  if (platform === "thailand") {
-    const { data: orders } = await serviceClient.from("orders_lazada").select("product_name, commission_thb").gte("created_at", weekAgo);
-    const productMap: Record<string, { name: string; commission: number; count: number }> = {};
-    for (const o of (orders || [])) {
-      const name = o.product_name || "Unknown";
-      if (name === "Unknown") continue;
-      if (!productMap[name]) productMap[name] = { name, commission: 0, count: 0 };
-      productMap[name].commission += (o.commission_thb || 0);
-      productMap[name].count++;
+  for (const days of [7, 30]) {
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+    if (platform === "thailand") {
+      const { data: orders } = await serviceClient.from("orders_lazada").select("product_name, commission_thb").gte("created_at", since);
+      const productMap: Record<string, { name: string; commission: number; count: number }> = {};
+      for (const o of (orders || [])) {
+        const name = o.product_name || "Unknown";
+        if (name === "Unknown") continue;
+        if (!productMap[name]) productMap[name] = { name, commission: 0, count: 0 };
+        productMap[name].commission += (o.commission_thb || 0);
+        productMap[name].count++;
+      }
+      topProducts = Object.values(productMap).sort((a, b) => b.commission - a.commission).slice(0, 3);
+    } else {
+      const { data: orders } = await serviceClient.from("orders_aliexpress").select("product_name, commission_usd").gte("created_at", since);
+      const productMap: Record<string, { name: string; commission: number; count: number }> = {};
+      for (const o of (orders || [])) {
+        const name = o.product_name || "Unknown";
+        if (name === "Unknown") continue;
+        if (!productMap[name]) productMap[name] = { name, commission: 0, count: 0 };
+        productMap[name].commission += (o.commission_usd || 0);
+        productMap[name].count++;
+      }
+      topProducts = Object.values(productMap).sort((a, b) => b.commission - a.commission).slice(0, 3);
     }
-    topProducts = Object.values(productMap).sort((a, b) => b.commission - a.commission).slice(0, 3);
-  } else {
-    const { data: orders } = await serviceClient.from("orders_aliexpress").select("product_name, commission_usd").gte("created_at", weekAgo);
-    const productMap: Record<string, { name: string; commission: number; count: number }> = {};
-    for (const o of (orders || [])) {
-      const name = o.product_name || "Unknown";
-      if (name === "Unknown") continue;
-      if (!productMap[name]) productMap[name] = { name, commission: 0, count: 0 };
-      productMap[name].commission += (o.commission_usd || 0);
-      productMap[name].count++;
-    }
-    topProducts = Object.values(productMap).sort((a, b) => b.commission - a.commission).slice(0, 3);
+
+    if (topProducts.length >= 3) break;
+    // If < 3 after 7 days, loop will try 30 days
   }
 
   if (topProducts.length === 0) {
-    await sendMessage(chatId, `❌ אין הזמנות מ${platform === "thailand" ? "Lazada" : "AliExpress"} השבוע`);
+    await sendMessage(chatId, `❌ אין מספיק נתונים מ${platform === "thailand" ? "Lazada" : "AliExpress"} השבוע. נסה שוב בשבוע הבא.`);
     return;
   }
 
-  // Step 2: Find affiliate links via progressive fuzzy matching + fallback
+  // Step 2: Find affiliate links via progressive fuzzy matching (NO feed fallback)
   const productsWithLinks: Array<{ name: string; link: string | null }> = [];
   const usedLinkIds = new Set<string>();
   const table = platform === "thailand" ? "feed_products" : "aliexpress_feed_products";
@@ -413,38 +419,7 @@ async function handleWeeklyPlatformMessage(chatId: number, platform: string) {
     productsWithLinks.push({ name: p.name, link });
   }
 
-  // Step 2b: Fill missing links with top feed products as fallback
-  const missingCount = productsWithLinks.filter(p => !p.link).length;
-  if (missingCount > 0) {
-    const orderCol = platform === "thailand" ? "sales_7d" : "sales_30d";
-    const { data: fallbacks } = await serviceClient
-      .from(table)
-      .select("id, product_name, tracking_link")
-      .not("tracking_link", "is", null)
-      .eq("out_of_stock", false)
-      .order(orderCol, { ascending: false, nullsFirst: false })
-      .limit(missingCount + 5);
-
-    if (fallbacks) {
-      const available = fallbacks.filter(f => !usedLinkIds.has(f.id));
-      let fallbackIdx = 0;
-      for (const p of productsWithLinks) {
-        if (!p.link && fallbackIdx < available.length) {
-          p.link = available[fallbackIdx].tracking_link;
-          p.name = available[fallbackIdx].product_name;
-          usedLinkIds.add(available[fallbackIdx].id);
-          fallbackIdx++;
-        }
-      }
-    }
-  }
-
-  // Guard: must have 3 links
-  const linksCount = productsWithLinks.filter(p => p.link).length;
-  if (linksCount < 3) {
-    await sendMessage(chatId, `⚠️ לא נמצאו מספיק קישורי אפיליאציה (${linksCount}/3). נסה שוב מאוחר יותר.`);
-    return;
-  }
+  // No feed fallback — show products from orders even without links
 
   // Step 3: Use AI to generate short Hebrew names (max 5 words each)
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
@@ -569,6 +544,8 @@ async function handleEventsPlatform(chatId: number, platform: string) {
         .eq("is_campaign_product", true)
         .eq("out_of_stock", false)
         .lt("commission_rate", 0.50)
+        .gt("commission_rate", 0.05)
+        .order("category_name_hebrew", { ascending: true, nullsFirst: false })
         .order("commission_rate", { ascending: false, nullsFirst: false })
         .limit(50);
       
@@ -600,6 +577,8 @@ async function handleEventsPlatform(chatId: number, platform: string) {
         .select("id, product_name, category_name_hebrew, price_thb, commission_rate, image_url")
         .eq("out_of_stock", false)
         .lt("commission_rate", 0.50)
+        .gt("commission_rate", 0.05)
+        .order("category_name_hebrew", { ascending: true, nullsFirst: false })
         .order("commission_rate", { ascending: false, nullsFirst: false })
         .limit(50);
       
