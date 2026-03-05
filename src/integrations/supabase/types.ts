@@ -629,6 +629,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          last_updated: string | null
+          state: string
+          user_id: number
+        }
+        Insert: {
+          last_updated?: string | null
+          state?: string
+          user_id: number
+        }
+        Update: {
+          last_updated?: string | null
+          state?: string
+          user_id?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

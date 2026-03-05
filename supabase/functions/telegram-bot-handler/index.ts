@@ -1557,7 +1557,15 @@ serve(async (req) => {
       else if (data === "cmd:stats") await handleStats(chatId);
       else if (data === "cmd:events") await handleEvents(chatId);
       else if (data === "cmd:coupons") await handleCoupons(chatId);
-      else if (data === "cmd:search") await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
+      else if (data === "cmd:search") {
+        const svcClient = createServiceClient();
+        await svcClient.from("user_sessions").upsert({
+          user_id: userId,
+          state: "waiting_search",
+          last_updated: new Date().toISOString(),
+        });
+        await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
+      }
       // Weekly platform selection
       else if (data.startsWith("weekly_platform:")) await handleWeeklyPlatformMessage(chatId, data.split(":")[1]);
       else if (data === "weekly_overview") await handleWeeklyOverview(chatId);
@@ -1606,6 +1614,20 @@ serve(async (req) => {
     // Security: only respond to authorized user in DM
     if (userId !== AUTHORIZED_USER_ID) {
       console.log(`Unauthorized user ${userId} blocked`);
+      return new Response("OK");
+    }
+
+    // Check if waiting for search input
+    const svcClient = createServiceClient();
+    const { data: session } = await svcClient
+      .from("user_sessions")
+      .select("state")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (session?.state === "waiting_search" && !text.startsWith("/")) {
+      await svcClient.from("user_sessions").delete().eq("user_id", userId);
+      await handleFreeTextSearch(chatId, text);
       return new Response("OK");
     }
 
