@@ -1,68 +1,30 @@
 
 
-# Fix: Duplicate Names in Weekly Message + Duplicate Prevention
+# Add "📝 צור דיל" Button to Admin ProductSearchTab
 
-## Fix 1: Duplicate product names in message
+## Single file change: `src/components/admin/ProductSearchTab.tsx`
 
-**Root cause (line 427-428):** The AI response is split by `---` but the model likely returns `1. name\n2. name\n3. name` format — meaning one big string ends up as the "short name" for product 1, containing ALL names concatenated.
+### 1. New state variables (after line 72)
+- `dealLoadingIdx: number | null` — tracks which card is generating
+- `generatedDeal: { idx: number; message: string } | null` — stores the generated message
+- `dealCopied: boolean` — tracks copy confirmation
 
-**Fix in lines 427-428:**
-Change the split logic to handle both `---` and newline-separated responses:
-```typescript
-const shortNames = (data.choices?.[0]?.message?.content || "")
-  .split(/---|\n/)
-  .map((n: string) => n.replace(/^\d+[\.\)]\s*/, "").trim())
-  .filter((n: string) => n);
-```
-This splits on `---` OR newlines, strips leading numbers like `1.` or `2)`, and filters empties.
+### 2. New handler: `handleCreateDeal(result, idx)`
+- Sets `dealLoadingIdx = idx`
+- Calls `supabase.functions.invoke("generate-deal-message", { body: { product: { name: result.product_name, price: result.price_display, rating: result.rating, sales_7d: result.sales_count, category: result.category, url: result.tracking_link } } })`
+- Sets `generatedDeal = { idx, message: data.message }`
+- 14-day duplicate check: query `deals_sent` for matching `affiliate_url` — show toast warning if found
+- Save to `deals_sent`: `{ product_name: result.product_name, platform: result.platform === "aliexpress" ? "israel" : "thailand", category: result.category, affiliate_url: result.tracking_link }`
+- Clears `dealLoadingIdx`
 
-## Fix 2: Duplicate prevention (28-day window)
+### 3. UI changes in button row (lines 373-391)
+Add a third button "📝 צור דיל" next to existing "צפה במוצר" and "העתק" buttons. Shows `Loader2` spinner when `dealLoadingIdx === i`.
 
-### A. Weekly message query — exclude recently used deals
+### 4. Generated deal display (after button row, before `</CardContent>`)
+When `generatedDeal?.idx === i`, render:
+- A styled `div` with whitespace-pre-wrap showing the generated message
+- A "📋 העתק הודעה" button that copies to clipboard
+- A small "סגור" button to dismiss
 
-**Lines 353-358:** Add filter to exclude deals whose `affiliate_url` was already used in a weekly-eligible window (8-28 days ago):
-
-After fetching deals, filter out any whose `affiliate_url` appeared in a deal sent between 8 and 28 days ago:
-```typescript
-// After line 359 (deals = data || [])
-const fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
-const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-const { data: recentUrls } = await serviceClient
-  .from("deals_sent")
-  .select("affiliate_url")
-  .gte("sent_at", fourWeeksAgo)
-  .lt("sent_at", oneWeekAgo);
-const excludeUrls = new Set((recentUrls || []).map(r => r.affiliate_url));
-deals = deals.filter(d => !excludeUrls.has(d.affiliate_url));
-```
-
-### B. Warning on deal creation
-
-**Lines 1077-1091:** Before inserting into `deals_sent`, check if the same `affiliate_url` was sent in the last 14 days. If so, send a warning message (but still save the deal):
-
-```typescript
-// Before the insert (line 1079)
-const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-const { data: recentDeal } = await serviceClient
-  .from("deals_sent")
-  .select("sent_at")
-  .eq("affiliate_url", product.url)
-  .gte("sent_at", twoWeeksAgo)
-  .order("sent_at", { ascending: false })
-  .limit(1);
-if (recentDeal && recentDeal.length > 0) {
-  const daysAgo = Math.round((Date.now() - new Date(recentDeal[0].sent_at).getTime()) / (1000 * 60 * 60 * 24));
-  await sendMessage(chatId, `⚠️ מוצר זה פורסם לפני ${daysAgo} ימים`);
-}
-```
-
-## Summary
-
-| Change | Lines | What |
-|--------|-------|------|
-| Fix AI name split | 427-428 | Split by `---` or newline, strip numbering |
-| Exclude 28-day duplicates | After 359 | Filter out URLs used in previous weeks |
-| Warn on deal create | Before 1079 | Show "published X days ago" warning |
-
-Single file edit, no DB changes.
+No DB changes needed — uses existing `deals_sent` table and `generate-deal-message` edge function.
 
