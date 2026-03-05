@@ -107,6 +107,152 @@ function getActiveEvents(platform?: "aliexpress" | "lazada"): PlatformEvent[] {
   });
 }
 
+// ────────── FREE TEXT SEARCH DETECTION ──────────
+
+const SEARCH_TRIGGERS = /מחפש|יש לך|תמצא|המלץ|אני רוצה|אני צריך|תחפש|מחפשת|אפשר למצוא|תמליץ/i;
+
+function isSearchIntent(text: string): boolean {
+  if (text.startsWith("/")) return false;
+  return SEARCH_TRIGGERS.test(text) && text.length >= 5;
+}
+
+async function handleFreeTextSearch(chatId: number, text: string) {
+  await sendMessage(chatId, "🔍 מחפש מוצרים מתאימים...");
+
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/smart-search`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ message: text, platform_override: "all" }),
+    });
+
+    const data = await resp.json();
+
+    if (!data.success || !data.results || data.results.length === 0) {
+      await sendMessage(chatId, "😕 לא מצאתי מוצר מתאים - נסה לנסח אחרת");
+      return;
+    }
+
+    const results = data.results.slice(0, 3);
+
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      const medals = ["🥇", "🥈", "🥉"];
+      const commText = r.commission_rate ? ` | 💎 ${r.commission_rate}%` : "";
+      const ratingText = r.rating > 0 ? ` | ⭐ ${Number(r.rating).toFixed(1)}` : "";
+      const salesText = r.sales_count > 0 ? ` | 🛒 ${r.sales_count.toLocaleString()}` : "";
+
+      const caption = `${medals[i]} <b>${r.product_name}</b>\n\n` +
+        `💰 ${r.price_display}${ratingText}${salesText}${commText}\n` +
+        `🏷️ ${r.platform_label}\n\n` +
+        `💬 <i>${r.explanation_hebrew}</i>`;
+
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: "📝 צור דיל", callback_data: `search_deal:${i}` },
+            { text: "🔗 צפה במוצר", url: r.tracking_link },
+          ],
+        ],
+      };
+
+      if (r.image_url) {
+        await sendPhoto(chatId, r.image_url, caption, { reply_markup: keyboard });
+      } else {
+        await sendMessage(chatId, caption, { reply_markup: keyboard });
+      }
+    }
+
+    // Store results temporarily in a global map for callback handling
+    searchResultsCache.set(chatId, { results, timestamp: Date.now() });
+
+    await sendMessage(chatId, `✅ נמצאו ${results.length} מוצרים (${((data.search_time_ms || 0) / 1000).toFixed(1)}s)`);
+  } catch (e) {
+    console.error("Free text search error:", e);
+    await sendMessage(chatId, "⚠️ שגיאה בחיפוש, נסה שוב");
+  }
+}
+
+// Simple in-memory cache for search results (per chat, expires after 10 min)
+const searchResultsCache = new Map<number, { results: any[]; timestamp: number }>();
+
+async function handleSearchDealCallback(chatId: number, resultIdx: number) {
+  const cached = searchResultsCache.get(chatId);
+  if (!cached || Date.now() - cached.timestamp > 10 * 60 * 1000) {
+    await sendMessage(chatId, "⏰ תוצאות החיפוש פגו - שלח חיפוש חדש");
+    return;
+  }
+
+  const result = cached.results[resultIdx];
+  if (!result) {
+    await sendMessage(chatId, "⚠️ מוצר לא נמצא");
+    return;
+  }
+
+  await sendMessage(chatId, "⏳ מייצר הודעת דיל...");
+
+  try {
+    const serviceClient = createServiceClient();
+
+    // 14-day duplicate check
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: recentDeal } = await serviceClient
+      .from("deals_sent")
+      .select("sent_at")
+      .eq("affiliate_url", result.tracking_link)
+      .gte("sent_at", fourteenDaysAgo)
+      .limit(1);
+
+    if (recentDeal && recentDeal.length > 0) {
+      const daysAgo = Math.round((Date.now() - new Date(recentDeal[0].sent_at!).getTime()) / (1000 * 60 * 60 * 24));
+      await sendMessage(chatId, `⚠️ מוצר זה פורסם לפני ${daysAgo} ימים`);
+    }
+
+    // Generate deal message
+    const dealResp = await fetch(`${SUPABASE_URL}/functions/v1/generate-deal-message`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        product: {
+          name: result.product_name,
+          price: result.price_display,
+          rating: result.rating,
+          sales_7d: result.sales_count,
+          category: result.category,
+          url: result.tracking_link,
+        },
+      }),
+    });
+
+    const dealData = await dealResp.json();
+
+    if (dealData.message) {
+      await sendMessage(chatId, dealData.message);
+
+      // Save to deals_sent
+      await serviceClient.from("deals_sent").insert({
+        product_name: result.product_name,
+        platform: result.platform === "aliexpress" ? "israel" : "thailand",
+        category: result.category,
+        affiliate_url: result.tracking_link,
+      });
+
+      await sendMessage(chatId, "✅ הדיל נשמר ב-deals_sent");
+    } else {
+      await sendMessage(chatId, `⚠️ שגיאה ביצירת ההודעה: ${dealData.error || "לא ידוע"}`);
+    }
+  } catch (e) {
+    console.error("Search deal generate error:", e);
+    await sendMessage(chatId, "⚠️ שגיאה ביצירת הודעת הדיל");
+  }
+}
+
 // ────────── COMMAND HANDLERS ──────────
 
 async function handleStart(chatId: number) {
@@ -1268,6 +1414,8 @@ serve(async (req) => {
         await handleDealCategory(chatId, messageId, parts[1], parts[2]);
       }
       else if (data.startsWith("deal_gen:")) await handleDealGenerate(chatId, data.split(":")[1]);
+      // Search deal callback
+      else if (data.startsWith("search_deal:")) await handleSearchDealCallback(chatId, parseInt(data.split(":")[1]));
       // Legacy weekly_msg
       else if (data.startsWith("weekly_msg")) await handleWeeklyPlatformMessage(chatId, "thailand");
 
@@ -1297,6 +1445,7 @@ serve(async (req) => {
     else if (text === "/events" || text === "/אירועים") await handleEvents(chatId);
     else if (text === "/coupons" || text === "/קופונים") await handleCoupons(chatId);
     else if (text.startsWith("/addcoupon")) await handleAddCoupon(chatId, text);
+    else if (isSearchIntent(text)) await handleFreeTextSearch(chatId, text);
     else {
       await sendMessage(chatId, "לא הבנתי 🤔\nנסה /start לתפריט הפקודות");
     }
