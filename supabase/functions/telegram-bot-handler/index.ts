@@ -129,7 +129,7 @@ async function handleStart(chatId: number) {
     inline_keyboard: [
       [{ text: "📊 דוח רווחים", callback_data: "cmd:revenue" }, { text: "📈 ניתוח שבועי", callback_data: "cmd:weekly" }],
       [{ text: "🛒 יצירת דיל", callback_data: "cmd:deal" }, { text: "📋 סטטיסטיקות", callback_data: "cmd:stats" }],
-      [{ text: "🎉 אירועים פעילים", callback_data: "cmd:events" }],
+      [{ text: "🎉 אירועים פעילים", callback_data: "cmd:events" }, { text: "🎁 קופונים", callback_data: "cmd:coupons" }],
     ],
   };
 
@@ -379,32 +379,71 @@ async function handleWeeklyPlatformMessage(chatId: number, platform: string) {
     return;
   }
 
-  // Step 2: Find affiliate links via fuzzy matching
+  // Step 2: Find affiliate links via progressive fuzzy matching + fallback
   const productsWithLinks: Array<{ name: string; link: string | null }> = [];
+  const usedLinkIds = new Set<string>();
+  const table = platform === "thailand" ? "feed_products" : "aliexpress_feed_products";
+
   for (const p of topProducts) {
-    const searchTerm = p.name.substring(0, 30);
     let link: string | null = null;
 
-    if (platform === "thailand") {
+    // Try progressively shorter substrings: 30 → 20 → 15 chars
+    for (const len of [30, 20, 15]) {
+      if (p.name.length < len) continue;
+      const searchTerm = p.name.substring(0, len).replace(/[%_]/g, "");
+      if (!searchTerm || searchTerm.length < 5) continue;
+
       const { data: match } = await serviceClient
-        .from("feed_products")
-        .select("tracking_link")
+        .from(table)
+        .select("id, tracking_link")
         .ilike("product_name", `%${searchTerm}%`)
         .not("tracking_link", "is", null)
-        .limit(1)
-        .maybeSingle();
-      link = match?.tracking_link || null;
-    } else {
-      const { data: match } = await serviceClient
-        .from("aliexpress_feed_products")
-        .select("tracking_link")
-        .ilike("product_name", `%${searchTerm}%`)
-        .not("tracking_link", "is", null)
-        .limit(1)
-        .maybeSingle();
-      link = match?.tracking_link || null;
+        .limit(5);
+
+      if (match && match.length > 0) {
+        const unused = match.find(m => !usedLinkIds.has(m.id));
+        if (unused) {
+          link = unused.tracking_link;
+          usedLinkIds.add(unused.id);
+          break;
+        }
+      }
     }
+
     productsWithLinks.push({ name: p.name, link });
+  }
+
+  // Step 2b: Fill missing links with top feed products as fallback
+  const missingCount = productsWithLinks.filter(p => !p.link).length;
+  if (missingCount > 0) {
+    const orderCol = platform === "thailand" ? "sales_7d" : "sales_30d";
+    const { data: fallbacks } = await serviceClient
+      .from(table)
+      .select("id, product_name, tracking_link")
+      .not("tracking_link", "is", null)
+      .eq("out_of_stock", false)
+      .order(orderCol, { ascending: false, nullsFirst: false })
+      .limit(missingCount + 5);
+
+    if (fallbacks) {
+      const available = fallbacks.filter(f => !usedLinkIds.has(f.id));
+      let fallbackIdx = 0;
+      for (const p of productsWithLinks) {
+        if (!p.link && fallbackIdx < available.length) {
+          p.link = available[fallbackIdx].tracking_link;
+          p.name = available[fallbackIdx].product_name;
+          usedLinkIds.add(available[fallbackIdx].id);
+          fallbackIdx++;
+        }
+      }
+    }
+  }
+
+  // Guard: must have 3 links
+  const linksCount = productsWithLinks.filter(p => p.link).length;
+  if (linksCount < 3) {
+    await sendMessage(chatId, `⚠️ לא נמצאו מספיק קישורי אפיליאציה (${linksCount}/3). נסה שוב מאוחר יותר.`);
+    return;
   }
 
   // Step 3: Use AI to generate short Hebrew names (max 5 words each)
@@ -523,18 +562,31 @@ async function handleEventsPlatform(chatId: number, platform: string) {
     const buttons: any[] = [];
 
     if (platform === "israel") {
-      const { data: products } = await serviceClient
+      // Diversity: get top product per category
+      const { data: allProducts } = await serviceClient
         .from("aliexpress_feed_products")
-        .select("id, product_name_hebrew, product_name, price_usd, commission_rate, image_url")
+        .select("id, product_name_hebrew, product_name, price_usd, commission_rate, image_url, category_name_hebrew")
         .eq("is_campaign_product", true)
         .eq("out_of_stock", false)
         .lt("commission_rate", 0.50)
         .order("commission_rate", { ascending: false, nullsFirst: false })
-        .limit(3);
+        .limit(50);
       
-      if (products && products.length > 0) {
+      // Pick 1 per category
+      const seenCats = new Set<string>();
+      const diverseProducts: typeof allProducts = [];
+      for (const p of (allProducts || [])) {
+        const cat = p.category_name_hebrew || "כללי";
+        if (!seenCats.has(cat)) {
+          seenCats.add(cat);
+          diverseProducts.push(p);
+          if (diverseProducts.length >= 3) break;
+        }
+      }
+      
+      if (diverseProducts.length > 0) {
         msg += `\n💡 <b>מומלצים לקידום:</b>\n`;
-        for (const p of products) {
+        for (const p of diverseProducts) {
           const name = getProductDisplayName(p);
           const commPct = p.commission_rate ? `${Math.round(Number(p.commission_rate) * 100)}%` : "?";
           msg += `• ${name.substring(0, 40)} — ${commPct} עמלה — $${p.price_usd || "?"}\n`;
@@ -542,18 +594,54 @@ async function handleEventsPlatform(chatId: number, platform: string) {
         }
       }
     } else {
-      const { data: products } = await serviceClient
+      // Diversity: get top product per category
+      const { data: allProducts } = await serviceClient
         .from("feed_products")
         .select("id, product_name, category_name_hebrew, price_thb, commission_rate, image_url")
         .eq("out_of_stock", false)
         .lt("commission_rate", 0.50)
         .order("commission_rate", { ascending: false, nullsFirst: false })
-        .limit(3);
+        .limit(50);
       
-      if (products && products.length > 0) {
+      const seenCats = new Set<string>();
+      const diverseProducts: typeof allProducts = [];
+      for (const p of (allProducts || [])) {
+        const cat = p.category_name_hebrew || "כללי";
+        if (!seenCats.has(cat)) {
+          seenCats.add(cat);
+          diverseProducts.push(p);
+          if (diverseProducts.length >= 3) break;
+        }
+      }
+      
+      if (diverseProducts.length > 0) {
         msg += `\n💡 <b>מומלצים לקידום:</b>\n`;
-        for (const p of products) {
-          const name = getProductDisplayName(p, p.category_name_hebrew);
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        // AI translate Thai names
+        let shortNames: string[] = [];
+        if (LOVABLE_API_KEY) {
+          try {
+            const namePrompt = diverseProducts.map((p, i) => `${i + 1}. ${p.product_name}`).join("\n");
+            const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  { role: "system", content: "אתה מתרגם שמות מוצרים לעברית קצרה. החזר רק את השמות, שורה לכל מוצר, מופרדים ב---. מקסימום 5 מילים לכל שם." },
+                  { role: "user", content: `תרגם לעברית (מקסימום 5 מילים כל אחד):\n\n${namePrompt}` },
+                ],
+                temperature: 0.3,
+              }),
+            });
+            const data = await resp.json();
+            shortNames = (data.choices?.[0]?.message?.content || "").split("---").map((n: string) => n.trim()).filter((n: string) => n);
+          } catch { /* use original names */ }
+        }
+        
+        for (let i = 0; i < diverseProducts.length; i++) {
+          const p = diverseProducts[i];
+          const name = shortNames[i] || getProductDisplayName(p, p.category_name_hebrew);
           const commPct = p.commission_rate ? `${Math.round(Number(p.commission_rate) * 100)}%` : "?";
           msg += `• ${name.substring(0, 40)} — ${commPct} עמלה — ฿${p.price_thb || "?"}\n`;
           buttons.push({ text: `✍️ ${name.substring(0, 20)}`, callback_data: `deal_gen:${p.id}`.substring(0, 64) });
@@ -978,12 +1066,26 @@ async function handleDealGenerate(chatId: number, productId: string) {
     return;
   }
 
-  // Check for active events coupon
+  // Check for active events coupon + promo_coupons
   let coupon = "";
   const eventPlatform = product.url?.includes("aliexpress") ? "aliexpress" as const : "lazada" as const;
   const activeEvents = getActiveEvents(eventPlatform);
   const eventWithCode = activeEvents.find(e => e.code);
   if (eventWithCode) coupon = eventWithCode.code!;
+
+  // Also check promo_coupons table for active coupons
+  if (!coupon) {
+    const platformName = eventPlatform === "aliexpress" ? "aliexpress" : "lazada";
+    const { data: promoCoupon } = await serviceClient
+      .from("promo_coupons")
+      .select("coupon_code")
+      .eq("platform", platformName)
+      .eq("is_active", true)
+      .gte("valid_until", new Date().toISOString().split("T")[0])
+      .limit(1)
+      .maybeSingle();
+    if (promoCoupon) coupon = promoCoupon.coupon_code;
+  }
 
   // Call generate-deal-message
   try {
@@ -1012,6 +1114,96 @@ async function handleDealGenerate(chatId: number, productId: string) {
     console.error("Deal generate error:", e);
     await sendMessage(chatId, "⚠️ שגיאה ביצירת הודעת הדיל");
   }
+}
+
+// ────────── COUPONS ──────────
+
+async function handleCoupons(chatId: number) {
+  const serviceClient = createServiceClient();
+  const today = new Date().toISOString().split("T")[0];
+
+  const { data: coupons, error } = await serviceClient
+    .from("promo_coupons")
+    .select("*")
+    .eq("is_active", true)
+    .gte("valid_until", today)
+    .order("platform", { ascending: true });
+
+  if (error || !coupons || coupons.length === 0) {
+    await sendMessage(chatId, "📭 אין קופונים פעילים כרגע.");
+    return;
+  }
+
+  // Group by platform
+  const grouped: Record<string, typeof coupons> = {};
+  for (const c of coupons) {
+    if (!grouped[c.platform]) grouped[c.platform] = [];
+    grouped[c.platform].push(c);
+  }
+
+  const platformLabels: Record<string, string> = {
+    aliexpress: "🇮🇱 AliExpress",
+    lazada: "🇹🇭 Lazada",
+  };
+
+  let msg = "🎁 <b>קופוני מבצע פעילים:</b>\n\n";
+  for (const [platform, pCoupons] of Object.entries(grouped)) {
+    msg += `${platformLabels[platform] || platform}:\n`;
+    for (const c of pCoupons) {
+      const validDate = new Date(c.valid_until);
+      const dateStr = `${validDate.getDate()}/${validDate.getMonth() + 1}`;
+      msg += `• <code>${c.coupon_code}</code> — ${c.discount_description} (עד ${dateStr})\n`;
+    }
+    msg += "\n";
+  }
+  msg += "📋 <b>איך משתמשים?</b> הזן את הקוד בקופה לפני תשלום!";
+
+  // Copy-for-group button format
+  let groupMsg = "🎁 קופוני מבצע פעילים:\n\n";
+  for (const [platform, pCoupons] of Object.entries(grouped)) {
+    groupMsg += `${platformLabels[platform] || platform}:\n`;
+    for (const c of pCoupons) {
+      const validDate = new Date(c.valid_until);
+      const dateStr = `${validDate.getDate()}/${validDate.getMonth() + 1}`;
+      groupMsg += `• ${c.coupon_code} — ${c.discount_description} (עד ${dateStr})\n`;
+    }
+    groupMsg += "\n";
+  }
+  groupMsg += "📋 איך משתמשים? הזן את הקוד בקופה לפני תשלום!";
+
+  await sendMessage(chatId, msg);
+  // Send the plain-text version for easy copying
+  await sendMessage(chatId, `📋 <b>הודעה להעתקה לקבוצה:</b>\n\n${groupMsg}`);
+}
+
+async function handleAddCoupon(chatId: number, text: string) {
+  // Format: /addcoupon platform code description date
+  // Example: /addcoupon aliexpress SAVE8 $8 הנחה מעל $50 2026-03-08
+  const parts = text.replace(/^\/addcoupon\s+/i, "").trim();
+  const match = parts.match(/^(\S+)\s+(\S+)\s+(.+?)\s+(\d{4}-\d{2}-\d{2})$/);
+
+  if (!match) {
+    await sendMessage(chatId, "⚠️ פורמט שגוי.\n\nדוגמה:\n<code>/addcoupon aliexpress SAVE8 $8 הנחה מעל $50 2026-03-08</code>");
+    return;
+  }
+
+  const [, platform, code, description, validUntil] = match;
+  const serviceClient = createServiceClient();
+
+  const { error } = await serviceClient.from("promo_coupons").insert({
+    platform,
+    coupon_code: code,
+    discount_description: description,
+    valid_until: validUntil,
+  });
+
+  if (error) {
+    console.error("Add coupon error:", error);
+    await sendMessage(chatId, `❌ שגיאה בהוספת קופון: ${error.message}`);
+    return;
+  }
+
+  await sendMessage(chatId, `✅ קופון נוסף!\n\n🏷️ פלטפורמה: ${platform}\n🎫 קוד: <code>${code}</code>\n📝 ${description}\n📅 תקף עד: ${validUntil}`);
 }
 
 // ────────── MAIN HANDLER ──────────
@@ -1046,6 +1238,7 @@ serve(async (req) => {
       else if (data === "cmd:deal") await handleDealStart(chatId);
       else if (data === "cmd:stats") await handleStats(chatId);
       else if (data === "cmd:events") await handleEvents(chatId);
+      else if (data === "cmd:coupons") await handleCoupons(chatId);
       // Weekly platform selection
       else if (data.startsWith("weekly_platform:")) await handleWeeklyPlatformMessage(chatId, data.split(":")[1]);
       else if (data === "weekly_overview") await handleWeeklyOverview(chatId);
@@ -1093,6 +1286,8 @@ serve(async (req) => {
     else if (text === "/deal" || text === "/דיל") await handleDealStart(chatId);
     else if (text === "/stats" || text === "/סטטיסטיקות") await handleStats(chatId);
     else if (text === "/events" || text === "/אירועים") await handleEvents(chatId);
+    else if (text === "/coupons" || text === "/קופונים") await handleCoupons(chatId);
+    else if (text.startsWith("/addcoupon")) await handleAddCoupon(chatId, text);
     else {
       await sendMessage(chatId, "לא הבנתי 🤔\nנסה /start לתפריט הפקודות");
     }
