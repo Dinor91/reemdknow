@@ -6,6 +6,8 @@ const AUTHORIZED_USER_ID = parseInt(Deno.env.get("TELEGRAM_USER_ID") || "0");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ISRAEL_GROUP_ID = parseInt(Deno.env.get("TELEGRAM_ISRAEL_GROUP_ID") || "0");
+const THAILAND_GROUP_ID = parseInt(Deno.env.get("TELEGRAM_THAILAND_GROUP_ID") || "0");
 
 function createServiceClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -69,6 +71,166 @@ function getProductDisplayName(p: any, fallbackCategory?: string): string {
   if (p.name_english) return p.name_english;
   if (fallbackCategory) return `${fallbackCategory}`;
   return "מוצר";
+}
+
+// ────────── GROUP URL LISTENING ──────────
+
+const ISRAEL_DOMAINS = ["aliexpress.com", "s.click.aliexpress.com", "a.aliexpress.com", "he.aliexpress.com", "aliexpress.ru"];
+const THAILAND_DOMAINS = ["lazada.co.th", "s.lazada.co.th", "c.lazada.co.th", "lazada.com"];
+
+function extractUrlsFromMessage(message: any): string[] {
+  const urls: string[] = [];
+  // Extract from entities
+  if (message.entities) {
+    for (const entity of message.entities) {
+      if (entity.type === "url") {
+        urls.push((message.text || "").substring(entity.offset, entity.offset + entity.length));
+      } else if (entity.type === "text_link" && entity.url) {
+        urls.push(entity.url);
+      }
+    }
+  }
+  // Regex fallback
+  if (urls.length === 0 && message.text) {
+    const matches = message.text.match(/https?:\/\/[^\s<>"{}|\\^`\[\]]+/gi);
+    if (matches) urls.push(...matches);
+  }
+  return urls;
+}
+
+function matchesWhitelist(url: string, domains: string[]): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return domains.some(d => hostname === d || hostname.endsWith("." + d));
+  } catch { return false; }
+}
+
+function extractAliExpressProductId(url: string): string | null {
+  const patterns = [/\/item\/(\d+)/, /\/i\/(\d+)/, /productId=(\d+)/, /\/(\d{10,})\.html/];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+function extractLazadaProductId(url: string): string | null {
+  const patterns = [/-i(\d+)-s\d+/, /products_i(\d+)/, /offer_id=(\d+)/, /-i(\d+)\./];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+const SHORT_LINK_DOMAINS = ["s.lazada.co.th", "c.lazada.co.th", "s.click.aliexpress.com", "a.aliexpress.com"];
+
+function isShortLink(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return SHORT_LINK_DOMAINS.some(d => hostname === d);
+  } catch { return false; }
+}
+
+async function resolveShortLinks(urls: string[]): Promise<Record<string, string>> {
+  const shortUrls = urls.filter(isShortLink);
+  if (shortUrls.length === 0) return {};
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/resolve-short-links`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ urls: shortUrls }),
+    });
+    const data = await resp.json();
+    return data.resolved || {};
+  } catch (e) {
+    console.error("Error resolving short links:", e);
+    return {};
+  }
+}
+
+async function handleGroupMessage(chatId: number, message: any) {
+  const isIsrael = chatId === ISRAEL_GROUP_ID;
+  const isThailand = chatId === THAILAND_GROUP_ID;
+  if (!isIsrael && !isThailand) return;
+
+  const urls = extractUrlsFromMessage(message);
+  if (urls.length === 0) return;
+
+  const whitelist = isIsrael ? ISRAEL_DOMAINS : THAILAND_DOMAINS;
+  const matchedUrls = urls.filter(u => matchesWhitelist(u, whitelist));
+  if (matchedUrls.length === 0) return; // Silent on non-whitelisted domains
+
+  // Resolve short links
+  const resolved = await resolveShortLinks(matchedUrls);
+
+  const sc = createServiceClient();
+
+  for (const originalUrl of matchedUrls) {
+    const finalUrl = resolved[originalUrl] || originalUrl;
+
+    if (isIsrael) {
+      const productId = extractAliExpressProductId(finalUrl);
+      
+      // Duplicate check
+      const { data: existing } = await sc
+        .from("israel_editor_products")
+        .select("id")
+        .eq("tracking_link", originalUrl)
+        .limit(1);
+      
+      if (existing && existing.length > 0) {
+        await sendMessage(chatId, "⚠️ קישור זה כבר קיים במאגר ישראל");
+        continue;
+      }
+
+      const { error } = await sc.from("israel_editor_products").insert({
+        aliexpress_product_id: productId,
+        product_name_hebrew: "מוצר חדש — לעדכון",
+        tracking_link: originalUrl,
+        category_name_hebrew: "כללי",
+        is_active: true,
+        source: "telegram_group",
+      });
+
+      if (error) {
+        console.error("Error saving Israel product:", error);
+        await sendMessage(chatId, "⚠️ שגיאה בשמירת הקישור");
+      } else {
+        await sendMessage(chatId, "✅ קישור נשמר למאגר ישראל\n📝 זכור לעדכן שם ותמונה ב-Dino");
+      }
+    } else {
+      const productId = extractLazadaProductId(finalUrl);
+      
+      // Duplicate check
+      const { data: existing } = await sc
+        .from("category_products")
+        .select("id")
+        .eq("affiliate_link", originalUrl)
+        .limit(1);
+      
+      if (existing && existing.length > 0) {
+        await sendMessage(chatId, "⚠️ קישור זה כבר קיים במאגר תאילנד");
+        continue;
+      }
+
+      const { error } = await sc.from("category_products").insert({
+        lazada_product_id: productId,
+        name_hebrew: "מוצר חדש — לעדכון",
+        affiliate_link: originalUrl,
+        category: "כללי",
+        is_active: true,
+        source: "telegram_group",
+      });
+
+      if (error) {
+        console.error("Error saving Thailand product:", error);
+        await sendMessage(chatId, "⚠️ שגיאה בשמירת הקישור");
+      } else {
+        await sendMessage(chatId, "✅ קישור נשמר למאגר תאילנד\n📝 זכור לעדכן שם ותמונה ב-Dino");
+      }
+    }
+  }
 }
 
 // ────────── PLATFORM EVENTS CALENDAR ──────────
@@ -276,6 +438,7 @@ async function handleStart(chatId: number) {
       [{ text: "📊 דוח רווחים", callback_data: "cmd:revenue" }, { text: "📈 ניתוח שבועי", callback_data: "cmd:weekly" }],
       [{ text: "🛒 יצירת דיל", callback_data: "cmd:deal" }, { text: "📋 סטטיסטיקות", callback_data: "cmd:stats" }],
       [{ text: "🎉 אירועים פעילים", callback_data: "cmd:events" }, { text: "🎁 קופונים", callback_data: "cmd:coupons" }],
+      [{ text: "🔍 חיפוש מוצר", callback_data: "cmd:search" }],
     ],
   };
 
@@ -1394,6 +1557,7 @@ serve(async (req) => {
       else if (data === "cmd:stats") await handleStats(chatId);
       else if (data === "cmd:events") await handleEvents(chatId);
       else if (data === "cmd:coupons") await handleCoupons(chatId);
+      else if (data === "cmd:search") await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
       // Weekly platform selection
       else if (data.startsWith("weekly_platform:")) await handleWeeklyPlatformMessage(chatId, data.split(":")[1]);
       else if (data === "weekly_overview") await handleWeeklyOverview(chatId);
@@ -1427,10 +1591,19 @@ serve(async (req) => {
     if (!message) return new Response("OK");
 
     const chatId = message.chat.id;
+    const chat = message.chat;
     const userId = message.from?.id;
     const text = (message.text || "").trim();
 
-    // Security: only respond to authorized user
+    // Handle group messages
+    if (chat.type === "group" || chat.type === "supergroup") {
+      if (chatId === ISRAEL_GROUP_ID || chatId === THAILAND_GROUP_ID) {
+        await handleGroupMessage(chatId, message);
+      }
+      return new Response("OK"); // Silent on all groups
+    }
+
+    // Security: only respond to authorized user in DM
     if (userId !== AUTHORIZED_USER_ID) {
       console.log(`Unauthorized user ${userId} blocked`);
       return new Response("OK");
