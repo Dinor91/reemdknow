@@ -797,6 +797,73 @@ const DinoChat = () => {
     }
   };
 
+  // ────────── CREATE DEAL FROM SEARCH RESULT ──────────
+
+  const handleCreateDealFromSearch = async (product: ProductItem) => {
+    setIsLoading(true);
+    addAssistant("📝 יוצר הודעת דיל...");
+
+    try {
+      const platform = product.platform_label?.includes("Lazada") ? "thailand" : "israel";
+      const currencySymbol = platform === "thailand" ? "฿" : "$";
+      const priceStr = product.price ? `${product.price} ${currencySymbol}` : "לא ידוע";
+
+      const data = await invokeAction("generate_deal", {
+        product: {
+          name: product.name,
+          price: priceStr,
+          rating: product.rating ?? null,
+          sales_7d: product.sales ?? 0,
+          brand: product.brand || "",
+          category: product.category || "",
+          url: product.tracking_link || "",
+        },
+        coupon: "",
+      });
+
+      if (data?.error) throw new Error(data.error);
+
+      // Replace "יוצר הודעת דיל..." with the actual message
+      setMessages(prev => {
+        const updated = [...prev];
+        const idx = findLastIdx(updated, m => m.content === "📝 יוצר הודעת דיל...");
+        if (idx >= 0) {
+          updated[idx] = { ...updated[idx], content: data.message || "שגיאה ביצירת הודעה", type: "deal_message" };
+        }
+        return updated;
+      });
+      scrollToBottom();
+
+      // Save to deals_sent
+      try {
+        await invokeAction("save_deal", {
+          product_id: product.id,
+          product_name: product.name,
+          product_name_hebrew: product.name,
+          affiliate_url: product.tracking_link,
+          platform,
+          category: product.category,
+          commission_rate: product.commission_rate,
+        });
+      } catch (e) {
+        console.error("Failed to save deal:", e);
+      }
+
+      // Track daily goal
+      await trackDealGenerated();
+    } catch (e: any) {
+      console.error("Deal from search error:", e);
+      setMessages(prev => {
+        const updated = [...prev];
+        const idx = findLastIdx(updated, m => m.content === "📝 יוצר הודעת דיל...");
+        if (idx >= 0) updated[idx] = { ...updated[idx], content: `שגיאה: ${e.message} ❌` };
+        return updated;
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // ────────── SEARCH FLOW ──────────
 
   const executeSearch = async (platform: "israel" | "thailand", query: string) => {
@@ -1850,10 +1917,19 @@ const DinoChat = () => {
                               )}
                             </div>
                             {p.tracking_link && activeFlow !== "deal" && (
-                              <a href={p.tracking_link} target="_blank" rel="noopener noreferrer"
-                                className="text-xs text-teal-600 hover:underline mt-0.5 block truncate">
-                                🔗 פתח מוצר
-                              </a>
+                              <div className="flex items-center gap-3 mt-0.5">
+                                <a href={p.tracking_link} target="_blank" rel="noopener noreferrer"
+                                  className="text-xs text-teal-600 hover:underline truncate">
+                                  🔗 פתח מוצר
+                                </a>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleCreateDealFromSearch(p); }}
+                                  disabled={isLoading}
+                                  className="text-xs text-teal-600 hover:underline disabled:opacity-50"
+                                >
+                                  📝 צור דיל
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
