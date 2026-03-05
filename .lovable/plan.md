@@ -1,84 +1,68 @@
 
 
-# Feature: Weekly Message from `deals_sent` Table
+# Fix: Duplicate Names in Weekly Message + Duplicate Prevention
 
-## Overview
+## Fix 1: Duplicate product names in message
 
-Replace the broken fuzzy-match weekly message system with a new `deals_sent` table that logs every deal generated via `/deal`. The weekly message (`/weekly`) will then pull from this table instead of trying to match order names to feed products.
+**Root cause (line 427-428):** The AI response is split by `---` but the model likely returns `1. name\n2. name\n3. name` format — meaning one big string ends up as the "short name" for product 1, containing ALL names concatenated.
 
-## Step 1: Create `deals_sent` table (DB migration)
+**Fix in lines 427-428:**
+Change the split logic to handle both `---` and newline-separated responses:
+```typescript
+const shortNames = (data.choices?.[0]?.message?.content || "")
+  .split(/---|\n/)
+  .map((n: string) => n.replace(/^\d+[\.\)]\s*/, "").trim())
+  .filter((n: string) => n);
+```
+This splits on `---` OR newlines, strips leading numbers like `1.` or `2)`, and filters empties.
 
-```sql
-CREATE TABLE public.deals_sent (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id text,
-  product_name text,
-  product_name_hebrew text,
-  platform text NOT NULL,
-  category text,
-  affiliate_url text,
-  commission_rate numeric,
-  sent_at timestamptz DEFAULT now()
-);
+## Fix 2: Duplicate prevention (28-day window)
 
-ALTER TABLE public.deals_sent ENABLE ROW LEVEL SECURITY;
+### A. Weekly message query — exclude recently used deals
 
-CREATE POLICY "Service role full access on deals_sent"
-  ON public.deals_sent FOR ALL
-  TO service_role USING (true) WITH CHECK (true);
+**Lines 353-358:** Add filter to exclude deals whose `affiliate_url` was already used in a weekly-eligible window (8-28 days ago):
 
-CREATE POLICY "Admins can read deals_sent"
-  ON public.deals_sent FOR SELECT
-  TO authenticated USING (has_role(auth.uid(), 'admin'::app_role));
+After fetching deals, filter out any whose `affiliate_url` appeared in a deal sent between 8 and 28 days ago:
+```typescript
+// After line 359 (deals = data || [])
+const fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
+const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+const { data: recentUrls } = await serviceClient
+  .from("deals_sent")
+  .select("affiliate_url")
+  .gte("sent_at", fourWeeksAgo)
+  .lt("sent_at", oneWeekAgo);
+const excludeUrls = new Set((recentUrls || []).map(r => r.affiliate_url));
+deals = deals.filter(d => !excludeUrls.has(d.affiliate_url));
 ```
 
-## Step 2: Save to `deals_sent` on deal generation
+### B. Warning on deal creation
 
-In `handleDealGenerate` (line 1083-1093), after the deal message is successfully generated and sent, insert a row:
+**Lines 1077-1091:** Before inserting into `deals_sent`, check if the same `affiliate_url` was sent in the last 14 days. If so, send a warning message (but still save the deal):
 
 ```typescript
-// After line 1093 (after sendMessage with the final deal)
-await serviceClient.from("deals_sent").insert({
-  product_id: productId,
-  product_name: product.name,
-  product_name_hebrew: product.name, // already Hebrew from getProductDisplayName
-  platform: product.url?.includes("lazada") ? "thailand" : "israel",
-  category: product.category,
-  affiliate_url: product.url,
-  commission_rate: product.commission_rate || null,
-});
+// Before the insert (line 1079)
+const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+const { data: recentDeal } = await serviceClient
+  .from("deals_sent")
+  .select("sent_at")
+  .eq("affiliate_url", product.url)
+  .gte("sent_at", twoWeeksAgo)
+  .order("sent_at", { ascending: false })
+  .limit(1);
+if (recentDeal && recentDeal.length > 0) {
+  const daysAgo = Math.round((Date.now() - new Date(recentDeal[0].sent_at).getTime()) / (1000 * 60 * 60 * 24));
+  await sendMessage(chatId, `⚠️ מוצר זה פורסם לפני ${daysAgo} ימים`);
+}
 ```
 
-Need to also get `commission_rate` into the product object in `handleDealGenerate`. Currently it's missing for israel/aliexpress products. Will add it from the source queries (lines 1008-1045).
+## Summary
 
-## Step 3: Rewrite `handleWeeklyPlatformMessage` (lines 344-469)
+| Change | Lines | What |
+|--------|-------|------|
+| Fix AI name split | 427-428 | Split by `---` or newline, strip numbering |
+| Exclude 28-day duplicates | After 359 | Filter out URLs used in previous weeks |
+| Warn on deal create | Before 1079 | Show "published X days ago" warning |
 
-Replace the entire function with new logic:
-
-1. **Data source:** Query `deals_sent` for the selected platform, last 7 days. If < 3 results, expand to 30 days.
-2. **Diversity logic** with category groups:
-   - Group 1 (kids): `ילדים`, `תינוקות`, `צעצועים`
-   - Group 2 (gadgets): `גאדג'טים`, `אלקטרוניקה`, `אביזרי טלפון`, `כבלים ושעונים חכמים`
-   - Group 3 (home): `בית`, `מטבח`, `ניקיון`, `ארגון`, `בית חכם`
-3. **Selection:** Pick 1 most recent deal from each group. If a group has no deals, skip. Fill remaining slots (up to 3) with highest commission deals from remaining.
-4. **Fallback:** If 0 deals found → "לא פורסמו דילים השבוע - צור דיל עם /deal"
-5. **Message format:** Same template as current, with title rotation: הלהיט / הכי נמכר / הפתעת השבוע
-6. **Links:** Use `affiliate_url` directly from `deals_sent` — no fuzzy matching needed
-
-## Step 4: Add `commission_rate` to `handleDealGenerate` product object
-
-Lines 1010-1018 (israel_editor_products) — add `commission_rate: null` (already there, but also check aliexpress_feed_products at 1034-1043 — add `commission_rate: aliProduct.commission_rate`).
-
-Actually looking at the code, aliProduct already has `commission_rate` but it's not passed to the product object. Fix line 1035-1043 to include it.
-
-## Changes Summary
-
-| What | Where | Action |
-|------|-------|--------|
-| `deals_sent` table | DB migration | Create table + RLS |
-| Save deal on generation | `handleDealGenerate` line 1093 | Insert after successful send |
-| Add commission_rate | `handleDealGenerate` lines 1010, 1022 | Pass from source data |
-| Rewrite weekly message | `handleWeeklyPlatformMessage` lines 344-469 | Query `deals_sent` + diversity logic |
-
-**Single file edit** + 1 DB migration. Estimated: ~1 credit.
+Single file edit, no DB changes.
 
