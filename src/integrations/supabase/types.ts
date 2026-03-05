@@ -272,6 +272,42 @@ export type Database = {
         }
         Relationships: []
       }
+      deals_sent: {
+        Row: {
+          affiliate_url: string | null
+          category: string | null
+          commission_rate: number | null
+          id: string
+          platform: string
+          product_id: string | null
+          product_name: string | null
+          product_name_hebrew: string | null
+          sent_at: string | null
+        }
+        Insert: {
+          affiliate_url?: string | null
+          category?: string | null
+          commission_rate?: number | null
+          id?: string
+          platform: string
+          product_id?: string | null
+          product_name?: string | null
+          product_name_hebrew?: string | null
+          sent_at?: string | null
+        }
+        Update: {
+          affiliate_url?: string | null
+          category?: string | null
+          commission_rate?: number | null
+          id?: string
+          platform?: string
+          product_id?: string | null
+          product_name?: string | null
+          product_name_hebrew?: string | null
+          sent_at?: string | null
+        }
+        Relationships: []
+      }
       feed_categories: {
         Row: {
           category_id: number
