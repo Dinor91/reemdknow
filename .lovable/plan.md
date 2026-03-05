@@ -1,34 +1,38 @@
 
 
-# Final Critical Fixes — Weekly Data Source + Events Categories
+# Fix: Weekly Message — Skip Products Without Affiliate Links
 
-**Estimated credits: 1 (single file edit, no DB changes)**
+**File:** `supabase/functions/telegram-bot-handler/index.ts`
 
-## Fix 1: Weekly Message — Orders Only, No Feed Fallback
+## Current behavior (line 419)
+Products are added to the list regardless of whether a link was found. The comment on line 422 says "show products from orders even without links."
 
-**Problem:** Lines 416-440 fill missing links with random feed products that the community never bought.
+## Changes
 
-**Changes to `handleWeeklyPlatformMessage` (lines 344-489):**
+### 1. Only keep products WITH links (line 419)
+Change the push to only add products that have a matching affiliate link:
+```typescript
+if (link) {
+  productsWithLinks.push({ name: p.name, link });
+}
+```
 
-1. **Expand time window if needed:** Query 7 days first. If < 3 products, expand to 30 days. If still < 3, show "אין מספיק נתונים השבוע".
-2. **Remove feed fallback entirely** (delete lines 416-440). Only show products from actual orders.
-3. **Link matching:** Keep progressive fuzzy match (lines 390-411) but if no link found for an order product, still include the product name without a link rather than substituting a random feed product.
-4. **Relax the 3-link guard** (lines 442-447): Allow messages with 1-3 products. Only block if 0 products found.
+### 2. Update the guard (lines 383-386)
+Move the "no data" check to AFTER link matching (after line 420), since the relevant count is products-with-links, not just orders:
+- After line 420, check `if (productsWithLinks.length === 0)` → show "אין מספיק נתונים"
+- Remove or keep the existing early guard at line 383 (it still helps for zero orders)
 
-## Fix 2: Events — Verify DISTINCT ON Category Works
+### 3. Delete dead comment (line 422)
+Remove `// No feed fallback — show products from orders even without links`
 
-**Problem:** The diversity logic (lines 576-584, 606-614) iterates sorted by `commission_rate DESC` and picks first per category. This works correctly IF categories are varied in the data. The real issue may be that most high-commission products share the same category.
+### 4. Lines 449-454 — no change needed
+The loop already handles variable-length `productsWithLinks` correctly (1-3 items).
 
-**Change:** Also sort by `category_name_hebrew` as secondary sort to ensure the iteration encounters different categories early. Add a minimum commission threshold (e.g., `> 0.05`) to avoid zero-commission noise products.
+| Line | Change |
+|------|--------|
+| 419 | Wrap in `if (link)` |
+| 420-422 | Add post-match guard for 0 links |
+| 422 | Delete comment |
 
-## Summary
-
-| Change | Lines | Action |
-|--------|-------|--------|
-| Weekly: add 30-day fallback window | 348-380 | Expand query if < 3 results |
-| Weekly: remove feed product fallback | 416-440 | Delete entirely |
-| Weekly: relax 3-link minimum | 442-447 | Allow 1+ products |
-| Events: improve category diversity sort | 572, 603 | Add secondary sort |
-
-**Single file:** `supabase/functions/telegram-bot-handler/index.ts`
+Single file edit, no DB changes.
 
