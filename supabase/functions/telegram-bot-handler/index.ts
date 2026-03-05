@@ -347,83 +347,101 @@ async function handleWeeklyPlatformMessage(chatId: number, platform: string) {
   const serviceClient = createServiceClient();
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  let orders: any[] = [];
-  let currencySymbol: string;
-  let platformLabel: string;
+  // Step 1: Get top 3 products by commission from orders
+  let topProducts: Array<{ name: string; commission: number; count: number }> = [];
 
   if (platform === "thailand") {
-    const { data } = await serviceClient.from("orders_lazada").select("*").gte("created_at", weekAgo);
-    orders = data || [];
-    currencySymbol = "฿";
-    platformLabel = "Lazada תאילנד";
+    const { data: orders } = await serviceClient.from("orders_lazada").select("product_name, commission_thb").gte("created_at", weekAgo);
+    const productMap: Record<string, { name: string; commission: number; count: number }> = {};
+    for (const o of (orders || [])) {
+      const name = o.product_name || "Unknown";
+      if (name === "Unknown") continue;
+      if (!productMap[name]) productMap[name] = { name, commission: 0, count: 0 };
+      productMap[name].commission += (o.commission_thb || 0);
+      productMap[name].count++;
+    }
+    topProducts = Object.values(productMap).sort((a, b) => b.commission - a.commission).slice(0, 3);
   } else {
-    const { data } = await serviceClient.from("orders_aliexpress").select("*").gte("created_at", weekAgo);
-    orders = data || [];
-    currencySymbol = "$";
-    platformLabel = "AliExpress ישראל";
+    const { data: orders } = await serviceClient.from("orders_aliexpress").select("product_name, commission_usd").gte("created_at", weekAgo);
+    const productMap: Record<string, { name: string; commission: number; count: number }> = {};
+    for (const o of (orders || [])) {
+      const name = o.product_name || "Unknown";
+      if (name === "Unknown") continue;
+      if (!productMap[name]) productMap[name] = { name, commission: 0, count: 0 };
+      productMap[name].commission += (o.commission_usd || 0);
+      productMap[name].count++;
+    }
+    topProducts = Object.values(productMap).sort((a, b) => b.commission - a.commission).slice(0, 3);
   }
 
-  if (orders.length === 0) {
-    await sendMessage(chatId, `❌ אין הזמנות מ-${platformLabel} השבוע`);
+  if (topProducts.length === 0) {
+    await sendMessage(chatId, `❌ אין הזמנות מ${platform === "thailand" ? "Lazada" : "AliExpress"} השבוע`);
     return;
   }
 
-  // Top 3 products by commission
-  const productMap: Record<string, { name: string; commission: number; count: number }> = {};
-  for (const o of orders) {
-    const name = o.product_name || "Unknown";
-    const key = name;
-    const comm = platform === "thailand" ? (o.commission_thb || 0) : (o.commission_usd || 0);
-    if (!productMap[key]) productMap[key] = { name, commission: 0, count: 0 };
-    productMap[key].commission += comm;
-    productMap[key].count++;
+  // Step 2: Find affiliate links via fuzzy matching
+  const productsWithLinks: Array<{ name: string; link: string | null }> = [];
+  for (const p of topProducts) {
+    const searchTerm = p.name.substring(0, 30);
+    let link: string | null = null;
+
+    if (platform === "thailand") {
+      const { data: match } = await serviceClient
+        .from("feed_products")
+        .select("tracking_link")
+        .ilike("product_name", `%${searchTerm}%`)
+        .not("tracking_link", "is", null)
+        .limit(1)
+        .maybeSingle();
+      link = match?.tracking_link || null;
+    } else {
+      const { data: match } = await serviceClient
+        .from("aliexpress_feed_products")
+        .select("tracking_link")
+        .ilike("product_name", `%${searchTerm}%`)
+        .not("tracking_link", "is", null)
+        .limit(1)
+        .maybeSingle();
+      link = match?.tracking_link || null;
+    }
+    productsWithLinks.push({ name: p.name, link });
   }
-  const topProducts = Object.values(productMap).sort((a, b) => b.commission - a.commission).slice(0, 3);
 
-  const totalComm = platform === "thailand"
-    ? orders.reduce((s: number, o: any) => s + (o.commission_thb || 0), 0)
-    : orders.reduce((s: number, o: any) => s + (o.commission_usd || 0), 0);
-
-  // Fetch template
-  const { data: templateData } = await serviceClient.from("message_templates").select("content").eq("template_name", "סיכום_שבועי").maybeSingle();
-  const template = templateData?.content || "";
-
+  // Step 3: Use AI to generate short Hebrew names (max 5 words each)
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-  const prompt = `אתה reemdknow — אבא לשניים, בעל, חובב גאדג'טים. כותב סיכום שבועי לקבוצת וואטסאפ.
-
-פלטפורמה: ${platformLabel} (${platform === "thailand" ? "קבוצת תאילנד" : "קבוצת ישראל"})
-מטבע: ${currencySymbol}
-
-נתוני השבוע:
-- ${orders.length} הזמנות
-- עמלה כוללת: ${currencySymbol}${totalComm.toFixed(2)}
-- מובילים: ${topProducts.map((p, i) => `${i + 1}. ${p.name.substring(0, 50)} (${p.count} מכירות, ${currencySymbol}${p.commission.toFixed(2)} עמלה)`).join("\n")}
-
-${template ? `תבנית:\n${template}\n\n` : ""}
-
-כללים:
-1. פתח בתודה חמה
-2. 3 מוצרים עם 🥇🥈🥉 - השתמש בשמות הממש של המוצרים
-3. טון אישי, לא פרסומי
-4. השתמש ב-${currencySymbol} לכל מחיר
-5. שאלה מזמינה בסוף
-6. עד 150 מילים
-7. אל תערבב פלטפורמות - רק ${platformLabel}`;
+  const titles = ["הלהיט", "הכי נמכר", "הפתעת השבוע"];
 
   try {
+    const namePrompt = productsWithLinks.map((p, i) => `${i + 1}. ${p.name}`).join("\n");
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "אתה reemdknow, ממליץ מוצרים אישי. כותב בעברית חמה." },
-          { role: "user", content: prompt },
+          { role: "system", content: "אתה מתרגם שמות מוצרים לעברית קצרה. החזר רק את השמות, שורה לכל מוצר, מופרדים ב---. מקסימום 5 מילים לכל שם. אם השם כבר בעברית, קצר אותו." },
+          { role: "user", content: `קצר/תרגם את שמות המוצרים הבאים לעברית (מקסימום 5 מילים כל אחד):\n\n${namePrompt}` },
         ],
+        temperature: 0.3,
       }),
     });
     const data = await resp.json();
-    const message = data.choices?.[0]?.message?.content || "שגיאה ביצירת הודעה";
+    const shortNames = (data.choices?.[0]?.message?.content || "")
+      .split("---").map((n: string) => n.trim()).filter((n: string) => n);
+
+    // Step 4: Assemble final message using exact template
+    let message = `השבת כבר בפתח ורציתי להגיד תודה על הפידבקים והשיתופים שלכם השבוע האחרון 🙌\nבזכותכם אני מוצא את המוצרים שבאמת שווים, במחירים טובים ובונים כאן קהילה איכותית.\n\nאז רק רציתי לסכם לכם את ה־Top 3 שלכם השבוע 👇\n`;
+
+    for (let i = 0; i < productsWithLinks.length; i++) {
+      const shortName = shortNames[i] || productsWithLinks[i].name.substring(0, 30);
+      const link = productsWithLinks[i].link;
+      message += `\n📍 ${titles[i]}: ${shortName}`;
+      if (link) message += `\n🔗 ${link}`;
+      message += "\n";
+    }
+
+    message += `\nפספסתם משהו? הכול נמצא בהיסטוריה של הקבוצה.\nרוצים לשאול משהו? מחפשים משהו מיוחד? שלחו לי הודעה!`;
+
     const flag = platform === "thailand" ? "🇹🇭" : "🇮🇱";
     await sendMessage(chatId, `${flag} <b>הודעה מוכנה לקבוצה:</b>\n\n${message}`);
   } catch (e) {
@@ -467,12 +485,30 @@ async function handleEvents(chatId: number) {
     return;
   }
 
+  // Show platform selection buttons
+  const keyboard = {
+    inline_keyboard: [
+      [{ text: "🇮🇱 אירועים ישראל", callback_data: "events_platform:israel" }, { text: "🇹🇭 אירועים תאילנד", callback_data: "events_platform:thailand" }],
+    ],
+  };
+  const eventNames = activeEvents.map(e => `• ${e.nameHe}`).join("\n");
+  await sendMessage(chatId, `🎉 <b>אירועים פעילים:</b>\n${eventNames}\n\nבחר פלטפורמה לצפייה במוצרים:`, { reply_markup: keyboard });
+}
+
+async function handleEventsPlatform(chatId: number, platform: string) {
+  const platformFilter = platform === "israel" ? "aliexpress" : "lazada";
+  const activeEvents = getActiveEvents(platformFilter as "aliexpress" | "lazada");
+
+  if (activeEvents.length === 0) {
+    await sendMessage(chatId, `📅 אין אירועים פעילים ל${platform === "israel" ? "ישראל" : "תאילנד"} כרגע.`);
+    return;
+  }
+
   const serviceClient = createServiceClient();
 
   for (const e of activeEvents) {
-    const platforms = e.platforms.map(p => p === "aliexpress" ? "🇮🇱" : "🇹🇭").join(" ");
+    const flag = platform === "israel" ? "🇮🇱" : "🇹🇭";
     
-    // Calculate days remaining
     const now = new Date();
     const endMonth = parseInt(e.end.split("-")[0]) - 1;
     const endDay = parseInt(e.end.split("-")[1]);
@@ -480,48 +516,47 @@ async function handleEvents(chatId: number) {
     const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     const urgency = daysLeft <= 1 ? "⚠️ נגמר היום!" : daysLeft <= 2 ? "⏰ נגמר מחר!" : `📅 נשארו ${daysLeft} ימים`;
 
-    let msg = `${platforms} <b>${e.nameHe}</b>\n${urgency}\n`;
+    let msg = `${flag} <b>${e.nameHe}</b>\n${urgency}\n`;
     if (e.discount) msg += `💰 ${e.discount}\n`;
     if (e.code) msg += `🎫 קוד: <code>${e.code}</code>\n`;
 
-    // Fetch recommended products for each platform in this event
     const buttons: any[] = [];
-    
-    for (const plat of e.platforms) {
-      if (plat === "aliexpress") {
-        const { data: products } = await serviceClient
-          .from("aliexpress_feed_products")
-          .select("id, product_name_hebrew, product_name, price_usd, commission_rate, image_url")
-          .eq("is_campaign_product", true)
-          .eq("out_of_stock", false)
-          .order("commission_rate", { ascending: false, nullsFirst: false })
-          .limit(3);
-        
-        if (products && products.length > 0) {
-          msg += `\n💡 <b>מומלצים לקידום (🇮🇱):</b>\n`;
-          for (const p of products) {
-            const name = getProductDisplayName(p);
-            const commPct = p.commission_rate ? `${Math.round(Number(p.commission_rate) * 100)}%` : "?";
-            msg += `• ${name.substring(0, 40)} — ${commPct} עמלה — $${p.price_usd || "?"}\n`;
-            buttons.push({ text: `✍️ ${name.substring(0, 20)}`, callback_data: `deal_gen:${p.id}`.substring(0, 64) });
-          }
+
+    if (platform === "israel") {
+      const { data: products } = await serviceClient
+        .from("aliexpress_feed_products")
+        .select("id, product_name_hebrew, product_name, price_usd, commission_rate, image_url")
+        .eq("is_campaign_product", true)
+        .eq("out_of_stock", false)
+        .lt("commission_rate", 0.50)
+        .order("commission_rate", { ascending: false, nullsFirst: false })
+        .limit(3);
+      
+      if (products && products.length > 0) {
+        msg += `\n💡 <b>מומלצים לקידום:</b>\n`;
+        for (const p of products) {
+          const name = getProductDisplayName(p);
+          const commPct = p.commission_rate ? `${Math.round(Number(p.commission_rate) * 100)}%` : "?";
+          msg += `• ${name.substring(0, 40)} — ${commPct} עמלה — $${p.price_usd || "?"}\n`;
+          buttons.push({ text: `✍️ ${name.substring(0, 20)}`, callback_data: `deal_gen:${p.id}`.substring(0, 64) });
         }
-      } else {
-        const { data: products } = await serviceClient
-          .from("feed_products")
-          .select("id, product_name, category_name_hebrew, price_thb, commission_rate, image_url")
-          .eq("out_of_stock", false)
-          .order("commission_rate", { ascending: false, nullsFirst: false })
-          .limit(3);
-        
-        if (products && products.length > 0) {
-          msg += `\n💡 <b>מומלצים לקידום (🇹🇭):</b>\n`;
-          for (const p of products) {
-            const name = getProductDisplayName(p, p.category_name_hebrew);
-            const commPct = p.commission_rate ? `${Math.round(Number(p.commission_rate) * 100)}%` : "?";
-            msg += `• ${name.substring(0, 40)} — ${commPct} עמלה — ฿${p.price_thb || "?"}\n`;
-            buttons.push({ text: `✍️ ${name.substring(0, 20)}`, callback_data: `deal_gen:${p.id}`.substring(0, 64) });
-          }
+      }
+    } else {
+      const { data: products } = await serviceClient
+        .from("feed_products")
+        .select("id, product_name, category_name_hebrew, price_thb, commission_rate, image_url")
+        .eq("out_of_stock", false)
+        .lt("commission_rate", 0.50)
+        .order("commission_rate", { ascending: false, nullsFirst: false })
+        .limit(3);
+      
+      if (products && products.length > 0) {
+        msg += `\n💡 <b>מומלצים לקידום:</b>\n`;
+        for (const p of products) {
+          const name = getProductDisplayName(p, p.category_name_hebrew);
+          const commPct = p.commission_rate ? `${Math.round(Number(p.commission_rate) * 100)}%` : "?";
+          msg += `• ${name.substring(0, 40)} — ${commPct} עמלה — ฿${p.price_thb || "?"}\n`;
+          buttons.push({ text: `✍️ ${name.substring(0, 20)}`, callback_data: `deal_gen:${p.id}`.substring(0, 64) });
         }
       }
     }
@@ -1014,6 +1049,8 @@ serve(async (req) => {
       // Weekly platform selection
       else if (data.startsWith("weekly_platform:")) await handleWeeklyPlatformMessage(chatId, data.split(":")[1]);
       else if (data === "weekly_overview") await handleWeeklyOverview(chatId);
+      // Events platform selection
+      else if (data.startsWith("events_platform:")) await handleEventsPlatform(chatId, data.split(":")[1]);
       // Product card
       else if (data.startsWith("prod_card:")) await handleProductCard(chatId, data.split(":")[1]);
       // High commission flow
