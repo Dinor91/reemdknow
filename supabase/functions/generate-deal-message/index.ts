@@ -130,7 +130,18 @@ Coupon: ${coupon || "NONE - do NOT include any coupon line"}`;
     }
 
     const data = await response.json();
-    const message = data.choices?.[0]?.message?.content || "";
+    let message = data.choices?.[0]?.message?.content || "";
+
+    // Post-process: replace any URL the AI may have modified with the original productUrl
+    const urlRegex = /https?:\/\/[^\s\n)]+/g;
+    const urls = message.match(urlRegex);
+    if (urls && urls.length > 0) {
+      for (const url of urls) {
+        if (url.includes("aliexpress.com") || url.includes("lazada.co") || url.includes("s.click.")) {
+          message = message.replace(url, productUrl);
+        }
+      }
+    }
 
     return new Response(JSON.stringify({ message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
