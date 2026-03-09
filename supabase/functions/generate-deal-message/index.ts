@@ -16,12 +16,20 @@ serve(async (req) => {
     // Append affiliate tracking params to AliExpress links
     const TRACKING_ID = Deno.env.get("ALIEXPRESS_TRACKING_ID");
     let productUrl = product.url || "";
+    console.log("[1] productUrl RAW from product.url:", productUrl);
+    console.log("[1] TRACKING_ID value:", TRACKING_ID ? `${TRACKING_ID.substring(0, 10)}...` : "NOT SET");
+
     const isAlreadyTracked = productUrl.includes("s.click.aliexpress.com") || 
                              productUrl.includes("a.aliexpress.com") || 
                              productUrl.includes("aff_fcid");
+    console.log("[2] isAlreadyTracked:", isAlreadyTracked);
+
     if (productUrl.includes("aliexpress.com") && TRACKING_ID && !isAlreadyTracked) {
       const separator = productUrl.includes("?") ? "&" : "?";
       productUrl = `${productUrl}${separator}aff_fcid=${TRACKING_ID}&aff_platform=portals-tool`;
+      console.log("[3] productUrl AFTER adding tracking:", productUrl);
+    } else {
+      console.log("[3] productUrl UNCHANGED (skipped tracking):", productUrl);
     }
 
     const systemPrompt = `You are writing a WhatsApp message in Hebrew for a deals community of 1,200 members.
