@@ -1077,12 +1077,14 @@ serve(async (req) => {
     console.log(`After confidence filter (>=${CONFIDENCE_THRESHOLD}): ${ranked.length} of original results remain`);
 
     if (ranked.length === 0) {
+      const directLinks = buildDirectLink(params, effectivePlatform);
       return new Response(
         JSON.stringify({
           success: false,
-          message: buildNotFoundMessage(params),
+          message: buildNotFoundMessage(params, effectivePlatform),
           suggestion: getSuggestion(params),
-          lazada_direct_link: buildLazadaDirectLink(params),
+          lazada_direct_link: directLinks.lazada || null,
+          aliexpress_direct_link: directLinks.aliexpress || null,
           extracted_params: {
             product: params.search_terms_hebrew[0] || params.search_terms_english[0] || "—",
             budget: params.max_budget_thb
