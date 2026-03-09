@@ -785,6 +785,7 @@ Return ONLY a valid JSON array of exactly ${pickCount} items:
 [
   {
     "rank": 1,
+    "confidence": 85,
     "label": "best_price",
     "label_hebrew": "הכי זול",
     "label_color": "green",
@@ -794,6 +795,7 @@ Return ONLY a valid JSON array of exactly ${pickCount} items:
   },
   {
     "rank": 2,
+    "confidence": 70,
     "label": "best_rated",
     "label_hebrew": "הדירוג הכי גבוה",
     "label_color": "blue",
@@ -803,6 +805,7 @@ Return ONLY a valid JSON array of exactly ${pickCount} items:
   },
   {
     "rank": 3,
+    "confidence": 55,
     "label": "best_value",
     "label_hebrew": "התמורה הכי טובה",
     "label_color": "orange",
@@ -812,6 +815,8 @@ Return ONLY a valid JSON array of exactly ${pickCount} items:
   }
 ]
 Rules:
+- "confidence" is 0-100: how well this product matches the customer request. 90+ = perfect match, 70-89 = good, 50-69 = partial, below 50 = not relevant
+- Be STRICT with confidence: if a product is a completely different category or type than requested, score it below 30
 - Each product must be different (unique product_id)
 - If priority=price → rank 1 must be cheapest
 - If priority=rating → rank 1 must be highest rated
@@ -998,11 +1003,41 @@ serve(async (req) => {
       ];
       ranked = sorted.slice(0, Math.min(3, sorted.length)).map((p, i) => ({
         rank: i + 1,
+        confidence: 50, // fallback: assume borderline relevant
         ...labels[i],
         product_id: p.id,
         platform: p.platform,
         explanation_hebrew: `נבחר אוטומטית לפי ${params.priority === "price" ? "מחיר" : params.priority === "popular" ? "מכירות" : "דירוג"}`,
       }));
+    }
+
+    // Step E2: Filter by confidence threshold (minimum 50)
+    const CONFIDENCE_THRESHOLD = 50;
+    ranked = ranked.filter((r: any) => (r.confidence ?? 100) >= CONFIDENCE_THRESHOLD);
+    console.log(`After confidence filter (>=${CONFIDENCE_THRESHOLD}): ${ranked.length} of original results remain`);
+
+    if (ranked.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "לא מצאתי מוצר תואם לחיפוש שלך 😕\nנסה מילות חיפוש אחרות או הרחב את התקציב",
+          suggestion: getSuggestion(params),
+          extracted_params: {
+            product: params.search_terms_hebrew[0] || params.search_terms_english[0] || "—",
+            budget: params.max_budget_thb
+              ? `฿${params.max_budget_thb}`
+              : params.max_budget_usd
+              ? `$${params.max_budget_usd.toFixed(0)}`
+              : "ללא הגבלה",
+            rating: `${params.min_rating}+`,
+            brand: params.brand || null,
+            platform: params.platform,
+            priority: params.priority,
+          },
+          search_time_ms: Date.now() - startTime,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Step F: Build final response – deduplicate by product_id AND name
@@ -1017,6 +1052,7 @@ serve(async (req) => {
       usedNameKeys.add(nameKey);
       return {
         rank: r.rank,
+        confidence: r.confidence ?? null,
         label_hebrew: r.label_hebrew,
         label_color: r.label_color,
         platform: product.platform,
