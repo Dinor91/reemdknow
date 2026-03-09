@@ -13,6 +13,9 @@ function createServiceClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 }
 
+// Excluded categories for Thailand feed_products queries
+const EXCLUDED_FEED_CATEGORIES = '(ציוד רפואי,פסלים,ציוד משרדי,מכונות,ציוד תעשייתי,הדברה,מוצרי מזון ישראליים)';
+
 // ────────── TELEGRAM API HELPERS ──────────
 
 async function sendMessage(chatId: number, text: string, options: any = {}) {
