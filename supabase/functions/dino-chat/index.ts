@@ -108,7 +108,7 @@ async function upsertAliexpressOrders(orders: any[]) {
   const serviceClient = createServiceClient();
   const rows = orders.map((o: any) => ({
     order_id: String(o.order_id || o.order_number || ""),
-    product_name: o.product_name || null,
+    product_name: o.product_title || o.product_name || null,
     category_name: o.category_name || null,
     paid_amount_usd: (parseFloat(o.finished_amount) || parseFloat(o.paid_amount) || 0) / 100,
     commission_usd: (parseFloat(o.estimated_finished_commission) || parseFloat(o.estimated_paid_commission) || 0) / 100,

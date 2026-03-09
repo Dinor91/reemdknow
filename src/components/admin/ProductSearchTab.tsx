@@ -116,6 +116,7 @@ export const ProductSearchTab = () => {
         platform: result.platform === "aliexpress" ? "israel" : "thailand",
         category: result.category,
         affiliate_url: result.tracking_link,
+        commission_rate: result.commission_rate || null,
       });
     } catch (err) {
       console.error("Deal generation error:", err);

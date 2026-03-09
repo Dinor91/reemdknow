@@ -16,7 +16,10 @@ serve(async (req) => {
     // Append affiliate tracking params to AliExpress links
     const TRACKING_ID = Deno.env.get("ALIEXPRESS_TRACKING_ID");
     let productUrl = product.url || "";
-    if (productUrl.includes("aliexpress.com") && TRACKING_ID) {
+    const isAlreadyTracked = productUrl.includes("s.click.aliexpress.com") || 
+                             productUrl.includes("a.aliexpress.com") || 
+                             productUrl.includes("aff_fcid");
+    if (productUrl.includes("aliexpress.com") && TRACKING_ID && !isAlreadyTracked) {
       const separator = productUrl.includes("?") ? "&" : "?";
       productUrl = `${productUrl}${separator}aff_fcid=${TRACKING_ID}&aff_platform=portals-tool`;
     }
