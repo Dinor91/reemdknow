@@ -1154,6 +1154,8 @@ serve(async (req) => {
     // Re-number ranks sequentially
     results.forEach((r: any, i: number) => { r.rank = i + 1; });
 
+    await logSearchHistory(supabase, message, effectivePlatform, results.length > 0, results.length);
+
     return new Response(
       JSON.stringify({
         success: true,
