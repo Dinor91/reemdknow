@@ -889,6 +889,19 @@ Rules:
   return parseJsonFromAI(raw);
 }
 
+async function logSearchHistory(supabase: any, query: string, platform: string, foundResults: boolean, resultsCount: number) {
+  try {
+    await supabase.from("search_history").insert({
+      search_query: query.substring(0, 500),
+      platform,
+      found_results: foundResults,
+      results_count: resultsCount,
+    });
+  } catch (e) {
+    console.error("Failed to log search history:", e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
