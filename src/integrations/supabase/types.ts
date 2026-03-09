@@ -608,6 +608,33 @@ export type Database = {
         }
         Relationships: []
       }
+      search_history: {
+        Row: {
+          created_at: string
+          found_results: boolean
+          id: string
+          platform: string
+          results_count: number
+          search_query: string
+        }
+        Insert: {
+          created_at?: string
+          found_results?: boolean
+          id?: string
+          platform: string
+          results_count?: number
+          search_query: string
+        }
+        Update: {
+          created_at?: string
+          found_results?: boolean
+          id?: string
+          platform?: string
+          results_count?: number
+          search_query?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
