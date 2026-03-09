@@ -880,6 +880,22 @@ serve(async (req) => {
       curatedResults = await searchCurated(supabase, params);
     }
 
+    // ════════════════════════════════════════════
+    // For Lazada: run LIVE search in parallel with DB tiers (not just as fallback)
+    // For AliExpress: live search remains a fallback only
+    // ════════════════════════════════════════════
+    let liveAliResults: NormalizedProduct[] = [];
+    let liveLazadaResults: NormalizedProduct[] = [];
+    let lazadaLivePromise: Promise<NormalizedProduct[]> | null = null;
+
+    if (shouldSearchLazada) {
+      console.log("📡 Starting Lazada LIVE search in parallel with DB tiers...");
+      lazadaLivePromise = searchLazadaLive(params, message).catch(err => {
+        console.error("Lazada live parallel search error:", err);
+        return [] as NormalizedProduct[];
+      });
+    }
+
     for (const tier of [1, 2, 3] as const) {
       searchTier = tier;
       console.log(`\n🔍 === TIER ${tier} SEARCH ===`);
@@ -900,38 +916,36 @@ serve(async (req) => {
       if (tier === 1 && allProducts.length >= 3) break;
       // Tier 2 needs >= 2 results to stop
       if (tier === 2 && allProducts.length >= 2) break;
-      // Tier 3 always continues to live fallback if needed
+      // Tier 3 always continues
     }
 
     console.log(`DB search completed at tier ${searchTier} with ${allProducts.length} results`);
 
     // ════════════════════════════════════════════
-    // LIVE API FALLBACK (only if all DB tiers < 3)
+    // MERGE LAZADA LIVE RESULTS (ran in parallel)
     // ════════════════════════════════════════════
-    let liveAliResults: NormalizedProduct[] = [];
-    let liveLazadaResults: NormalizedProduct[] = [];
+    if (lazadaLivePromise) {
+      liveLazadaResults = await lazadaLivePromise;
+      if (liveLazadaResults.length > 0) {
+        const existingNames = new Set(allProducts.map(p => p.product_name.toLowerCase().substring(0, 30)));
+        liveLazadaResults = liveLazadaResults.filter(p => !existingNames.has(p.product_name.toLowerCase().substring(0, 30)));
+        allProducts.push(...liveLazadaResults);
+        console.log(`Merged ${liveLazadaResults.length} parallel Lazada LIVE results, total now: ${allProducts.length}`);
+      }
+    }
 
-    if (allProducts.length < 3) {
-      // Live AliExpress fallback
-      const israelDbCount = allProducts.filter(p => p.platform === "aliexpress").length;
-      if ((shouldSearchAli || shouldSearchIsrael) && israelDbCount < 3) {
-        console.log(`📡 Israel DB results (${israelDbCount}) < 3 after all tiers, triggering AliExpress LIVE search...`);
+    // ════════════════════════════════════════════
+    // ALIEXPRESS LIVE FALLBACK (only if DB results < 3)
+    // ════════════════════════════════════════════
+    if (allProducts.filter(p => p.platform === "aliexpress").length < 3) {
+      if (shouldSearchAli || shouldSearchIsrael) {
+        const israelDbCount = allProducts.filter(p => p.platform === "aliexpress").length;
+        console.log(`📡 Israel results (${israelDbCount}) < 3, triggering AliExpress LIVE search...`);
         liveAliResults = await searchAliExpressLive(params);
         const existingNames = new Set(allProducts.map(p => p.product_name.toLowerCase().substring(0, 30)));
         liveAliResults = liveAliResults.filter(p => !existingNames.has(p.product_name.toLowerCase().substring(0, 30)));
         allProducts.push(...liveAliResults);
         console.log(`Added ${liveAliResults.length} live AliExpress results, total now: ${allProducts.length}`);
-      }
-
-      // Live Lazada fallback
-      const lazadaDbCount = allProducts.filter(p => p.platform === "lazada" && !p.is_live_result).length;
-      if (shouldSearchLazada && lazadaDbCount < 3) {
-        console.log(`📡 Thailand DB results (${lazadaDbCount}) < 3 after all tiers, triggering Lazada LIVE category search...`);
-        liveLazadaResults = await searchLazadaLive(params, message);
-        const existingNames = new Set(allProducts.map(p => p.product_name.toLowerCase().substring(0, 30)));
-        liveLazadaResults = liveLazadaResults.filter(p => !existingNames.has(p.product_name.toLowerCase().substring(0, 30)));
-        allProducts.push(...liveLazadaResults);
-        console.log(`Added ${liveLazadaResults.length} live Lazada results, total now: ${allProducts.length}`);
       }
     }
 
