@@ -990,7 +990,8 @@ async function handleDealPlatform(chatId: number, messageId: number, platform: s
     const { data } = await serviceClient
       .from("feed_products")
       .select("category_name_hebrew")
-      .eq("out_of_stock", false);
+      .eq("out_of_stock", false)
+      .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES);
 
     const catCounts: Record<string, number> = {};
     for (const p of (data || [])) {
