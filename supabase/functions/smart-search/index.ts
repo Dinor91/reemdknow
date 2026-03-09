@@ -1022,12 +1022,14 @@ serve(async (req) => {
 
     // Step D: No results check — only fail if truly 0
     if (allProducts.length === 0) {
+      const directLinks = buildDirectLink(params, effectivePlatform);
       return new Response(
         JSON.stringify({
           success: false,
-          message: buildNotFoundMessage(params),
+          message: buildNotFoundMessage(params, effectivePlatform),
           suggestion: getSuggestion(params),
-          lazada_direct_link: buildLazadaDirectLink(params),
+          lazada_direct_link: directLinks.lazada || null,
+          aliexpress_direct_link: directLinks.aliexpress || null,
           extracted_params: {
             product: params.search_terms_hebrew[0] || params.search_terms_english[0] || "—",
             budget: params.max_budget_usd ? `$${params.max_budget_usd.toFixed(0)}` : "ללא הגבלה",
