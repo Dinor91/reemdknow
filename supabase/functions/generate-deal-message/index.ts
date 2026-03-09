@@ -80,6 +80,7 @@ RULES:
 - NEVER show rating line if rating is null, 0, or "חדש"
 - NEVER show sales line if sales_7d is 0 or null
 - ALWAYS add "📦 המחיר באתר עשוי להשתנות" right after the price line
+- CRITICAL: Copy the URL EXACTLY as provided. Do not modify, shorten, or change ANY character in the URL. The URL must appear in the output 100% identical to the input.
 - Total message under 200 words`;
 
     const ratingValue = product.rating && product.rating !== "חדש" && Number(product.rating) > 0 ? product.rating : null;
@@ -94,6 +95,7 @@ Sales_7d: ${salesValue ? salesValue : "NONE - do NOT include any sales line"}
 Brand: ${product.brand || "לא ידוע"}
 Category: ${product.category || "כללי"}
 URL: ${productUrl}
+CRITICAL: The URL above must appear EXACTLY as-is in your output. Do not change any character.
 Coupon: ${coupon || "NONE - do NOT include any coupon line"}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -128,7 +130,18 @@ Coupon: ${coupon || "NONE - do NOT include any coupon line"}`;
     }
 
     const data = await response.json();
-    const message = data.choices?.[0]?.message?.content || "";
+    let message = data.choices?.[0]?.message?.content || "";
+
+    // Post-process: replace any URL the AI may have modified with the original productUrl
+    const urlRegex = /https?:\/\/[^\s\n)]+/g;
+    const urls = message.match(urlRegex);
+    if (urls && urls.length > 0) {
+      for (const url of urls) {
+        if (url.includes("aliexpress.com") || url.includes("lazada.co") || url.includes("s.click.")) {
+          message = message.replace(url, productUrl);
+        }
+      }
+    }
 
     return new Response(JSON.stringify({ message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
