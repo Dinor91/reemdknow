@@ -672,18 +672,29 @@ Return ONLY the category ID number as a string, nothing else.`;
   console.log(`🔴 LIVE Lazada search: category ${categoryL1} for "${keywords}"`);
 
   try {
-    // Fetch products from feed by category
-    const feedResult = await callLazadaLiveAPI("/marketing/product/feed", {
-      offerType: "1",
-      categoryL1,
-      page: "1",
-      limit: "20",
-    });
+    // Fetch 3 pages (60 products) in parallel for better coverage
+    const pagePromises = [1, 2, 3].map(page =>
+      callLazadaLiveAPI("/marketing/product/feed", {
+        offerType: "1",
+        categoryL1,
+        page: page.toString(),
+        limit: "20",
+      }).catch(err => {
+        console.error(`Lazada live page ${page} error:`, err);
+        return { result: { data: [] } };
+      })
+    );
 
-    const products = feedResult?.result?.data || [];
+    const pageResults = await Promise.all(pagePromises);
+    const products: any[] = [];
+    for (const res of pageResults) {
+      const pageData = res?.result?.data || [];
+      products.push(...pageData);
+    }
+
     if (products.length === 0) return [];
 
-    console.log(`Lazada live feed returned ${products.length} products for category ${categoryL1}`);
+    console.log(`Lazada live feed returned ${products.length} products (3 pages) for category ${categoryL1}`);
 
     // Batch get tracking links
     const productIds = products.map((p: any) => String(p.productId));
