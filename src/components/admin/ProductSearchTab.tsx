@@ -50,6 +50,7 @@ interface SearchResponse {
   search_time_ms?: number;
   search_tier?: 1 | 2 | 3;
   unique_count?: number;
+  lazada_direct_link?: string | null;
 }
 
 const LOADING_MESSAGES = [
@@ -301,8 +302,24 @@ export const ProductSearchTab = () => {
           <div className="flex items-center justify-center border-2 border-dashed border-red-300 rounded-xl min-h-[200px] bg-red-50/50">
             <div className="text-center p-8 space-y-3">
               <AlertCircle className="h-14 w-14 mx-auto text-red-400" />
-              <p className="text-lg font-medium text-foreground">{response.message}</p>
-              {response.suggestion && <p className="text-sm text-muted-foreground">{response.suggestion}</p>}
+              <p className="text-lg font-medium text-foreground whitespace-pre-line">
+                {response.lazada_direct_link
+                  ? "לא מצאתי מוצר תואם לחיפוש שלך 😕"
+                  : response.message}
+              </p>
+              {response.lazada_direct_link && (
+                <a
+                  href={response.lazada_direct_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors"
+                >
+                  🔗 חפש ישירות ב-Lazada
+                </a>
+              )}
+              {!response.lazada_direct_link && response.suggestion && (
+                <p className="text-sm text-muted-foreground">{response.suggestion}</p>
+              )}
               <Button
                 variant="outline"
                 onClick={() => {
