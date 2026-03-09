@@ -1052,6 +1052,7 @@ serve(async (req) => {
       usedNameKeys.add(nameKey);
       return {
         rank: r.rank,
+        confidence: r.confidence ?? null,
         label_hebrew: r.label_hebrew,
         label_color: r.label_color,
         platform: product.platform,
