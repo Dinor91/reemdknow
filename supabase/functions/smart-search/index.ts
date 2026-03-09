@@ -785,6 +785,7 @@ Return ONLY a valid JSON array of exactly ${pickCount} items:
 [
   {
     "rank": 1,
+    "confidence": 85,
     "label": "best_price",
     "label_hebrew": "הכי זול",
     "label_color": "green",
@@ -794,6 +795,7 @@ Return ONLY a valid JSON array of exactly ${pickCount} items:
   },
   {
     "rank": 2,
+    "confidence": 70,
     "label": "best_rated",
     "label_hebrew": "הדירוג הכי גבוה",
     "label_color": "blue",
@@ -803,6 +805,7 @@ Return ONLY a valid JSON array of exactly ${pickCount} items:
   },
   {
     "rank": 3,
+    "confidence": 55,
     "label": "best_value",
     "label_hebrew": "התמורה הכי טובה",
     "label_color": "orange",
@@ -812,6 +815,8 @@ Return ONLY a valid JSON array of exactly ${pickCount} items:
   }
 ]
 Rules:
+- "confidence" is 0-100: how well this product matches the customer request. 90+ = perfect match, 70-89 = good, 50-69 = partial, below 50 = not relevant
+- Be STRICT with confidence: if a product is a completely different category or type than requested, score it below 30
 - Each product must be different (unique product_id)
 - If priority=price → rank 1 must be cheapest
 - If priority=rating → rank 1 must be highest rated
