@@ -1043,6 +1043,7 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
       .select("*")
       .eq("category_name_hebrew", category)
       .eq("out_of_stock", false)
+      .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES)
       .order("sales_7d", { ascending: false, nullsFirst: false })
       .limit(10);
     products = (data || []).map(p => ({
