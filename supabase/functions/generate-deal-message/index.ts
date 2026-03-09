@@ -95,6 +95,7 @@ Sales_7d: ${salesValue ? salesValue : "NONE - do NOT include any sales line"}
 Brand: ${product.brand || "לא ידוע"}
 Category: ${product.category || "כללי"}
 URL: ${productUrl}
+CRITICAL: The URL above must appear EXACTLY as-is in your output. Do not change any character.
 Coupon: ${coupon || "NONE - do NOT include any coupon line"}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
