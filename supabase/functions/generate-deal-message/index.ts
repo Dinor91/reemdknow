@@ -80,6 +80,7 @@ RULES:
 - NEVER show rating line if rating is null, 0, or "חדש"
 - NEVER show sales line if sales_7d is 0 or null
 - ALWAYS add "📦 המחיר באתר עשוי להשתנות" right after the price line
+- CRITICAL: Copy the URL EXACTLY as provided. Do not modify, shorten, or change ANY character in the URL. The URL must appear in the output 100% identical to the input.
 - Total message under 200 words`;
 
     const ratingValue = product.rating && product.rating !== "חדש" && Number(product.rating) > 0 ? product.rating : null;
