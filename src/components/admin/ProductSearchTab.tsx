@@ -51,6 +51,7 @@ interface SearchResponse {
   search_tier?: 1 | 2 | 3;
   unique_count?: number;
   lazada_direct_link?: string | null;
+  aliexpress_direct_link?: string | null;
 }
 
 const LOADING_MESSAGES = [
@@ -303,7 +304,7 @@ export const ProductSearchTab = () => {
             <div className="text-center p-8 space-y-3">
               <AlertCircle className="h-14 w-14 mx-auto text-red-400" />
               <p className="text-lg font-medium text-foreground whitespace-pre-line">
-                {response.lazada_direct_link
+                {(response.lazada_direct_link || response.aliexpress_direct_link)
                   ? "לא מצאתי מוצר תואם לחיפוש שלך 😕"
                   : response.message}
               </p>
@@ -317,7 +318,17 @@ export const ProductSearchTab = () => {
                   🔗 חפש ישירות ב-Lazada
                 </a>
               )}
-              {!response.lazada_direct_link && response.suggestion && (
+              {response.aliexpress_direct_link && (
+                <a
+                  href={response.aliexpress_direct_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
+                >
+                  🔗 חפש ישירות ב-AliExpress
+                </a>
+              )}
+              {!response.lazada_direct_link && !response.aliexpress_direct_link && response.suggestion && (
                 <p className="text-sm text-muted-foreground">{response.suggestion}</p>
               )}
               <Button

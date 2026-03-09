@@ -672,18 +672,29 @@ Return ONLY the category ID number as a string, nothing else.`;
   console.log(`🔴 LIVE Lazada search: category ${categoryL1} for "${keywords}"`);
 
   try {
-    // Fetch products from feed by category
-    const feedResult = await callLazadaLiveAPI("/marketing/product/feed", {
-      offerType: "1",
-      categoryL1,
-      page: "1",
-      limit: "20",
-    });
+    // Fetch 3 pages (60 products) in parallel for better coverage
+    const pagePromises = [1, 2, 3].map(page =>
+      callLazadaLiveAPI("/marketing/product/feed", {
+        offerType: "1",
+        categoryL1,
+        page: page.toString(),
+        limit: "20",
+      }).catch(err => {
+        console.error(`Lazada live page ${page} error:`, err);
+        return { result: { data: [] } };
+      })
+    );
 
-    const products = feedResult?.result?.data || [];
+    const pageResults = await Promise.all(pagePromises);
+    const products: any[] = [];
+    for (const res of pageResults) {
+      const pageData = res?.result?.data || [];
+      products.push(...pageData);
+    }
+
     if (products.length === 0) return [];
 
-    console.log(`Lazada live feed returned ${products.length} products for category ${categoryL1}`);
+    console.log(`Lazada live feed returned ${products.length} products (3 pages) for category ${categoryL1}`);
 
     // Batch get tracking links
     const productIds = products.map((p: any) => String(p.productId));
@@ -778,12 +789,37 @@ function buildLazadaDirectLink(params: ExtractedParams): string | null {
   return url;
 }
 
-function buildNotFoundMessage(params: ExtractedParams): string {
-  const lazadaLink = buildLazadaDirectLink(params);
+function buildAliExpressDirectLink(params: ExtractedParams): string | null {
+  const keywords = params.search_terms_english.join(" ");
+  if (!keywords) return null;
+  let url = `https://www.aliexpress.com/wholesale?SearchText=${encodeURIComponent(keywords)}`;
+  if (params.max_budget_usd && params.max_budget_usd > 0) {
+    url += `&maxPrice=${Math.round(params.max_budget_usd)}`;
+  }
+  return url;
+}
+
+function buildDirectLink(params: ExtractedParams, effectivePlatform: string): { lazada?: string | null; aliexpress?: string | null } {
+  const isIsrael = effectivePlatform === "israel" || effectivePlatform === "aliexpress";
+  const isThailand = effectivePlatform === "lazada";
+  const isAll = effectivePlatform === "all";
+
+  return {
+    lazada: (isThailand || isAll) ? buildLazadaDirectLink(params) : null,
+    aliexpress: (isIsrael || isAll) ? buildAliExpressDirectLink(params) : null,
+  };
+}
+
+function buildNotFoundMessage(params: ExtractedParams, effectivePlatform: string): string {
+  const links = buildDirectLink(params, effectivePlatform);
   let msg = "לא מצאתי מוצר תואם לחיפוש שלך 😕";
-  if (lazadaLink) {
-    msg += `\n\nחפש ישירות ב-Lazada:\n🔗 ${lazadaLink}`;
-  } else {
+  if (links.lazada) {
+    msg += `\n\nחפש ישירות ב-Lazada:\n🔗 ${links.lazada}`;
+  }
+  if (links.aliexpress) {
+    msg += `\n\nחפש ישירות ב-AliExpress:\n🔗 ${links.aliexpress}`;
+  }
+  if (!links.lazada && !links.aliexpress) {
     msg += "\nנסה מילות חיפוש אחרות או הרחב את התקציב";
   }
   return msg;
@@ -986,12 +1022,14 @@ serve(async (req) => {
 
     // Step D: No results check — only fail if truly 0
     if (allProducts.length === 0) {
+      const directLinks = buildDirectLink(params, effectivePlatform);
       return new Response(
         JSON.stringify({
           success: false,
-          message: buildNotFoundMessage(params),
+          message: buildNotFoundMessage(params, effectivePlatform),
           suggestion: getSuggestion(params),
-          lazada_direct_link: buildLazadaDirectLink(params),
+          lazada_direct_link: directLinks.lazada || null,
+          aliexpress_direct_link: directLinks.aliexpress || null,
           extracted_params: {
             product: params.search_terms_hebrew[0] || params.search_terms_english[0] || "—",
             budget: params.max_budget_usd ? `$${params.max_budget_usd.toFixed(0)}` : "ללא הגבלה",
@@ -1039,12 +1077,14 @@ serve(async (req) => {
     console.log(`After confidence filter (>=${CONFIDENCE_THRESHOLD}): ${ranked.length} of original results remain`);
 
     if (ranked.length === 0) {
+      const directLinks = buildDirectLink(params, effectivePlatform);
       return new Response(
         JSON.stringify({
           success: false,
-          message: buildNotFoundMessage(params),
+          message: buildNotFoundMessage(params, effectivePlatform),
           suggestion: getSuggestion(params),
-          lazada_direct_link: buildLazadaDirectLink(params),
+          lazada_direct_link: directLinks.lazada || null,
+          aliexpress_direct_link: directLinks.aliexpress || null,
           extracted_params: {
             product: params.search_terms_hebrew[0] || params.search_terms_english[0] || "—",
             budget: params.max_budget_thb
