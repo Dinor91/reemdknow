@@ -1,52 +1,58 @@
 
 
-# תשובה + תוכנית תיקון
+# תיקון זיכרון חיפוש — user_sessions
 
-## תשובה לשאלת הארכיטקטורה
+## בעיה
+אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
 
-**הבוט טלגרם עצמאי לחלוטין.** אין שום קריאה מ-`telegram-bot-handler` ל-`dino-chat`. הם שני Edge Functions נפרדים שחולקים את אותו DB:
+## פתרון — טבלת `user_sessions`
 
-- **יצירת דיל**: הבוט קורא ישירות ל-`generate-deal-message` (שורה 377) ושומר ל-`deals_sent` בעצמו (שורה 401)
-- **הודעה שבועית**: הבוט מחשב בעצמו מ-`deals_sent` (שורה 656-676)
-- **Revenue**: הבוט קורא ישירות ל-API של AliExpress/Lazada (לא דרך dino-chat)
-- **upsertAliexpressOrders**: קיימת רק ב-`dino-chat/index.ts` — הבוט לא משתמש בה
-
----
-
-## 3 תיקונים
-
-### Fix 1 — קישור AliExpress נשבר (קריטי)
-**קובץ:** `supabase/functions/generate-deal-message/index.ts` שורה 19  
-**בעיה:** `productUrl.includes("aliexpress.com")` תופס גם `s.click.aliexpress.com` וגם `a.aliexpress.com` — קישורים שכבר מכילים tracking ושלא צריך להוסיף להם פרמטרים  
-**תיקון:** לפני הוספת tracking, בדוק שה-URL לא כבר short link ולא כבר מכיל `aff_fcid`:
-```typescript
-const isAlreadyTracked = productUrl.includes("s.click.aliexpress.com") || 
-                         productUrl.includes("a.aliexpress.com") || 
-                         productUrl.includes("aff_fcid");
-if (productUrl.includes("aliexpress.com") && TRACKING_ID && !isAlreadyTracked) {
+### שלב 1: מיגרציה
+```sql
+CREATE TABLE user_sessions (
+  user_id BIGINT PRIMARY KEY,
+  state TEXT NOT NULL DEFAULT 'idle',
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
 ```
 
-### Fix 2 — commission_rate חסר ב-deals_sent
-**קבצים:**
-- `telegram-bot-handler/index.ts` שורה 401-406 — חסר `commission_rate`
-- `src/components/admin/ProductSearchTab.tsx` שורה 113-118 — חסר `commission_rate`
-- `ProductSearchTab.tsx` interface — חסר שדה `commission_rate`
+### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
 
-**תיקון:** הוסף `commission_rate: result.commission_rate || null` ל-insert בשני המקומות, והוסף `commission_rate?: number | null` ל-SearchResult interface
+**2a. ב-callback handler של `cmd:search` (שורה 1560):**
+```typescript
+else if (data === "cmd:search") {
+  const serviceClient = createServiceClient();
+  await serviceClient.from("user_sessions").upsert({
+    user_id: userId,
+    state: "waiting_search",
+    last_updated: new Date().toISOString(),
+  });
+  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
+}
+```
 
-### Fix 3 — product_name Unknown בהזמנות AliExpress
-**קובץ:** `supabase/functions/dino-chat/index.ts` שורה 111  
-**בעיה:** `product_name: o.product_name` — אבל ה-API של AliExpress מחזיר את השדה כ-`product_title`  
-**תיקון:** שנה ל-`product_name: o.product_title || o.product_name || null`
+**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
+```typescript
+// Check if waiting for search input
+const serviceClient = createServiceClient();
+const { data: session } = await serviceClient
+  .from("user_sessions")
+  .select("state")
+  .eq("user_id", userId)
+  .maybeSingle();
 
----
+if (session?.state === "waiting_search" && !text.startsWith("/")) {
+  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
+  await handleFreeTextSearch(chatId, text);
+  return new Response("OK");
+}
+```
 
-## שינויים בקבצים
+## קובץ
+- `supabase/functions/telegram-bot-handler/index.ts`
 
-| קובץ | שורות | שינוי |
-|---|---|---|
-| `generate-deal-message/index.ts` | 19-22 | הוסף בדיקת isAlreadyTracked |
-| `telegram-bot-handler/index.ts` | 401-406 | הוסף commission_rate ל-insert |
-| `ProductSearchTab.tsx` | 13-32, 113-118 | הוסף commission_rate לinterface ול-insert |
-| `dino-chat/index.ts` | 111 | שנה ל-product_title fallback |
+## תוצאה
+לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
 

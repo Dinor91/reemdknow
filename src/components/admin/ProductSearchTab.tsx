@@ -29,6 +29,7 @@ interface SearchResult {
   is_featured: boolean;
   is_live_result?: boolean;
   explanation_hebrew: string;
+  commission_rate?: number | null;
 }
 
 interface SearchResponse {
@@ -115,6 +116,7 @@ export const ProductSearchTab = () => {
         platform: result.platform === "aliexpress" ? "israel" : "thailand",
         category: result.category,
         affiliate_url: result.tracking_link,
+        commission_rate: result.commission_rate || null,
       });
     } catch (err) {
       console.error("Deal generation error:", err);
