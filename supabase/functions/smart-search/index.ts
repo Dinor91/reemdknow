@@ -989,8 +989,9 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          message: "לא נמצאו מוצרים מתאימים לבקשה",
+          message: buildNotFoundMessage(params),
           suggestion: getSuggestion(params),
+          lazada_direct_link: buildLazadaDirectLink(params),
           extracted_params: {
             product: params.search_terms_hebrew[0] || params.search_terms_english[0] || "—",
             budget: params.max_budget_usd ? `$${params.max_budget_usd.toFixed(0)}` : "ללא הגבלה",
