@@ -13,6 +13,9 @@ function createServiceClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 }
 
+// Excluded categories for Thailand feed_products queries
+const EXCLUDED_FEED_CATEGORIES = '(ציוד רפואי,פסלים,ציוד משרדי,מכונות,ציוד תעשייתי,הדברה,מוצרי מזון ישראליים)';
+
 // ────────── TELEGRAM API HELPERS ──────────
 
 async function sendMessage(chatId: number, text: string, options: any = {}) {
@@ -883,6 +886,7 @@ async function handleEventsPlatform(chatId: number, platform: string) {
         .from("feed_products")
         .select("id, product_name, category_name_hebrew, price_thb, commission_rate, image_url")
         .eq("out_of_stock", false)
+        .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES)
         .lt("commission_rate", 0.50)
         .gt("commission_rate", 0.05)
         .order("category_name_hebrew", { ascending: true, nullsFirst: false })
@@ -986,7 +990,8 @@ async function handleDealPlatform(chatId: number, messageId: number, platform: s
     const { data } = await serviceClient
       .from("feed_products")
       .select("category_name_hebrew")
-      .eq("out_of_stock", false);
+      .eq("out_of_stock", false)
+      .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES);
 
     const catCounts: Record<string, number> = {};
     for (const p of (data || [])) {
@@ -1038,6 +1043,7 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
       .select("*")
       .eq("category_name_hebrew", category)
       .eq("out_of_stock", false)
+      .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES)
       .order("sales_7d", { ascending: false, nullsFirst: false })
       .limit(10);
     products = (data || []).map(p => ({
@@ -1200,7 +1206,8 @@ async function handleDealPlatformHighCommission(chatId: number, messageId: numbe
       .from("feed_products")
       .select("category_name_hebrew, commission_rate")
       .gte("commission_rate", 0.15)
-      .eq("out_of_stock", false);
+      .eq("out_of_stock", false)
+      .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES);
 
     for (const p of (data || [])) {
       const cat = p.category_name_hebrew || "כללי";
@@ -1262,6 +1269,7 @@ async function handleDealCategoryHighCommission(chatId: number, messageId: numbe
       .eq("category_name_hebrew", category)
       .gte("commission_rate", 0.15)
       .eq("out_of_stock", false)
+      .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES)
       .order("commission_rate", { ascending: false })
       .limit(10);
     products = (data || []).map(p => ({
