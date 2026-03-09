@@ -29,6 +29,7 @@ interface SearchResult {
   is_featured: boolean;
   is_live_result?: boolean;
   explanation_hebrew: string;
+  commission_rate?: number | null;
 }
 
 interface SearchResponse {
