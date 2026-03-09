@@ -1206,7 +1206,8 @@ async function handleDealPlatformHighCommission(chatId: number, messageId: numbe
       .from("feed_products")
       .select("category_name_hebrew, commission_rate")
       .gte("commission_rate", 0.15)
-      .eq("out_of_stock", false);
+      .eq("out_of_stock", false)
+      .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES);
 
     for (const p of (data || [])) {
       const cat = p.category_name_hebrew || "כללי";
