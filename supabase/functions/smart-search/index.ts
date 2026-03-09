@@ -889,6 +889,19 @@ Rules:
   return parseJsonFromAI(raw);
 }
 
+async function logSearchHistory(supabase: any, query: string, platform: string, foundResults: boolean, resultsCount: number) {
+  try {
+    await supabase.from("search_history").insert({
+      search_query: query.substring(0, 500),
+      platform,
+      found_results: foundResults,
+      results_count: resultsCount,
+    });
+  } catch (e) {
+    console.error("Failed to log search history:", e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -1022,6 +1035,7 @@ serve(async (req) => {
 
     // Step D: No results check — only fail if truly 0
     if (allProducts.length === 0) {
+      await logSearchHistory(supabase, message, effectivePlatform, false, 0);
       const directLinks = buildDirectLink(params, effectivePlatform);
       return new Response(
         JSON.stringify({
@@ -1077,6 +1091,7 @@ serve(async (req) => {
     console.log(`After confidence filter (>=${CONFIDENCE_THRESHOLD}): ${ranked.length} of original results remain`);
 
     if (ranked.length === 0) {
+      await logSearchHistory(supabase, message, effectivePlatform, false, 0);
       const directLinks = buildDirectLink(params, effectivePlatform);
       return new Response(
         JSON.stringify({
@@ -1138,6 +1153,8 @@ serve(async (req) => {
     }).filter(Boolean);
     // Re-number ranks sequentially
     results.forEach((r: any, i: number) => { r.rank = i + 1; });
+
+    await logSearchHistory(supabase, message, effectivePlatform, results.length > 0, results.length);
 
     return new Response(
       JSON.stringify({
