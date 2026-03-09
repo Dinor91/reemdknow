@@ -789,12 +789,37 @@ function buildLazadaDirectLink(params: ExtractedParams): string | null {
   return url;
 }
 
-function buildNotFoundMessage(params: ExtractedParams): string {
-  const lazadaLink = buildLazadaDirectLink(params);
+function buildAliExpressDirectLink(params: ExtractedParams): string | null {
+  const keywords = params.search_terms_english.join(" ");
+  if (!keywords) return null;
+  let url = `https://www.aliexpress.com/wholesale?SearchText=${encodeURIComponent(keywords)}`;
+  if (params.max_budget_usd && params.max_budget_usd > 0) {
+    url += `&maxPrice=${Math.round(params.max_budget_usd)}`;
+  }
+  return url;
+}
+
+function buildDirectLink(params: ExtractedParams, effectivePlatform: string): { lazada?: string | null; aliexpress?: string | null } {
+  const isIsrael = effectivePlatform === "israel" || effectivePlatform === "aliexpress";
+  const isThailand = effectivePlatform === "lazada";
+  const isAll = effectivePlatform === "all";
+
+  return {
+    lazada: (isThailand || isAll) ? buildLazadaDirectLink(params) : null,
+    aliexpress: (isIsrael || isAll) ? buildAliExpressDirectLink(params) : null,
+  };
+}
+
+function buildNotFoundMessage(params: ExtractedParams, effectivePlatform: string): string {
+  const links = buildDirectLink(params, effectivePlatform);
   let msg = "לא מצאתי מוצר תואם לחיפוש שלך 😕";
-  if (lazadaLink) {
-    msg += `\n\nחפש ישירות ב-Lazada:\n🔗 ${lazadaLink}`;
-  } else {
+  if (links.lazada) {
+    msg += `\n\nחפש ישירות ב-Lazada:\n🔗 ${links.lazada}`;
+  }
+  if (links.aliexpress) {
+    msg += `\n\nחפש ישירות ב-AliExpress:\n🔗 ${links.aliexpress}`;
+  }
+  if (!links.lazada && !links.aliexpress) {
     msg += "\nנסה מילות חיפוש אחרות או הרחב את התקציב";
   }
   return msg;
