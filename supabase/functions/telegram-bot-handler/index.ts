@@ -1269,6 +1269,7 @@ async function handleDealCategoryHighCommission(chatId: number, messageId: numbe
       .eq("category_name_hebrew", category)
       .gte("commission_rate", 0.15)
       .eq("out_of_stock", false)
+      .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES)
       .order("commission_rate", { ascending: false })
       .limit(10);
     products = (data || []).map(p => ({
