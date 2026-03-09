@@ -51,6 +51,7 @@ interface SearchResponse {
   search_tier?: 1 | 2 | 3;
   unique_count?: number;
   lazada_direct_link?: string | null;
+  aliexpress_direct_link?: string | null;
 }
 
 const LOADING_MESSAGES = [
