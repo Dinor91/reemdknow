@@ -886,6 +886,7 @@ async function handleEventsPlatform(chatId: number, platform: string) {
         .from("feed_products")
         .select("id, product_name, category_name_hebrew, price_thb, commission_rate, image_url")
         .eq("out_of_stock", false)
+        .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES)
         .lt("commission_rate", 0.50)
         .gt("commission_rate", 0.05)
         .order("category_name_hebrew", { ascending: true, nullsFirst: false })
