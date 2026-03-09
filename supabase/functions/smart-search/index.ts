@@ -1091,6 +1091,7 @@ serve(async (req) => {
     console.log(`After confidence filter (>=${CONFIDENCE_THRESHOLD}): ${ranked.length} of original results remain`);
 
     if (ranked.length === 0) {
+      await logSearchHistory(supabase, message, effectivePlatform, false, 0);
       const directLinks = buildDirectLink(params, effectivePlatform);
       return new Response(
         JSON.stringify({
