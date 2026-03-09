@@ -1035,6 +1035,7 @@ serve(async (req) => {
 
     // Step D: No results check — only fail if truly 0
     if (allProducts.length === 0) {
+      await logSearchHistory(supabase, message, effectivePlatform, false, 0);
       const directLinks = buildDirectLink(params, effectivePlatform);
       return new Response(
         JSON.stringify({
