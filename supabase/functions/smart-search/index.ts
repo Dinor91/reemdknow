@@ -768,6 +768,27 @@ function getSuggestion(params: ExtractedParams): string {
   return "נסה מילות חיפוש אחרות או הרחב את הקריטריונים";
 }
 
+function buildLazadaDirectLink(params: ExtractedParams): string | null {
+  const keywords = params.search_terms_english.join("+");
+  if (!keywords) return null;
+  let url = `https://www.lazada.co.th/catalog/?q=${encodeURIComponent(keywords).replace(/%20/g, "+")}`;
+  if (params.max_budget_thb && params.max_budget_thb > 0) {
+    url += `&price=0-${Math.round(params.max_budget_thb)}`;
+  }
+  return url;
+}
+
+function buildNotFoundMessage(params: ExtractedParams): string {
+  const lazadaLink = buildLazadaDirectLink(params);
+  let msg = "לא מצאתי מוצר תואם לחיפוש שלך 😕";
+  if (lazadaLink) {
+    msg += `\n\nחפש ישירות ב-Lazada:\n🔗 ${lazadaLink}`;
+  } else {
+    msg += "\nנסה מילות חיפוש אחרות או הרחב את התקציב";
+  }
+  return msg;
+}
+
 async function rankResults(
   allProducts: NormalizedProduct[],
   originalMessage: string,
