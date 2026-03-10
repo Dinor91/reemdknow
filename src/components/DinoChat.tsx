@@ -53,7 +53,7 @@ interface ImportConfirmData {
   original_url: string;
 }
 
-type FlowType = "deal" | "search" | "import" | "summary" | "template" | "import_name" | "sync_campaigns" | "conversions" | null;
+type FlowType = "deal" | "search" | "import" | "summary" | "template" | "import_name" | "sync_campaigns" | "conversions" | "external_link_deal" | null;
 type DealStep = "platform" | "commission_choice" | "category" | "products" | "coupon" | "generating" | "done";
 type SearchStep = "platform" | "query" | "searching" | "results";
 type SummaryStep = "ask_products" | "generating" | "done";
