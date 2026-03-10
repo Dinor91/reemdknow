@@ -1768,6 +1768,11 @@ const DinoChat = () => {
       showPlatformPicker("search");
       return;
     }
+    if (intent === "external_link_deal") {
+      addUser(text);
+      startExternalLinkFlow();
+      return;
+    }
     if (intent === "import") {
       await handleImport(text);
       return;
