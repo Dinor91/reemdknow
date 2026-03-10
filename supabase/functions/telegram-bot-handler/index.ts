@@ -1830,6 +1830,16 @@ serve(async (req) => {
       return new Response("OK");
     }
 
+    if (session?.state === "waiting_external_link" && !text.startsWith("/")) {
+      await handleExternalLink(chatId, userId, text);
+      return new Response("OK");
+    }
+
+    if (session?.state === "waiting_external_info" && !text.startsWith("/")) {
+      await handleExternalInfo(chatId, userId, text);
+      return new Response("OK");
+    }
+
     // Route commands
     if (text === "/start") await handleStart(chatId);
     else if (text === "/revenue" || text === "/רווח") await handleRevenue(chatId);
