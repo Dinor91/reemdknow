@@ -930,6 +930,198 @@ const DinoChat = () => {
     }
   };
 
+  // ────────── EXTERNAL LINK DEAL FLOW ──────────
+
+  const startExternalLinkFlow = () => {
+    setActiveFlow("external_link_deal");
+    setExtLinkStep("url");
+    addAssistant("🔗 שלח קישור למוצר (AliExpress / Lazada)");
+  };
+
+  const handleExternalLinkUrl = async (text: string) => {
+    addUser(text);
+    setIsLoading(true);
+    addAssistant("🔍 מפענח קישור...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("decode-external-link", {
+        body: { url: text.trim() },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "שגיאה בפענוח");
+
+      setExtLinkPlatform(data.platform);
+      setExtLinkAffiliateUrl(data.affiliate_url);
+      setExtLinkProductId(data.product_id);
+      setExtLinkCurrency(data.currency_symbol);
+      setExtLinkProduct(data.product);
+
+      // Replace loading message
+      setMessages(prev => {
+        const updated = [...prev];
+        const idx = findLastIdx(updated, m => m.content === "🔍 מפענח קישור...");
+        if (idx >= 0) {
+          const platformLabel = data.platform === "aliexpress" ? "🇮🇱 AliExpress" : "🇹🇭 Lazada";
+          let details = `✅ ${platformLabel}\n`;
+          if (data.decode_success && data.product.name) {
+            details += `📦 ${data.product.name}\n`;
+            if (data.product.price) details += `💰 ${data.product.price} ${data.currency_symbol}\n`;
+            if (data.product.rating) details += `⭐ ${data.product.rating}\n`;
+          } else {
+            details += "⚠️ לא הצלחתי לחלץ את כל הפרטים\n";
+          }
+          details += "\nיש מידע נוסף? (שלח טקסט או כתוב 'לא')";
+          updated[idx] = { ...updated[idx], content: details };
+        }
+        return updated;
+      });
+
+      setExtLinkStep("info");
+    } catch (e: any) {
+      console.error("External link decode error:", e);
+      setMessages(prev => {
+        const updated = [...prev];
+        const idx = findLastIdx(updated, m => m.content === "🔍 מפענח קישור...");
+        if (idx >= 0) updated[idx] = { ...updated[idx], content: `❌ ${e.message}` };
+        return updated;
+      });
+      resetFlow();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleExternalLinkInfo = async (text: string) => {
+    addUser(text);
+    const noInfo = text.trim().toLowerCase() === "לא" || text.trim().toLowerCase() === "no";
+
+    if (!noInfo) {
+      // Re-decode with extra info
+      setIsLoading(true);
+      addAssistant("🔄 מעדכן פרטים...");
+      try {
+        const { data, error } = await supabase.functions.invoke("decode-external-link", {
+          body: { url: extLinkAffiliateUrl, extra_info: text.trim() },
+        });
+        if (!error && data?.success && data.product) {
+          setExtLinkProduct(data.product);
+        }
+        setMessages(prev => prev.filter(m => m.content !== "🔄 מעדכן פרטים..."));
+      } catch { /* continue with existing data */ }
+      setIsLoading(false);
+    }
+
+    setExtLinkStep("coupon");
+    addAssistant("🎟️ יש קופון? (שלח קוד או כתוב 'לא')");
+  };
+
+  const handleExternalLinkCoupon = async (text: string) => {
+    addUser(text);
+    const coupon = text.trim().toLowerCase() === "לא" || text.trim().toLowerCase() === "no" ? "" : text.trim();
+
+    setExtLinkStep("generating");
+    setIsLoading(true);
+    addAssistant("📝 יוצר הודעת דיל...");
+
+    try {
+      const product = extLinkProduct;
+      const priceStr = product?.price ? `${product.price} ${extLinkCurrency}` : "לא ידוע";
+
+      const { data, error } = await supabase.functions.invoke("generate-deal-message", {
+        body: {
+          product: {
+            name: product?.name || "מוצר",
+            price: priceStr,
+            rating: product?.rating || null,
+            sales_7d: product?.sales_7d ? parseInt(product.sales_7d) : null,
+            brand: product?.brand || "",
+            category: product?.category || "",
+            url: extLinkAffiliateUrl,
+          },
+          coupon: coupon || undefined,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Replace loading message with deal message
+      setMessages(prev => {
+        const updated = [...prev];
+        const idx = findLastIdx(updated, m => m.content === "📝 יוצר הודעת דיל...");
+        if (idx >= 0) {
+          updated[idx] = { ...updated[idx], content: data.message, type: "deal_message" };
+        }
+        return updated;
+      });
+      scrollToBottom();
+
+      // Save to deals_sent + product table
+      try {
+        const platform = extLinkPlatform!;
+        await invokeAction("save_deal", {
+          product_id: extLinkProductId,
+          product_name: product?.name || "מוצר",
+          product_name_hebrew: product?.name || "מוצר",
+          affiliate_url: extLinkAffiliateUrl,
+          platform: platform === "aliexpress" ? "israel" : "thailand",
+          category: product?.category || "כללי",
+        });
+
+        // Save to product table
+        if (platform === "aliexpress") {
+          await supabase.from("israel_editor_products").insert({
+            aliexpress_product_id: extLinkProductId,
+            product_name_hebrew: product?.name || "מוצר חדש",
+            tracking_link: extLinkAffiliateUrl,
+            category_name_hebrew: product?.category || "כללי",
+            price_usd: product?.price ? parseFloat(product.price) : null,
+            rating: product?.rating ? parseFloat(product.rating) : null,
+            sales_count: product?.sales_7d ? parseInt(product.sales_7d) : null,
+            is_active: true,
+            source: "external_link_dino",
+          } as any);
+        } else {
+          await supabase.from("category_products").insert({
+            lazada_product_id: extLinkProductId,
+            name_hebrew: product?.name || "מוצר חדש",
+            affiliate_link: extLinkAffiliateUrl,
+            category: product?.category || "כללי",
+            price_thb: product?.price ? parseFloat(product.price) : null,
+            rating: product?.rating ? parseFloat(product.rating) : null,
+            sales_count: product?.sales_7d ? parseInt(product.sales_7d) : null,
+            is_active: true,
+            source: "external_link_dino",
+          } as any);
+        }
+      } catch (e) {
+        console.error("Save from ext link error:", e);
+      }
+
+      await trackDealGenerated();
+      setExtLinkStep("done");
+      addAssistant("מה עכשיו? 🦕", {
+        type: "buttons",
+        buttons: [
+          { label: "🔗 דיל נוסף מקישור", value: "another_ext_link" },
+          { label: "🏠 תפריט ראשי", value: "back_to_menu" },
+        ],
+      });
+    } catch (e: any) {
+      console.error("External link deal error:", e);
+      setMessages(prev => {
+        const updated = [...prev];
+        const idx = findLastIdx(updated, m => m.content === "📝 יוצר הודעת דיל...");
+        if (idx >= 0) updated[idx] = { ...updated[idx], content: `❌ ${e.message}` };
+        return updated;
+      });
+      resetFlow();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // ────────── IMPORT FLOW ──────────
 
   const handleImport = async (text: string) => {
