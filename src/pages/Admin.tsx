@@ -2697,6 +2697,9 @@ const Admin = () => {
           <TabsContent value="smart-search">
             <ProductSearchTab />
           </TabsContent>
+          <TabsContent value="external-deal">
+            <ExternalLinkDealTab />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
