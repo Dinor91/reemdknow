@@ -1699,6 +1699,21 @@ const DinoChat = () => {
       await handleTemplateUpdate(text);
       return;
     }
+    // External link deal flow routing
+    if (activeFlow === "external_link_deal") {
+      if (extLinkStep === "url") {
+        await handleExternalLinkUrl(text);
+        return;
+      }
+      if (extLinkStep === "info") {
+        await handleExternalLinkInfo(text);
+        return;
+      }
+      if (extLinkStep === "coupon") {
+        await handleExternalLinkCoupon(text);
+        return;
+      }
+    }
 
     // Detect intent locally
     const { intent, searchQuery: sq } = detectIntentLocally(text);
