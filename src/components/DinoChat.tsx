@@ -1797,6 +1797,10 @@ const DinoChat = () => {
       showConversionsMenu();
       return;
     }
+    if (action === "external_link_deal") {
+      startExternalLinkFlow();
+      return;
+    }
     const actionMessages: Record<string, string> = {
       search: "חפש מוצר",
       deal: "צור דיל יומי",
