@@ -1866,6 +1866,11 @@ const DinoChat = () => {
       showCategoryPicker(flowPlatform!);
       return;
     }
+    if (value === "another_ext_link") {
+      resetFlow();
+      startExternalLinkFlow();
+      return;
+    }
     if (value === "back_to_menu") {
       resetFlow();
       setShowSecondaryMenu(false);
