@@ -205,6 +205,14 @@ const DinoChat = () => {
   const [flowHighCommission, setFlowHighCommission] = useState(false);
   const [showSecondaryMenu, setShowSecondaryMenu] = useState(false);
 
+  // External link deal flow state
+  const [extLinkStep, setExtLinkStep] = useState<"url" | "info" | "coupon" | "generating" | "done" | null>(null);
+  const [extLinkProduct, setExtLinkProduct] = useState<any>(null);
+  const [extLinkAffiliateUrl, setExtLinkAffiliateUrl] = useState("");
+  const [extLinkPlatform, setExtLinkPlatform] = useState<"aliexpress" | "lazada" | null>(null);
+  const [extLinkCurrency, setExtLinkCurrency] = useState("$");
+  const [extLinkProductId, setExtLinkProductId] = useState<string | null>(null);
+
   // ── NEW: Drag, Expand, Minimize states ──
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimizing, setIsMinimizing] = useState(false);
