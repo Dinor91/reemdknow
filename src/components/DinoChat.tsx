@@ -69,6 +69,7 @@ const PRIMARY_ACTIONS = [
   { emoji: "📦", label: "צור דיל יומי", action: "deal" },
   { emoji: "🔍", label: "חפש מוצר ללקוח", action: "search" },
   { emoji: "📥", label: "ייבא הודעה מהקבוצה", action: "import" },
+  { emoji: "🔗", label: "דיל מקישור חיצוני", action: "external_link_deal" },
 ];
 
 const SECONDARY_ACTIONS = [
