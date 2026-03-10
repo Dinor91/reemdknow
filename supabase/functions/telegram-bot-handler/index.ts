@@ -442,7 +442,7 @@ async function handleStart(chatId: number) {
       [{ text: "📊 דוח רווחים", callback_data: "cmd:revenue" }, { text: "📈 ניתוח שבועי", callback_data: "cmd:weekly" }],
       [{ text: "🛒 יצירת דיל", callback_data: "cmd:deal" }, { text: "📋 סטטיסטיקות", callback_data: "cmd:stats" }],
       [{ text: "🎉 אירועים פעילים", callback_data: "cmd:events" }, { text: "🎁 קופונים", callback_data: "cmd:coupons" }],
-      [{ text: "🔍 חיפוש מוצר", callback_data: "cmd:search" }],
+      [{ text: "🔍 חיפוש מוצר", callback_data: "cmd:search" }, { text: "🔗 דיל מקישור", callback_data: "cmd:external_link" }],
     ],
   };
 
@@ -1533,6 +1533,195 @@ async function handleAddCoupon(chatId: number, text: string) {
   await sendMessage(chatId, `✅ קופון נוסף!\n\n🏷️ פלטפורמה: ${platform}\n🎫 קוד: <code>${code}</code>\n📝 ${description}\n📅 תקף עד: ${validUntil}`);
 }
 
+// ────────── EXTERNAL LINK DEAL FLOW ──────────
+
+// In-memory cache for external link decode results
+const extLinkCache = new Map<number, { product: any; platform: string; affiliate_url: string; product_id: string | null; currency_symbol: string; timestamp: number }>();
+
+async function handleExternalLinkStart(chatId: number, userId: number) {
+  const svcClient = createServiceClient();
+  await svcClient.from("user_sessions").upsert({
+    user_id: userId,
+    state: "waiting_external_link",
+    last_updated: new Date().toISOString(),
+  });
+  await sendMessage(chatId, "🔗 שלח קישור למוצר (AliExpress / Lazada)");
+}
+
+async function handleExternalLink(chatId: number, userId: number, url: string) {
+  await sendMessage(chatId, "🔍 מפענח קישור...");
+
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/decode-external-link`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ url }),
+    });
+
+    const data = await resp.json();
+
+    if (!data.success) {
+      await sendMessage(chatId, `❌ ${data.error || "שגיאה בפענוח"}`);
+      const svcClient = createServiceClient();
+      await svcClient.from("user_sessions").delete().eq("user_id", userId);
+      return;
+    }
+
+    // Cache the result
+    extLinkCache.set(chatId, {
+      product: data.product,
+      platform: data.platform,
+      affiliate_url: data.affiliate_url,
+      product_id: data.product_id,
+      currency_symbol: data.currency_symbol,
+      timestamp: Date.now(),
+    });
+
+    const platformLabel = data.platform === "aliexpress" ? "🇮🇱 AliExpress" : "🇹🇭 Lazada";
+    let details = `✅ ${platformLabel}\n`;
+    if (data.decode_success && data.product.name) {
+      details += `📦 ${data.product.name}\n`;
+      if (data.product.price) details += `💰 ${data.product.price} ${data.currency_symbol}\n`;
+      if (data.product.rating) details += `⭐ ${data.product.rating}\n`;
+    } else {
+      details += "⚠️ לא הצלחתי לחלץ את כל הפרטים\n";
+    }
+    details += "\nיש מידע נוסף? שלח טקסט או כתוב <b>לא</b>";
+    await sendMessage(chatId, details);
+
+    // Update state to waiting for extra info
+    const svcClient = createServiceClient();
+    await svcClient.from("user_sessions").upsert({
+      user_id: userId,
+      state: "waiting_external_info",
+      last_updated: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error("External link decode error:", e);
+    await sendMessage(chatId, "⚠️ שגיאה בפענוח הקישור");
+    const svcClient = createServiceClient();
+    await svcClient.from("user_sessions").delete().eq("user_id", userId);
+  }
+}
+
+async function handleExternalInfo(chatId: number, userId: number, text: string) {
+  const cached = extLinkCache.get(chatId);
+  if (!cached || Date.now() - cached.timestamp > 10 * 60 * 1000) {
+    await sendMessage(chatId, "⏰ הנתונים פגו, שלח /start להתחלה מחדש");
+    const svcClient = createServiceClient();
+    await svcClient.from("user_sessions").delete().eq("user_id", userId);
+    return;
+  }
+
+  const noInfo = text.trim().toLowerCase() === "לא" || text.trim().toLowerCase() === "no";
+
+  // If extra info provided, re-decode with it
+  if (!noInfo) {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/decode-external-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({ url: cached.affiliate_url, extra_info: text }),
+      });
+      const data = await resp.json();
+      if (data.success && data.product) {
+        cached.product = data.product;
+      }
+    } catch { /* continue with existing data */ }
+  }
+
+  // Generate deal message
+  await sendMessage(chatId, "📝 יוצר הודעת דיל...");
+
+  try {
+    const product = cached.product;
+    const priceStr = product?.price ? `${product.price} ${cached.currency_symbol}` : "לא ידוע";
+
+    const dealResp = await fetch(`${SUPABASE_URL}/functions/v1/generate-deal-message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({
+        product: {
+          name: product?.name || "מוצר",
+          price: priceStr,
+          rating: product?.rating || null,
+          sales_7d: product?.sales_7d ? parseInt(product.sales_7d) : null,
+          brand: product?.brand || "",
+          category: product?.category || "",
+          url: cached.affiliate_url,
+        },
+        coupon: undefined,
+      }),
+    });
+
+    const dealData = await dealResp.json();
+
+    if (dealData.message) {
+      // Send the deal message as plain text for easy copying
+      await sendMessage(chatId, dealData.message, { parse_mode: undefined });
+
+      // Send copy button (Telegram Bot API 6.1+ copy_text)
+      await sendMessage(chatId, "👆 לחץ ארוך על ההודעה למעלה כדי להעתיק, או השתמש בכפתור:", {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "📋 העתק", copy_text: { text: dealData.message } }],
+          ],
+        },
+      });
+
+      // Save to deals_sent
+      const sc = createServiceClient();
+      await sc.from("deals_sent").insert({
+        product_name: product?.name || "מוצר",
+        product_name_hebrew: product?.name || "מוצר",
+        platform: cached.platform === "aliexpress" ? "israel" : "thailand",
+        category: product?.category || "כללי",
+        affiliate_url: cached.affiliate_url,
+        product_id: cached.product_id,
+      });
+
+      // Save to product table
+      if (cached.platform === "aliexpress") {
+        await sc.from("israel_editor_products").insert({
+          aliexpress_product_id: cached.product_id,
+          product_name_hebrew: product?.name || "מוצר חדש",
+          tracking_link: cached.affiliate_url,
+          category_name_hebrew: product?.category || "כללי",
+          price_usd: product?.price ? parseFloat(product.price) : null,
+          rating: product?.rating ? parseFloat(product.rating) : null,
+          sales_count: product?.sales_7d ? parseInt(product.sales_7d) : null,
+          is_active: true,
+          source: "external_link_telegram",
+        });
+      } else {
+        await sc.from("category_products").insert({
+          lazada_product_id: cached.product_id,
+          name_hebrew: product?.name || "מוצר חדש",
+          affiliate_link: cached.affiliate_url,
+          category: product?.category || "כללי",
+          price_thb: product?.price ? parseFloat(product.price) : null,
+          rating: product?.rating ? parseFloat(product.rating) : null,
+          sales_count: product?.sales_7d ? parseInt(product.sales_7d) : null,
+          is_active: true,
+          source: "external_link_telegram",
+        });
+      }
+
+      await sendMessage(chatId, "✅ הדיל נשמר בהצלחה!");
+    } else {
+      await sendMessage(chatId, `⚠️ שגיאה ביצירת ההודעה: ${dealData.error || "לא ידוע"}`);
+    }
+  } catch (e) {
+    console.error("External link deal error:", e);
+    await sendMessage(chatId, "⚠️ שגיאה ביצירת הודעת הדיל");
+  }
+
+  // Clean up
+  extLinkCache.delete(chatId);
+  const svcClient = createServiceClient();
+  await svcClient.from("user_sessions").delete().eq("user_id", userId);
+}
+
 // ────────── MAIN HANDLER ──────────
 
 serve(async (req) => {
@@ -1575,6 +1764,7 @@ serve(async (req) => {
         });
         await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
       }
+      else if (data === "cmd:external_link") await handleExternalLinkStart(chatId, userId);
       // Weekly platform selection
       else if (data.startsWith("weekly_platform:")) await handleWeeklyPlatformMessage(chatId, data.split(":")[1]);
       else if (data === "weekly_overview") await handleWeeklyOverview(chatId);
@@ -1637,6 +1827,16 @@ serve(async (req) => {
     if (session?.state === "waiting_search" && !text.startsWith("/")) {
       await svcClient.from("user_sessions").delete().eq("user_id", userId);
       await handleFreeTextSearch(chatId, text);
+      return new Response("OK");
+    }
+
+    if (session?.state === "waiting_external_link" && !text.startsWith("/")) {
+      await handleExternalLink(chatId, userId, text);
+      return new Response("OK");
+    }
+
+    if (session?.state === "waiting_external_info" && !text.startsWith("/")) {
+      await handleExternalInfo(chatId, userId, text);
       return new Response("OK");
     }
 

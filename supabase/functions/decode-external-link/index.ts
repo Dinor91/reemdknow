@@ -1,0 +1,285 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+const ALIEXPRESS_DOMAINS = ["aliexpress.com", "s.click.aliexpress.com", "a.aliexpress.com", "he.aliexpress.com", "aliexpress.ru"];
+const LAZADA_DOMAINS = ["lazada.co.th", "s.lazada.co.th", "c.lazada.co.th", "lazada.com"];
+const SHORT_LINK_DOMAINS = ["s.lazada.co.th", "c.lazada.co.th", "s.click.aliexpress.com", "a.aliexpress.com"];
+
+function detectPlatform(url: string): "aliexpress" | "lazada" | null {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    if (ALIEXPRESS_DOMAINS.some(d => hostname === d || hostname.endsWith("." + d))) return "aliexpress";
+    if (LAZADA_DOMAINS.some(d => hostname === d || hostname.endsWith("." + d))) return "lazada";
+  } catch { /* ignore */ }
+  // Fallback: check string
+  if (url.includes("aliexpress")) return "aliexpress";
+  if (url.includes("lazada")) return "lazada";
+  return null;
+}
+
+function isShortLink(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return SHORT_LINK_DOMAINS.some(d => hostname === d);
+  } catch { return false; }
+}
+
+async function resolveShortLinks(urls: string[]): Promise<Record<string, string>> {
+  const shortUrls = urls.filter(isShortLink);
+  if (shortUrls.length === 0) return {};
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/resolve-short-links`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ urls: shortUrls }),
+    });
+    const data = await resp.json();
+    return data.resolved || {};
+  } catch (e) {
+    console.error("Error resolving short links:", e);
+    return {};
+  }
+}
+
+function extractAliExpressProductId(url: string): string | null {
+  const patterns = [/\/item\/(\d+)/, /\/i\/(\d+)/, /productId=(\d+)/, /\/(\d{10,})\.html/];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+function extractLazadaProductId(url: string): string | null {
+  const patterns = [/-i(\d+)-s\d+/, /products_i(\d+)/, /offer_id=(\d+)/, /-i(\d+)\./];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+async function getLazadaAffiliateLink(url: string): Promise<string | null> {
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/lazada-api`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ action: "batch-links", inputType: "url", inputValue: url }),
+    });
+    const data = await resp.json();
+    const linkData = data?.data?.result?.data;
+    if (linkData && linkData.link) return linkData.link;
+    if (linkData && Array.isArray(linkData) && linkData[0]?.link) return linkData[0].link;
+    // Try nested
+    if (data?.data?.result?.link) return data.data.result.link;
+    console.log("Lazada batch-links response:", JSON.stringify(data).substring(0, 500));
+    return null;
+  } catch (e) {
+    console.error("Lazada affiliate link error:", e);
+    return null;
+  }
+}
+
+async function extractProductWithGemini(url: string, extraInfo?: string): Promise<{
+  name: string; price: string; rating: string | null; sales_7d: string | null;
+  category: string; brand: string; decode_success: boolean;
+}> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    console.error("LOVABLE_API_KEY not configured");
+    return { name: "", price: "", rating: null, sales_7d: null, category: "כללי", brand: "", decode_success: false };
+  }
+
+  const prompt = `Analyze this product URL and extract product details.
+URL: ${url}
+${extraInfo ? `Additional info from user: ${extraInfo}` : ""}
+
+Extract the following. If you can't determine a value, return null for it.
+Return ONLY valid JSON, no markdown.`;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: `You extract product information from e-commerce URLs. Return a JSON object with these fields:
+- name: product name in Hebrew if possible, otherwise English
+- price: numeric price only (no currency symbol)
+- rating: numeric rating (e.g. "4.8") or null
+- sales_7d: number of recent sales or null  
+- category: product category in Hebrew (e.g. "טכנולוגיה", "לבית", "ילדים", "כללי")
+- brand: brand name or empty string
+
+Analyze the URL path, query parameters, and any additional info to extract these details.
+For AliExpress URLs, the product ID is usually in the path like /item/XXXXX.html
+For Lazada URLs, look for product name in the URL slug.
+Return ONLY valid JSON, no explanation or markdown.`
+          },
+          { role: "user", content: prompt },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "extract_product",
+              description: "Extract product details from URL",
+              parameters: {
+                type: "object",
+                properties: {
+                  name: { type: "string", description: "Product name in Hebrew or English" },
+                  price: { type: "string", description: "Numeric price without currency" },
+                  rating: { type: "string", nullable: true, description: "Rating like 4.8 or null" },
+                  sales_7d: { type: "string", nullable: true, description: "Recent sales count or null" },
+                  category: { type: "string", description: "Category in Hebrew" },
+                  brand: { type: "string", description: "Brand name" },
+                },
+                required: ["name", "price", "category", "brand"],
+                additionalProperties: false,
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "extract_product" } },
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Gemini error:", response.status);
+      return { name: "", price: "", rating: null, sales_7d: null, category: "כללי", brand: "", decode_success: false };
+    }
+
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    
+    if (toolCall?.function?.arguments) {
+      const args = JSON.parse(toolCall.function.arguments);
+      return {
+        name: args.name || "",
+        price: args.price || "",
+        rating: args.rating || null,
+        sales_7d: args.sales_7d || null,
+        category: args.category || "כללי",
+        brand: args.brand || "",
+        decode_success: !!(args.name && args.price),
+      };
+    }
+
+    return { name: "", price: "", rating: null, sales_7d: null, category: "כללי", brand: "", decode_success: false };
+  } catch (e) {
+    console.error("Gemini extraction error:", e);
+    return { name: "", price: "", rating: null, sales_7d: null, category: "כללי", brand: "", decode_success: false };
+  }
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const { url, extra_info } = await req.json();
+
+    if (!url) {
+      return new Response(
+        JSON.stringify({ success: false, error: "URL is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[decode-external-link] Processing: ${url}`);
+
+    // Step 1: Resolve short links if needed
+    let resolvedUrl = url;
+    if (isShortLink(url)) {
+      const resolved = await resolveShortLinks([url]);
+      if (resolved[url]) {
+        resolvedUrl = resolved[url];
+        console.log(`Resolved short link: ${url} -> ${resolvedUrl}`);
+      }
+    }
+
+    // Step 2: Detect platform
+    const platform = detectPlatform(resolvedUrl) || detectPlatform(url);
+    if (!platform) {
+      return new Response(
+        JSON.stringify({ success: false, error: "לא הצלחתי לזהות פלטפורמה (AliExpress / Lazada)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Platform detected: ${platform}`);
+
+    // Step 3: Generate affiliate URL
+    let affiliateUrl = resolvedUrl;
+    let productId: string | null = null;
+
+    if (platform === "aliexpress") {
+      productId = extractAliExpressProductId(resolvedUrl);
+      // Add tracking params
+      const TRACKING_ID = Deno.env.get("ALIEXPRESS_TRACKING_ID");
+      const isAlreadyTracked = resolvedUrl.includes("s.click.aliexpress.com") ||
+        resolvedUrl.includes("a.aliexpress.com") ||
+        resolvedUrl.includes("aff_fcid");
+
+      if (TRACKING_ID && !isAlreadyTracked) {
+        const separator = resolvedUrl.includes("?") ? "&" : "?";
+        affiliateUrl = `${resolvedUrl}${separator}aff_fcid=${TRACKING_ID}&aff_platform=portals-tool`;
+      }
+    } else {
+      productId = extractLazadaProductId(resolvedUrl);
+      // Convert to affiliate link via Lazada API
+      const lazadaLink = await getLazadaAffiliateLink(resolvedUrl);
+      if (lazadaLink) {
+        affiliateUrl = lazadaLink;
+        console.log(`Lazada affiliate link generated: ${affiliateUrl.substring(0, 80)}...`);
+      } else {
+        console.log("Lazada affiliate link generation failed, using original URL");
+      }
+    }
+
+    // Step 4: Extract product data with Gemini
+    const product = await extractProductWithGemini(resolvedUrl, extra_info || undefined);
+
+    const currencySymbol = platform === "aliexpress" ? "$" : "฿";
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        platform,
+        product: {
+          name: product.name,
+          price: product.price,
+          rating: product.rating,
+          sales_7d: product.sales_7d,
+          category: product.category,
+          brand: product.brand,
+        },
+        product_id: productId,
+        affiliate_url: affiliateUrl,
+        original_url: url,
+        resolved_url: resolvedUrl,
+        currency_symbol: currencySymbol,
+        decode_success: product.decode_success,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (e) {
+    console.error("decode-external-link error:", e);
+    return new Response(
+      JSON.stringify({ success: false, error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
