@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter, Link2, Search, Moon, Sun } from "lucide-react";
 import { LinkConverter } from "@/components/admin/LinkConverter";
+import { ExternalLinkDealTab } from "@/components/admin/ExternalLinkDealTab";
 import { ProductSearchTab } from "@/components/admin/ProductSearchTab";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
