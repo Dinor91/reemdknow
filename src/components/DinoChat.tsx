@@ -368,6 +368,12 @@ const DinoChat = () => {
     setEditingTemplate(null);
     setPendingImport(null);
     setFlowHighCommission(false);
+    setExtLinkStep(null);
+    setExtLinkProduct(null);
+    setExtLinkAffiliateUrl("");
+    setExtLinkPlatform(null);
+    setExtLinkCurrency("$");
+    setExtLinkProductId(null);
   };
 
   const handleBackToMenu = () => {
