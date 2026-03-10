@@ -146,6 +146,11 @@ function detectIntentLocally(text: string): { intent: FlowType | "stats" | "task
     return { intent: "deal", searchQuery: "high_commission" };
   }
 
+  // External link deal
+  if (lower.includes("דיל מקישור") || lower.includes("קישור חיצוני") || lower.includes("external link")) {
+    return { intent: "external_link_deal" as any };
+  }
+
   // Daily deal
   if (lower.includes("דיל") || lower.includes("deal") || lower.includes("הודעה יומית") || lower.includes("צור דיל")) {
     return { intent: "deal" };
