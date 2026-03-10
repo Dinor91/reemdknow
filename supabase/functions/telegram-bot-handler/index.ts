@@ -442,7 +442,7 @@ async function handleStart(chatId: number) {
       [{ text: "📊 דוח רווחים", callback_data: "cmd:revenue" }, { text: "📈 ניתוח שבועי", callback_data: "cmd:weekly" }],
       [{ text: "🛒 יצירת דיל", callback_data: "cmd:deal" }, { text: "📋 סטטיסטיקות", callback_data: "cmd:stats" }],
       [{ text: "🎉 אירועים פעילים", callback_data: "cmd:events" }, { text: "🎁 קופונים", callback_data: "cmd:coupons" }],
-      [{ text: "🔍 חיפוש מוצר", callback_data: "cmd:search" }],
+      [{ text: "🔍 חיפוש מוצר", callback_data: "cmd:search" }, { text: "🔗 דיל מקישור", callback_data: "cmd:external_link" }],
     ],
   };
 
