@@ -1764,6 +1764,7 @@ serve(async (req) => {
         });
         await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
       }
+      else if (data === "cmd:external_link") await handleExternalLinkStart(chatId, userId);
       // Weekly platform selection
       else if (data.startsWith("weekly_platform:")) await handleWeeklyPlatformMessage(chatId, data.split(":")[1]);
       else if (data === "weekly_overview") await handleWeeklyOverview(chatId);
