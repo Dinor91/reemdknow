@@ -2673,6 +2673,11 @@ const Admin = () => {
               <span className="hidden sm:inline">חיפוש חכם</span>
               <span className="sm:hidden">חיפוש</span>
             </TabsTrigger>
+            <TabsTrigger value="external-deal" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <ExternalLink className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">דיל מקישור</span>
+              <span className="sm:hidden">דיל🔗</span>
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="stats">
             <StatsTab />
