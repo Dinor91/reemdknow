@@ -1,35 +1,58 @@
 
 
-# תיקון: שימוש ב-AliExpress API במקום סקרייפינג
+# תיקון זיכרון חיפוש — user_sessions
 
-## הבעיה
+## בעיה
+אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
 
-הסקרייפינג מחזיר **0 תווים** כי AliExpress חוסם fetch requests מצד שרת. Gemini לא מקבל שום מידע אמיתי וממציא מוצר.
+## פתרון — טבלת `user_sessions`
 
-מהלוגים:
-```
-Scraped page content (0 chars): ...
-```
-
-## הפתרון
-
-כבר יש `aliexpress.affiliate.productdetail.get` API בפרויקט (`aliexpress-api/index.ts` שורה 132-146). במקום לסקרייפ את הדף, נקרא ל-API הזה עם ה-product ID שכבר חולץ נכון.
-
-## שינוי בקובץ אחד: `supabase/functions/decode-external-link/index.ts`
-
-1. הוספת פונקציה `getProductFromAliExpressAPI(productId)` שקוראת ל-`aliexpress-api` edge function עם `action: "product-details"` ו-`productIds: productId`
-2. בפלואו הראשי, אם `platform === "aliexpress"` ויש `productId`:
-   - קריאה ל-API לקבלת פרטי מוצר (שם, מחיר, דירוג, מכירות)
-   - אם ה-API מחזיר נתונים → שימוש בהם ישירות (בלי Gemini כלל)
-   - אם ה-API נכשל → fallback לסקרייפינג + Gemini כמו היום
-3. ל-Lazada — ממשיכים עם סקרייפינג + Gemini (כי אין API דומה)
-
-```text
-Flow:
-  AliExpress + productId → AliExpress API → product details → done
-  AliExpress no productId → scrape + Gemini (fallback)
-  Lazada → scrape + Gemini (existing)
+### שלב 1: מיגרציה
+```sql
+CREATE TABLE user_sessions (
+  user_id BIGINT PRIMARY KEY,
+  state TEXT NOT NULL DEFAULT 'idle',
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
 ```
 
-זה יפתור את הבעיה לחלוטין כי ה-API של AliExpress מחזיר את הנתונים האמיתיים של המוצר.
+### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
+
+**2a. ב-callback handler של `cmd:search` (שורה 1560):**
+```typescript
+else if (data === "cmd:search") {
+  const serviceClient = createServiceClient();
+  await serviceClient.from("user_sessions").upsert({
+    user_id: userId,
+    state: "waiting_search",
+    last_updated: new Date().toISOString(),
+  });
+  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
+}
+```
+
+**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
+```typescript
+// Check if waiting for search input
+const serviceClient = createServiceClient();
+const { data: session } = await serviceClient
+  .from("user_sessions")
+  .select("state")
+  .eq("user_id", userId)
+  .maybeSingle();
+
+if (session?.state === "waiting_search" && !text.startsWith("/")) {
+  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
+  await handleFreeTextSearch(chatId, text);
+  return new Response("OK");
+}
+```
+
+## קובץ
+- `supabase/functions/telegram-bot-handler/index.ts`
+
+## תוצאה
+לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
 
