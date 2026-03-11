@@ -87,7 +87,62 @@ async function getLazadaAffiliateLink(url: string): Promise<string | null> {
   }
 }
 
-async function extractProductWithGemini(url: string, extraInfo?: string): Promise<{
+async function scrapeProductPage(url: string): Promise<string> {
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9,he;q=0.8",
+      },
+      redirect: "follow",
+    });
+    const html = await resp.text();
+
+    const extract = (pattern: RegExp): string => {
+      const m = html.match(pattern);
+      return m ? m[1].trim() : "";
+    };
+
+    const title = extract(/<title[^>]*>([^<]+)<\/title>/i);
+    const ogTitle = extract(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
+      || extract(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
+    const ogDesc = extract(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
+      || extract(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i);
+    const metaDesc = extract(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+    const keywords = extract(/<meta[^>]+name=["']keywords["'][^>]+content=["']([^"']+)["']/i);
+
+    // Try to find price from common patterns
+    const pricePatterns = [
+      /itemprop=["']price["'][^>]+content=["']([^"']+)["']/i,
+      /"price":\s*"?([0-9.,]+)"?/i,
+      /class=["'][^"']*price[^"']*["'][^>]*>([^<]*[0-9.,]+[^<]*)</i,
+    ];
+    let price = "";
+    for (const p of pricePatterns) {
+      const m = html.match(p);
+      if (m) { price = m[1].trim(); break; }
+    }
+
+    const parts = [
+      title && `Title: ${title}`,
+      ogTitle && ogTitle !== title && `OG Title: ${ogTitle}`,
+      ogDesc && `Description: ${ogDesc}`,
+      !ogDesc && metaDesc && `Description: ${metaDesc}`,
+      keywords && `Keywords: ${keywords}`,
+      price && `Price found: ${price}`,
+    ].filter(Boolean);
+
+    const result = parts.join("\n").substring(0, 3000);
+    console.log(`Scraped page content (${result.length} chars): ${result.substring(0, 200)}...`);
+    return result;
+  } catch (e) {
+    console.error("Scrape error:", e);
+    return "";
+  }
+}
+
+async function extractProductWithGemini(url: string, pageContent: string, extraInfo?: string): Promise<{
   name: string; price: string; rating: string | null; sales_7d: string | null;
   category: string; brand: string; decode_success: boolean;
 }> {
@@ -97,12 +152,10 @@ async function extractProductWithGemini(url: string, extraInfo?: string): Promis
     return { name: "", price: "", rating: null, sales_7d: null, category: "כללי", brand: "", decode_success: false };
   }
 
-  const prompt = `Analyze this product URL and extract product details.
-URL: ${url}
-${extraInfo ? `Additional info from user: ${extraInfo}` : ""}
-
-Extract the following. If you can't determine a value, return null for it.
-Return ONLY valid JSON, no markdown.`;
+  const hasContent = pageContent.length > 20;
+  const prompt = hasContent
+    ? `Extract product details from this product page data.\n\nURL: ${url}\nPage content:\n${pageContent}\n${extraInfo ? `Additional info: ${extraInfo}` : ""}\n\nReturn ONLY valid JSON.`
+    : `Analyze this product URL and extract product details.\nURL: ${url}\n${extraInfo ? `Additional info: ${extraInfo}` : ""}\n\nReturn ONLY valid JSON.`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -116,17 +169,17 @@ Return ONLY valid JSON, no markdown.`;
         messages: [
           {
             role: "system",
-            content: `You extract product information from e-commerce URLs. Return a JSON object with these fields:
-- name: product name in Hebrew if possible, otherwise English
-- price: numeric price only (no currency symbol)
+            content: `You extract product information from e-commerce page data. You MUST use the actual page content provided to extract real product details. Do NOT guess or hallucinate product information.
+
+Return a JSON object with:
+- name: product name in Hebrew if possible, otherwise English (from the actual page title/description)
+- price: numeric price only (no currency symbol) — from the page data
 - rating: numeric rating (e.g. "4.8") or null
-- sales_7d: number of recent sales or null  
+- sales_7d: number of recent sales or null
 - category: product category in Hebrew (e.g. "טכנולוגיה", "לבית", "ילדים", "כללי")
 - brand: brand name or empty string
 
-Analyze the URL path, query parameters, and any additional info to extract these details.
-For AliExpress URLs, the product ID is usually in the path like /item/XXXXX.html
-For Lazada URLs, look for product name in the URL slug.
+IMPORTANT: Only return data you can verify from the provided content. If you cannot determine a value, return null or empty string.
 Return ONLY valid JSON, no explanation or markdown.`
           },
           { role: "user", content: prompt },
@@ -136,14 +189,14 @@ Return ONLY valid JSON, no explanation or markdown.`
             type: "function",
             function: {
               name: "extract_product",
-              description: "Extract product details from URL",
+              description: "Extract product details from page content",
               parameters: {
                 type: "object",
                 properties: {
-                  name: { type: "string", description: "Product name in Hebrew or English" },
-                  price: { type: "string", description: "Numeric price without currency" },
-                  rating: { type: "string", nullable: true, description: "Rating like 4.8 or null" },
-                  sales_7d: { type: "string", nullable: true, description: "Recent sales count or null" },
+                  name: { type: "string", description: "Product name from page content" },
+                  price: { type: "string", description: "Numeric price from page" },
+                  rating: { type: "string", nullable: true, description: "Rating or null" },
+                  sales_7d: { type: "string", nullable: true, description: "Sales count or null" },
                   category: { type: "string", description: "Category in Hebrew" },
                   brand: { type: "string", description: "Brand name" },
                 },
