@@ -1,47 +1,58 @@
 
 
-# תיקון: פענוח מוצר מקישור חיצוני — סקרייפינג אמיתי במקום ניחוש
+# תיקון זיכרון חיפוש — user_sessions
 
-## הבעיה
+## בעיה
+אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
 
-הפונקציה `extractProductWithGemini` מנסה לנחש פרטי מוצר רק מה-URL עצמו. כש-URL הוא `aliexpress.com/item/1005006861778418.html` — אין ב-URL שום מידע על המוצר. Gemini ממציא פרטים (iPhone 15 Pro Max) במקום המוצר האמיתי (Marble Race Run Big Block).
+## פתרון — טבלת `user_sessions`
 
-## הפתרון
+### שלב 1: מיגרציה
+```sql
+CREATE TABLE user_sessions (
+  user_id BIGINT PRIMARY KEY,
+  state TEXT NOT NULL DEFAULT 'idle',
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
+```
 
-לפני שקוראים ל-Gemini, **לסקרייפ את דף המוצר בפועל** באמצעות `fetch` עם User-Agent מתאים, לחלץ את ה-HTML (title, meta tags, og:tags), ולהעביר את הטקסט ל-Gemini לניתוח.
+### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
 
-## שינויים בקובץ אחד
-
-**`supabase/functions/decode-external-link/index.ts`**
-
-1. הוספת פונקציה `scrapeProductPage(url)`:
-   - `fetch` ל-URL עם User-Agent סטנדרטי
-   - חילוץ `<title>`, `og:title`, `og:description`, מחיר מ-meta tags
-   - החזרת טקסט גולמי (עד 2000 תווים) לניתוח
-
-2. עדכון `extractProductWithGemini`:
-   - קבלת `pageContent` כפרמטר נוסף
-   - העברת התוכן הסקרייפ ל-prompt של Gemini במקום רק URL
-   - Gemini יקבל מידע אמיתי מהדף ויחלץ נתונים נכונים
-
-3. בפלואו הראשי — קריאה ל-`scrapeProductPage` לפני Gemini
-
-## דוגמת קוד
-
+**2a. ב-callback handler של `cmd:search` (שורה 1560):**
 ```typescript
-async function scrapeProductPage(url: string): Promise<string> {
-  try {
-    const resp = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 ..." },
-      redirect: "follow",
-    });
-    const html = await resp.text();
-    // Extract title, og:title, og:description, price meta tags
-    // Return cleaned text for Gemini
-    return extractedText.substring(0, 3000);
-  } catch { return ""; }
+else if (data === "cmd:search") {
+  const serviceClient = createServiceClient();
+  await serviceClient.from("user_sessions").upsert({
+    user_id: userId,
+    state: "waiting_search",
+    last_updated: new Date().toISOString(),
+  });
+  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
 }
 ```
 
-Gemini prompt ישתנה מ-"Analyze this URL" ל-"Analyze this product page content" עם הטקסט האמיתי מהדף.
+**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
+```typescript
+// Check if waiting for search input
+const serviceClient = createServiceClient();
+const { data: session } = await serviceClient
+  .from("user_sessions")
+  .select("state")
+  .eq("user_id", userId)
+  .maybeSingle();
+
+if (session?.state === "waiting_search" && !text.startsWith("/")) {
+  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
+  await handleFreeTextSearch(chatId, text);
+  return new Response("OK");
+}
+```
+
+## קובץ
+- `supabase/functions/telegram-bot-handler/index.ts`
+
+## תוצאה
+לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
 
