@@ -302,8 +302,9 @@ serve(async (req) => {
       }
     }
 
-    // Step 4: Extract product data with Gemini
-    const product = await extractProductWithGemini(resolvedUrl, extra_info || undefined);
+    // Step 4: Scrape page content, then extract with Gemini
+    const pageContent = await scrapeProductPage(resolvedUrl);
+    const product = await extractProductWithGemini(resolvedUrl, pageContent, extra_info || undefined);
 
     const currencySymbol = platform === "aliexpress" ? "$" : "฿";
 
