@@ -338,9 +338,30 @@ serve(async (req) => {
       }
     }
 
-    // Step 4: Scrape page content, then extract with Gemini
-    const pageContent = await scrapeProductPage(resolvedUrl);
-    const product = await extractProductWithGemini(resolvedUrl, pageContent, extra_info || undefined);
+    // Step 4: Get product details
+    let product: { name: string; price: string; rating: string | null; sales_7d: string | null; category: string; brand: string; decode_success?: boolean };
+    let apiUsed = "none";
+
+    // For AliExpress: use API directly (scraping doesn't work - AliExpress blocks server-side requests)
+    if (platform === "aliexpress" && productId) {
+      const apiResult = await getProductFromAliExpressAPI(productId);
+      if (apiResult && apiResult.name) {
+        product = { ...apiResult, decode_success: true };
+        apiUsed = "aliexpress-api";
+        console.log(`✅ Got product from AliExpress API: ${apiResult.name}`);
+      } else {
+        // Fallback to Gemini with scrape (unlikely to work for AliExpress but try)
+        console.log("⚠️ AliExpress API failed, falling back to scrape+Gemini");
+        const pageContent = await scrapeProductPage(resolvedUrl);
+        product = await extractProductWithGemini(resolvedUrl, pageContent, extra_info || undefined);
+        apiUsed = "gemini-fallback";
+      }
+    } else {
+      // Lazada or unknown: use scrape + Gemini
+      const pageContent = await scrapeProductPage(resolvedUrl);
+      product = await extractProductWithGemini(resolvedUrl, pageContent, extra_info || undefined);
+      apiUsed = "gemini";
+    }
 
     const currencySymbol = platform === "aliexpress" ? "$" : "฿";
 
@@ -361,7 +382,8 @@ serve(async (req) => {
         original_url: url,
         resolved_url: resolvedUrl,
         currency_symbol: currencySymbol,
-        decode_success: product.decode_success,
+        decode_success: product.decode_success ?? false,
+        api_used: apiUsed,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
