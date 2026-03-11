@@ -87,6 +87,43 @@ async function getLazadaAffiliateLink(url: string): Promise<string | null> {
   }
 }
 
+// Get product details directly from AliExpress API (reliable, no scraping needed)
+async function getProductFromAliExpressAPI(productId: string): Promise<{
+  name: string; price: string; rating: string | null; sales_7d: string | null;
+  category: string; brand: string; image_url: string | null;
+} | null> {
+  try {
+    console.log(`Calling AliExpress API for product: ${productId}`);
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/aliexpress-api`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ action: "product-details", productIds: productId, targetCurrency: "USD", targetLanguage: "EN" }),
+    });
+    const data = await resp.json();
+    console.log(`AliExpress API response: ${JSON.stringify(data).substring(0, 500)}`);
+
+    const products = data?.data?.aliexpress_affiliate_productdetail_get_response?.resp_result?.result?.products?.product;
+    if (!products || products.length === 0) {
+      console.log("No products returned from AliExpress API");
+      return null;
+    }
+
+    const p = products[0];
+    return {
+      name: p.product_title || "",
+      price: p.app_sale_price || p.target_app_sale_price || p.original_price || "",
+      rating: p.evaluate_rate ? (parseFloat(p.evaluate_rate) / 20).toFixed(1) : null,
+      sales_7d: p.lastest_volume || null,
+      category: p.first_level_category_name || p.second_level_category_name || "כללי",
+      brand: "",
+      image_url: p.product_main_image_url || null,
+    };
+  } catch (e) {
+    console.error("AliExpress API error:", e);
+    return null;
+  }
+}
+
 async function scrapeProductPage(url: string): Promise<string> {
   try {
     const resp = await fetch(url, {
@@ -112,7 +149,6 @@ async function scrapeProductPage(url: string): Promise<string> {
     const metaDesc = extract(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
     const keywords = extract(/<meta[^>]+name=["']keywords["'][^>]+content=["']([^"']+)["']/i);
 
-    // Try to find price from common patterns
     const pricePatterns = [
       /itemprop=["']price["'][^>]+content=["']([^"']+)["']/i,
       /"price":\s*"?([0-9.,]+)"?/i,
