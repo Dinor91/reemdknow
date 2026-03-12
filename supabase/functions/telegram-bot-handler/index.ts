@@ -16,6 +16,17 @@ function createServiceClient() {
 // Excluded categories for Thailand feed_products queries
 const EXCLUDED_FEED_CATEGORIES = '(ציוד רפואי,פסלים,ציוד משרדי,מכונות,ציוד תעשייתי,הדברה,מוצרי מזון ישראליים)';
 
+// Unified deal categories (must match src/lib/categories.ts)
+const DEAL_CATEGORIES = [
+  "גאדג׳טים ובית חכם",
+  "משחקים ופתרונות לילדים",
+  "מוצרי חשמל קטנים",
+  "ציוד לנסיעות וטיולים",
+  "אביזרים לרכב ולאופנוע",
+  "חיות מחמד",
+  "כללי",
+];
+
 // ────────── TELEGRAM API HELPERS ──────────
 
 async function sendMessage(chatId: number, text: string, options: any = {}) {

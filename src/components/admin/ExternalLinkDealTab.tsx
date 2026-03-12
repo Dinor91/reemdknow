@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Search, Copy, Check, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { DEAL_CATEGORIES } from "@/lib/categories";
 
 interface DecodedProduct {
   name: string;
@@ -40,8 +42,11 @@ export const ExternalLinkDealTab = () => {
   const [editPrice, setEditPrice] = useState("");
   const [editRating, setEditRating] = useState("");
   const [editSales, setEditSales] = useState("");
-  const [editCategory, setEditCategory] = useState("");
+  const [editCategory, setEditCategory] = useState("כללי");
   const [editBrand, setEditBrand] = useState("");
+
+  // Track which fields were empty from API (need manual entry)
+  const [manualFields, setManualFields] = useState<Set<string>>(new Set());
 
   const handleDecode = async () => {
     if (!url.trim()) {
@@ -73,8 +78,19 @@ export const ExternalLinkDealTab = () => {
       setEditPrice(p.price || "");
       setEditRating(p.rating || "");
       setEditSales(p.sales_7d || "");
-      setEditCategory(p.category || "כללי");
       setEditBrand(p.brand || "");
+
+      // Map category to unified list, default to "כללי"
+      const apiCategory = p.category || "";
+      const matchedCategory = (DEAL_CATEGORIES as readonly string[]).includes(apiCategory) ? apiCategory : "כללי";
+      setEditCategory(matchedCategory);
+
+      // Track which fields need manual entry
+      const manual = new Set<string>();
+      if (!p.price) manual.add("price");
+      if (!p.rating) manual.add("rating");
+      if (!p.sales_7d) manual.add("sales");
+      setManualFields(manual);
 
       if (data.decode_success) {
         toast.success(`✅ פענוח הצליח — ${data.platform === "aliexpress" ? "AliExpress" : "Lazada"}`);
@@ -141,7 +157,6 @@ export const ExternalLinkDealTab = () => {
     setIsSaving(true);
 
     try {
-      // Save to deals_sent
       const { error: dealError } = await supabase.from("deals_sent" as any).insert({
         product_name: editName,
         product_name_hebrew: editName,
@@ -153,7 +168,6 @@ export const ExternalLinkDealTab = () => {
 
       if (dealError) console.error("deals_sent save error:", dealError);
 
-      // Save to product table based on platform
       if (platform === "aliexpress") {
         const { error } = await supabase.from("israel_editor_products" as any).insert({
           aliexpress_product_id: productId,
@@ -214,9 +228,12 @@ export const ExternalLinkDealTab = () => {
     setEditPrice("");
     setEditRating("");
     setEditSales("");
-    setEditCategory("");
+    setEditCategory("כללי");
     setEditBrand("");
+    setManualFields(new Set());
   };
+
+  const manualInputClass = "border-orange-400 border-2";
 
   return (
     <div className="space-y-4" dir="rtl">
@@ -268,20 +285,49 @@ export const ExternalLinkDealTab = () => {
                 <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="שם המוצר בעברית" />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground">מחיר ({currencySymbol})</label>
-                <Input value={editPrice} onChange={e => setEditPrice(e.target.value)} placeholder="0.00" dir="ltr" />
+                <label className="text-sm text-muted-foreground">
+                  מחיר ({currencySymbol}) <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={editPrice}
+                  onChange={e => setEditPrice(e.target.value)}
+                  placeholder={manualFields.has("price") ? "הכנס ידנית" : "0.00"}
+                  dir="ltr"
+                  className={manualFields.has("price") && !editPrice ? manualInputClass : ""}
+                />
               </div>
               <div>
                 <label className="text-sm text-muted-foreground">דירוג</label>
-                <Input value={editRating} onChange={e => setEditRating(e.target.value)} placeholder="4.8" dir="ltr" />
+                <Input
+                  value={editRating}
+                  onChange={e => setEditRating(e.target.value)}
+                  placeholder={manualFields.has("rating") ? "הכנס ידנית" : "4.8"}
+                  dir="ltr"
+                  className={manualFields.has("rating") && !editRating ? manualInputClass : ""}
+                />
               </div>
               <div>
                 <label className="text-sm text-muted-foreground">מכירות שבועיות</label>
-                <Input value={editSales} onChange={e => setEditSales(e.target.value)} placeholder="0" dir="ltr" />
+                <Input
+                  value={editSales}
+                  onChange={e => setEditSales(e.target.value)}
+                  placeholder={manualFields.has("sales") ? "הכנס ידנית" : "0"}
+                  dir="ltr"
+                  className={manualFields.has("sales") && !editSales ? manualInputClass : ""}
+                />
               </div>
               <div>
                 <label className="text-sm text-muted-foreground">קטגוריה</label>
-                <Input value={editCategory} onChange={e => setEditCategory(e.target.value)} placeholder="כללי" />
+                <Select value={editCategory} onValueChange={setEditCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="בחר קטגוריה" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEAL_CATEGORIES.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-sm text-muted-foreground">מותג</label>
