@@ -1,68 +1,58 @@
 
 
-# שני תיקונים בכלי "דיל מקישור"
+# תיקון זיכרון חיפוש — user_sessions
 
-## תיקון 1 — Lazada: מניעת הזיות Gemini
+## בעיה
+אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
 
-**בעיה:** סקרייפינג Lazada מחזיר 0 תווים → Gemini ממציא מוצר.
+## פתרון — טבלת `user_sessions`
 
-**פתרון:** בפלואו הראשי של `decode-external-link/index.ts` (שורות 359-364), לפני הקריאה ל-Gemini — בדיקה: אם `pageContent.length < 100`, דלג על Gemini והחזר שדות ריקים עם `decode_success: false`.
+### שלב 1: מיגרציה
+```sql
+CREATE TABLE user_sessions (
+  user_id BIGINT PRIMARY KEY,
+  state TEXT NOT NULL DEFAULT 'idle',
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
+```
 
+### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
+
+**2a. ב-callback handler של `cmd:search` (שורה 1560):**
 ```typescript
-// שורות 359-364 — שינוי:
-} else {
-  const pageContent = await scrapeProductPage(resolvedUrl);
-  if (pageContent.length < 100) {
-    // Scraping failed — return empty for manual edit
-    console.log(`⚠️ Scraping returned only ${pageContent.length} chars, skipping Gemini`);
-    product = { name: "", price: "", rating: null, sales_7d: null, category: "כללי", brand: "", decode_success: false };
-    apiUsed = "none-scrape-failed";
-  } else {
-    product = await extractProductWithGemini(resolvedUrl, pageContent, extra_info || undefined);
-    apiUsed = "gemini";
-  }
+else if (data === "cmd:search") {
+  const serviceClient = createServiceClient();
+  await serviceClient.from("user_sessions").upsert({
+    user_id: userId,
+    state: "waiting_search",
+    last_updated: new Date().toISOString(),
+  });
+  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
 }
 ```
 
-## תיקון 2 — קישור קצר במקום ארוך
-
-**בעיה:** ה-`affiliateUrl` שנשלח ל-`generate-deal-message` ארוך מדי (עם tracking params).
-
-**פתרון:** בפונקציה `getProductFromAliExpressAPI`, לחלץ גם את `promotion_link` מתוצאת ה-API (שדה שכבר מוחזר מ-AliExpress). אם קיים — להשתמש בו כ-`affiliateUrl` במקום ה-URL הארוך. `promotion_link` הוא כבר קישור אפיליאציה קצר.
-
-**שינויים:**
-
-1. **`getProductFromAliExpressAPI`** — להוסיף `promotion_link` לממשק ההחזרה:
+**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
 ```typescript
-async function getProductFromAliExpressAPI(productId: string): Promise<{
-  name: string; price: string; rating: string | null; sales_7d: string | null;
-  category: string; brand: string; image_url: string | null; promotion_link: string | null;
-} | null> {
-  // ... existing code ...
-  return {
-    // ... existing fields ...
-    promotion_link: p.promotion_link || null,
-  };
+// Check if waiting for search input
+const serviceClient = createServiceClient();
+const { data: session } = await serviceClient
+  .from("user_sessions")
+  .select("state")
+  .eq("user_id", userId)
+  .maybeSingle();
+
+if (session?.state === "waiting_search" && !text.startsWith("/")) {
+  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
+  await handleFreeTextSearch(chatId, text);
+  return new Response("OK");
 }
 ```
 
-2. **בפלואו הראשי** (שורות 346-358) — אם ה-API החזיר `promotion_link`, להשתמש בו כ-`affiliateUrl`:
-```typescript
-if (platform === "aliexpress" && productId) {
-  const apiResult = await getProductFromAliExpressAPI(productId);
-  if (apiResult && apiResult.name) {
-    product = { ...apiResult, decode_success: true };
-    // Use promotion_link as affiliate URL if available (shorter)
-    if (apiResult.promotion_link) {
-      affiliateUrl = apiResult.promotion_link;
-    }
-    apiUsed = "aliexpress-api";
-  }
-  // ... fallback unchanged ...
-}
-```
+## קובץ
+- `supabase/functions/telegram-bot-handler/index.ts`
 
-3. **Fallback ל-AliExpress — אם אין `promotion_link`:** קריאה ל-`aliexpress-api` עם `action: "generate-link"` ליצירת קישור אפיליאציה קצר מה-URL הארוך.
-
-## קובץ אחד בלבד: `supabase/functions/decode-external-link/index.ts`
+## תוצאה
+לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
 

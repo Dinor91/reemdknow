@@ -90,7 +90,7 @@ async function getLazadaAffiliateLink(url: string): Promise<string | null> {
 // Get product details directly from AliExpress API (reliable, no scraping needed)
 async function getProductFromAliExpressAPI(productId: string): Promise<{
   name: string; price: string; rating: string | null; sales_7d: string | null;
-  category: string; brand: string; image_url: string | null;
+  category: string; brand: string; image_url: string | null; promotion_link: string | null;
 } | null> {
   try {
     console.log(`Calling AliExpress API for product: ${productId}`);
@@ -117,6 +117,7 @@ async function getProductFromAliExpressAPI(productId: string): Promise<{
       category: p.first_level_category_name || p.second_level_category_name || "כללי",
       brand: "",
       image_url: p.product_main_image_url || null,
+      promotion_link: p.promotion_link || null,
     };
   } catch (e) {
     console.error("AliExpress API error:", e);
@@ -347,6 +348,11 @@ serve(async (req) => {
       const apiResult = await getProductFromAliExpressAPI(productId);
       if (apiResult && apiResult.name) {
         product = { ...apiResult, decode_success: true };
+        // Use promotion_link as affiliate URL if available (shorter)
+        if (apiResult.promotion_link) {
+          affiliateUrl = apiResult.promotion_link;
+          console.log(`✅ Using short promotion_link: ${affiliateUrl.substring(0, 80)}...`);
+        }
         apiUsed = "aliexpress-api";
         console.log(`✅ Got product from AliExpress API: ${apiResult.name}`);
       } else {
@@ -359,8 +365,15 @@ serve(async (req) => {
     } else {
       // Lazada or unknown: use scrape + Gemini
       const pageContent = await scrapeProductPage(resolvedUrl);
-      product = await extractProductWithGemini(resolvedUrl, pageContent, extra_info || undefined);
-      apiUsed = "gemini";
+      if (pageContent.length < 100) {
+        // Scraping failed (Lazada blocks server-side requests) — skip Gemini to prevent hallucinations
+        console.log(`⚠️ Scraping returned only ${pageContent.length} chars, skipping Gemini to avoid hallucination`);
+        product = { name: "", price: "", rating: null, sales_7d: null, category: "כללי", brand: "", decode_success: false };
+        apiUsed = "none-scrape-failed";
+      } else {
+        product = await extractProductWithGemini(resolvedUrl, pageContent, extra_info || undefined);
+        apiUsed = "gemini";
+      }
     }
 
     const currencySymbol = platform === "aliexpress" ? "$" : "฿";
