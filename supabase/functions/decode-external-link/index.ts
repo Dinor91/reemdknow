@@ -348,6 +348,11 @@ serve(async (req) => {
       const apiResult = await getProductFromAliExpressAPI(productId);
       if (apiResult && apiResult.name) {
         product = { ...apiResult, decode_success: true };
+        // Use promotion_link as affiliate URL if available (shorter)
+        if (apiResult.promotion_link) {
+          affiliateUrl = apiResult.promotion_link;
+          console.log(`✅ Using short promotion_link: ${affiliateUrl.substring(0, 80)}...`);
+        }
         apiUsed = "aliexpress-api";
         console.log(`✅ Got product from AliExpress API: ${apiResult.name}`);
       } else {
