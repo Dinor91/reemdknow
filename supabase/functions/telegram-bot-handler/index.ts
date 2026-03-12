@@ -497,8 +497,14 @@ async function handleFreeTextSearch(chatId: number, text: string) {
       }
     }
 
-    // Store results temporarily in a global map for callback handling
-    searchResultsCache.set(chatId, { results, timestamp: Date.now() });
+    // Store results in DB for callback handling
+    const scStore = createServiceClient();
+    await scStore.from("user_sessions").upsert({
+      user_id: chatId,
+      state: "search_results",
+      data: { results },
+      last_updated: new Date().toISOString(),
+    });
 
     await sendMessage(chatId, `✅ נמצאו ${results.length} מוצרים (${((data.search_time_ms || 0) / 1000).toFixed(1)}s)`);
   } catch (e) {
@@ -507,15 +513,21 @@ async function handleFreeTextSearch(chatId: number, text: string) {
   }
 }
 
-// Simple in-memory cache for search results (per chat, expires after 10 min)
-const searchResultsCache = new Map<number, { results: any[]; timestamp: number }>();
-
 async function handleSearchDealCallback(chatId: number, resultIdx: number) {
-  const cached = searchResultsCache.get(chatId);
-  if (!cached || Date.now() - cached.timestamp > 10 * 60 * 1000) {
+  const scRead = createServiceClient();
+  const { data: session } = await scRead
+    .from("user_sessions")
+    .select("state, data, last_updated")
+    .eq("user_id", chatId)
+    .maybeSingle();
+
+  if (!session?.data || Date.now() - new Date(session.last_updated).getTime() > 10 * 60 * 1000) {
     await sendMessage(chatId, "⏰ תוצאות החיפוש פגו - שלח חיפוש חדש");
+    if (session) await scRead.from("user_sessions").delete().eq("user_id", chatId);
     return;
   }
+
+  const cached = session.data as any;
 
   const result = cached.results[resultIdx];
   if (!result) {
@@ -1701,8 +1713,7 @@ async function handleAddCoupon(chatId: number, text: string) {
 
 // ────────── EXTERNAL LINK DEAL FLOW ──────────
 
-// In-memory cache for external link decode results
-const extLinkCache = new Map<number, { product: any; platform: string; affiliate_url: string; product_id: string | null; currency_symbol: string; timestamp: number }>();
+// External link data is now stored in user_sessions.data (JSONB column)
 
 async function handleExternalLinkStart(chatId: number, userId: number) {
   const svcClient = createServiceClient();
@@ -1733,14 +1744,19 @@ async function handleExternalLink(chatId: number, userId: number, url: string) {
       return;
     }
 
-    // Cache the result
-    extLinkCache.set(chatId, {
-      product: data.product,
-      platform: data.platform,
-      affiliate_url: data.affiliate_url,
-      product_id: data.product_id,
-      currency_symbol: data.currency_symbol,
-      timestamp: Date.now(),
+    // Store result in DB
+    const svcClient = createServiceClient();
+    await svcClient.from("user_sessions").upsert({
+      user_id: userId,
+      state: "waiting_external_info",
+      data: {
+        product: data.product,
+        platform: data.platform,
+        affiliate_url: data.affiliate_url,
+        product_id: data.product_id,
+        currency_symbol: data.currency_symbol,
+      },
+      last_updated: new Date().toISOString(),
     });
 
     const platformLabel = data.platform === "aliexpress" ? "🇮🇱 AliExpress" : "🇹🇭 Lazada";
@@ -1754,14 +1770,6 @@ async function handleExternalLink(chatId: number, userId: number, url: string) {
     }
     details += "\nיש מידע נוסף? שלח טקסט או כתוב <b>לא</b>";
     await sendMessage(chatId, details);
-
-    // Update state to waiting for extra info
-    const svcClient = createServiceClient();
-    await svcClient.from("user_sessions").upsert({
-      user_id: userId,
-      state: "waiting_external_info",
-      last_updated: new Date().toISOString(),
-    });
   } catch (e) {
     console.error("External link decode error:", e);
     await sendMessage(chatId, "⚠️ שגיאה בפענוח הקישור");
@@ -1771,13 +1779,20 @@ async function handleExternalLink(chatId: number, userId: number, url: string) {
 }
 
 async function handleExternalInfo(chatId: number, userId: number, text: string) {
-  const cached = extLinkCache.get(chatId);
-  if (!cached || Date.now() - cached.timestamp > 10 * 60 * 1000) {
+  const scRead = createServiceClient();
+  const { data: session } = await scRead
+    .from("user_sessions")
+    .select("state, data, last_updated")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!session?.data || Date.now() - new Date(session.last_updated).getTime() > 10 * 60 * 1000) {
     await sendMessage(chatId, "⏰ הנתונים פגו, שלח /start להתחלה מחדש");
-    const svcClient = createServiceClient();
-    await svcClient.from("user_sessions").delete().eq("user_id", userId);
+    await scRead.from("user_sessions").delete().eq("user_id", userId);
     return;
   }
+
+  const cached = session.data as any;
 
   const noInfo = text.trim().toLowerCase() === "לא" || text.trim().toLowerCase() === "no";
 
@@ -1808,18 +1823,26 @@ async function handleExternalInfo(chatId: number, userId: number, text: string) 
   await svcClient2.from("user_sessions").upsert({
     user_id: userId,
     state: "waiting_external_category",
+    data: cached,
     last_updated: new Date().toISOString(),
   });
 }
 
 async function handleExternalCategoryAndGenerate(chatId: number, userId: number, category: string) {
-  const cached = extLinkCache.get(chatId);
-  if (!cached || Date.now() - cached.timestamp > 10 * 60 * 1000) {
+  const scRead = createServiceClient();
+  const { data: session } = await scRead
+    .from("user_sessions")
+    .select("state, data, last_updated")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!session?.data || Date.now() - new Date(session.last_updated).getTime() > 10 * 60 * 1000) {
     await sendMessage(chatId, "⏰ הנתונים פגו, שלח /start להתחלה מחדש");
-    const svcClient = createServiceClient();
-    await svcClient.from("user_sessions").delete().eq("user_id", userId);
+    await scRead.from("user_sessions").delete().eq("user_id", userId);
     return;
   }
+
+  const cached = session.data as any;
 
   await sendMessage(chatId, "📝 יוצר הודעת דיל...");
 
@@ -1907,7 +1930,7 @@ async function handleExternalCategoryAndGenerate(chatId: number, userId: number,
   }
 
   // Clean up
-  extLinkCache.delete(chatId);
+  // DB cleanup handled below
   const svcClient = createServiceClient();
   await svcClient.from("user_sessions").delete().eq("user_id", userId);
 }
