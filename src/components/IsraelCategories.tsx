@@ -30,16 +30,14 @@ interface DisplayProduct {
 }
 
 const categories: Category[] = [
-  { icon: Smartphone, emoji: "📱", title: "גאדג׳טים" },
-  { icon: Car, emoji: "🚗", title: "רכב" },
-  { icon: Baby, emoji: "👶", title: "ילדים" },
-  { icon: Home, emoji: "🏠", title: "בית" },
-  { icon: HomeIcon, emoji: "🏠", title: "בית חכם" },
-  { icon: Shirt, emoji: "👕", title: "אופנה" },
-  { icon: Plane, emoji: "✈️", title: "נסיעות" },
-  { icon: Heart, emoji: "❤️", title: "בריאות" },
-  { icon: Wrench, emoji: "🔧", title: "כלי עבודה" },
-  { icon: Package, emoji: "📦", title: "כללי" }
+  { icon: Smartphone, emoji: "📱", title: "גאדג׳טים ובית חכם" },
+  { icon: Car, emoji: "🚗", title: "רכב ותחבורה" },
+  { icon: Home, emoji: "🏠", title: "בית ומטבח" },
+  { icon: Shirt, emoji: "👕", title: "אופנה וסטייל" },
+  { icon: Baby, emoji: "👶", title: "ילדים ומשחקים" },
+  { icon: Heart, emoji: "❤️", title: "בריאות וספורט" },
+  { icon: Wrench, emoji: "🔧", title: "כלי עבודה וציוד" },
+  { icon: Package, emoji: "📦", title: "כללי" },
 ];
 
 export const IsraelCategories = () => {
