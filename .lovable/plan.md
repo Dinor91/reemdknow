@@ -1,53 +1,58 @@
 
 
-## Analysis: Lazada batch-links API Response Fields
+# תיקון זיכרון חיפוש — user_sessions
 
-### What the API returns (from live logs)
+## בעיה
+אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
 
-The Lazada `/marketing/getlink` (batch-links) endpoint returns **exactly these fields** per product:
+## פתרון — טבלת `user_sessions`
 
-```text
-urlBatchGetLinkInfoList[0]:
-├── productId          → "2484982730"
-├── productName        → "Free Delivery!! Carpet, Upholstery..."
-├── regularCommission  → "8%"
-├── regularPromotionLink → "https://c.lazada.co.th/t/c.2qZHBN"
-├── originalUrl        → "https://www.lazada.co.th/products/pdp-i..."
-└── class              → "com.lazada.affiliate.openapi.resp..."
+### שלב 1: מיגרציה
+```sql
+CREATE TABLE user_sessions (
+  user_id BIGINT PRIMARY KEY,
+  state TEXT NOT NULL DEFAULT 'idle',
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
 ```
 
-### Key finding: No image field
+### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
 
-The `batch-links` API does **not** return any image URL. The only fields are: `productId`, `productName`, `regularCommission`, `regularPromotionLink`, `originalUrl`, `class`.
+**2a. ב-callback handler של `cmd:search` (שורה 1560):**
+```typescript
+else if (data === "cmd:search") {
+  const serviceClient = createServiceClient();
+  await serviceClient.from("user_sessions").upsert({
+    user_id: userId,
+    state: "waiting_search",
+    last_updated: new Date().toISOString(),
+  });
+  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
+}
+```
 
-### How the system currently gets images
+**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
+```typescript
+// Check if waiting for search input
+const serviceClient = createServiceClient();
+const { data: session } = await serviceClient
+  .from("user_sessions")
+  .select("state")
+  .eq("user_id", userId)
+  .maybeSingle();
 
-Looking at `decode-external-link/index.ts` (line 69-91), the existing code only extracts `name`, `commission`, `affiliateLink`, and `productId` from this API -- it knows there's no image.
+if (session?.state === "waiting_search" && !text.startsWith("/")) {
+  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
+  await handleFreeTextSearch(chatId, text);
+  return new Response("OK");
+}
+```
 
-For images, the system uses a **separate scraping step**: it fetches the product HTML page and looks for `og:image` meta tag (visible in logs: "No og:image found"). This often fails for Lazada.
+## קובץ
+- `supabase/functions/telegram-bot-handler/index.ts`
 
-### Contrast with AliExpress API
-
-The AliExpress API (`product-details`) returns rich data including:
-- `product_main_image_url` -- full image
-- `product_small_image_urls` -- multiple images
-- `app_sale_price`, `original_price` -- prices
-- `product_title` -- name
-- `second_level_category_name` -- category
-
-### Contrast with Lazada Product Feed API
-
-The `/marketing/product/feed` API (used in `sync-feed-products`) returns much more data per product: `pictures[]`, `discountPrice`, `originalPrice`, `ratingScore`, `categoryL1`, `brandName`, etc. But this is a feed-browse API, not a lookup-by-ID API.
-
-### Summary for Tasks 5+6
-
-| Field | AliExpress API | Lazada batch-links |
-|-------|---------------|-------------------|
-| Product name | Yes (`product_title`) | Yes (`productName`) |
-| Image | Yes (`product_main_image_url`) | **No** |
-| Price | Yes (`app_sale_price`) | **No** |
-| Category | Yes (`second_level_category_name`) | **No** |
-| Affiliate link | Yes (`promotion_link`) | Yes (`regularPromotionLink`) |
-
-**For Task 5 implementation**: Lazada's batch-links API provides only `productName` and affiliate link. For image, the existing og:image scraping fallback would need to be used. Price is unavailable from this API endpoint.
+## תוצאה
+לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
 

@@ -164,6 +164,114 @@ async function resolveShortLinks(urls: string[]): Promise<Record<string, string>
   }
 }
 
+// ────────── AUTO-CATEGORY DETECTION ──────────
+
+function detectCategory(productName: string): string {
+  const name = productName.toLowerCase();
+
+  if (/רכב|אופנוע|טנדר|גג|גלגל|מנוע|שמן|בלם|פנס|מראה|קסדה|car |vehicle|motor|tire|brake|helmet|steering|dashboard/.test(name))
+    return "רכב ותחבורה";
+
+  if (/ילד|תינוק|משחק|קארטינג|קסדת ילד|לגו|בובה|מתקן טיפוס|baby|kids|toy|lego|stroller|child/.test(name))
+    return "ילדים ומשחקים";
+
+  if (/מטבח|בית|כיסא|שולחן|מזרן|מיטה|כריות|וילון|מדף|אחסון|קפה|סיר|מחבת|kitchen|home|chair|table|mattress|bed|curtain|shelf|storage|coffee|pot|pan/.test(name))
+    return "בית ומטבח";
+
+  if (/טלפון|סמארטפון|מחשב|אוזניות|רמקול|מסך|מצלמה|טאבלט|ראוטר|רשת|חכם|smart|phone|bluetooth|wireless|speaker|camera|tablet|router|headphone|earphone|earbuds|laptop|usb|charger|led/.test(name))
+    return "גאדג׳טים ובית חכם";
+
+  if (/בריאות|ספורט|רפואי|cpap|חמצן|מזרן טיפולי|שעון ספורט|כושר|תוסף|health|sport|fitness|medical|yoga|gym|exercise/.test(name))
+    return "בריאות וספורט";
+
+  if (/שמלה|חולצה|מכנסיים|נעל|תיק|תכשיט|שעון יד|טבעת|שרשרת|אופנה|dress|shirt|pants|shoe|bag|jewelry|watch|ring|necklace|fashion|women|men/.test(name))
+    return "אופנה וסטייל";
+
+  if (/כלי עבודה|מברג|מקדחה|מפתח|מדידה|מנקה|תעשייתי|ממיר|משקל|tool|drill|wrench|screwdriver|industrial|cleaning/.test(name))
+    return "כלי עבודה וציוד";
+
+  return "כללי";
+}
+
+// ────────── API ENRICHMENT FOR GROUP PRODUCTS ──────────
+
+async function enrichAliExpressProduct(productId: string): Promise<{
+  name: string; image: string | null; price: number | null; promotionLink: string | null;
+}> {
+  try {
+    console.log(`[group-enrich] Calling AliExpress API for product: ${productId}`);
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/aliexpress-api`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ action: "product-details", productIds: productId, targetCurrency: "USD", targetLanguage: "EN" }),
+    });
+    const data = await resp.json();
+    const products = data?.data?.aliexpress_affiliate_productdetail_get_response?.resp_result?.result?.products?.product;
+    if (!products || products.length === 0) {
+      console.log("[group-enrich] AliExpress API returned no products");
+      return { name: "", image: null, price: null, promotionLink: null };
+    }
+    const p = products[0];
+    const price = parseFloat(p.app_sale_price || p.target_app_sale_price || p.original_price || "0") || null;
+    return {
+      name: p.product_title || "",
+      image: p.product_main_image_url || null,
+      price,
+      promotionLink: p.promotion_link || null,
+    };
+  } catch (e) {
+    console.error("[group-enrich] AliExpress API error:", e);
+    return { name: "", image: null, price: null, promotionLink: null };
+  }
+}
+
+async function enrichLazadaProduct(productId: string, originalUrl: string): Promise<{
+  name: string; affiliateLink: string | null;
+}> {
+  try {
+    console.log(`[group-enrich] Calling Lazada API for product: ${productId}`);
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/lazada-api`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ action: "batch-links", inputType: "productId", inputValue: productId }),
+    });
+    const data = await resp.json();
+    const linkList = data?.result?.data?.urlBatchGetLinkInfoList
+      || data?.data?.result?.data?.urlBatchGetLinkInfoList;
+    if (linkList && linkList.length > 0) {
+      const item = linkList[0];
+      return {
+        name: item.productName || "",
+        affiliateLink: item.regularPromotionLink || item.promotionLink || null,
+      };
+    }
+    // Retry with URL if productId failed
+    console.log("[group-enrich] Lazada productId failed, retrying with URL");
+    const resp2 = await fetch(`${SUPABASE_URL}/functions/v1/lazada-api`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ action: "batch-links", inputType: "url", inputValue: originalUrl }),
+    });
+    const data2 = await resp2.json();
+    const linkList2 = data2?.result?.data?.urlBatchGetLinkInfoList
+      || data2?.data?.result?.data?.urlBatchGetLinkInfoList;
+    if (linkList2 && linkList2.length > 0) {
+      const item = linkList2[0];
+      return {
+        name: item.productName || "",
+        affiliateLink: item.regularPromotionLink || item.promotionLink || null,
+      };
+    }
+    console.log("[group-enrich] Lazada API: no data returned");
+    return { name: "", affiliateLink: null };
+  } catch (e) {
+    console.error("[group-enrich] Lazada API error:", e);
+    return { name: "", affiliateLink: null };
+  }
+}
+
+// ────────── GROUP MESSAGE HANDLER ──────────
+
 async function handleGroupMessage(chatId: number, message: any) {
   const isIsrael = chatId === ISRAEL_GROUP_ID;
   const isThailand = chatId === THAILAND_GROUP_ID;
@@ -199,11 +307,33 @@ async function handleGroupMessage(chatId: number, message: any) {
         continue;
       }
 
+      // Enrich from API (non-blocking — fallback to defaults on failure)
+      let productName = "מוצר חדש — לעדכון";
+      let imageUrl: string | null = null;
+      let priceUsd: number | null = null;
+      let category = "כללי";
+      let trackingLink = originalUrl;
+
+      if (productId) {
+        const enriched = await enrichAliExpressProduct(productId);
+        if (enriched.name) {
+          productName = enriched.name;
+          category = detectCategory(enriched.name);
+        }
+        if (enriched.image) imageUrl = enriched.image;
+        if (enriched.price) priceUsd = enriched.price;
+        if (enriched.promotionLink) trackingLink = enriched.promotionLink;
+        console.log(`[group-enrich] Israel product: "${productName}" | cat: ${category} | img: ${!!imageUrl} | price: ${priceUsd}`);
+      }
+
       const { error } = await sc.from("israel_editor_products").insert({
         aliexpress_product_id: productId,
-        product_name_hebrew: "מוצר חדש — לעדכון",
-        tracking_link: originalUrl,
-        category_name_hebrew: "כללי",
+        product_name_hebrew: productName,
+        product_name_english: productName !== "מוצר חדש — לעדכון" ? productName : null,
+        tracking_link: trackingLink,
+        category_name_hebrew: category,
+        image_url: imageUrl,
+        price_usd: priceUsd,
         is_active: true,
         source: "telegram_group",
       });
@@ -212,7 +342,11 @@ async function handleGroupMessage(chatId: number, message: any) {
         console.error("Error saving Israel product:", error);
         await sendMessage(chatId, "⚠️ שגיאה בשמירת הקישור");
       } else {
-        await sendMessage(chatId, "✅ קישור נשמר למאגר ישראל\n📝 זכור לעדכן שם ותמונה ב-Dino");
+        const statusParts = [`✅ נשמר למאגר ישראל`];
+        if (productName !== "מוצר חדש — לעדכון") statusParts.push(`📦 ${productName.substring(0, 60)}`);
+        if (category !== "כללי") statusParts.push(`🏷️ ${category}`);
+        if (!imageUrl || !priceUsd) statusParts.push(`📝 חסרים: ${!imageUrl ? "תמונה " : ""}${!priceUsd ? "מחיר" : ""}`);
+        await sendMessage(chatId, statusParts.join("\n"));
       }
     } else {
       const productId = extractLazadaProductId(finalUrl);
@@ -229,11 +363,27 @@ async function handleGroupMessage(chatId: number, message: any) {
         continue;
       }
 
+      // Enrich from Lazada API (non-blocking)
+      let productName = "מוצר חדש — לעדכון";
+      let affiliateLink = originalUrl;
+      let category = "כללי";
+
+      if (productId) {
+        const enriched = await enrichLazadaProduct(productId, originalUrl);
+        if (enriched.name) {
+          productName = enriched.name;
+          category = detectCategory(enriched.name);
+        }
+        if (enriched.affiliateLink) affiliateLink = enriched.affiliateLink;
+        console.log(`[group-enrich] Thailand product: "${productName}" | cat: ${category}`);
+      }
+
       const { error } = await sc.from("category_products").insert({
         lazada_product_id: productId,
-        name_hebrew: "מוצר חדש — לעדכון",
-        affiliate_link: originalUrl,
-        category: "כללי",
+        name_hebrew: productName,
+        name_english: productName !== "מוצר חדש — לעדכון" ? productName : null,
+        affiliate_link: affiliateLink,
+        category,
         is_active: true,
         source: "telegram_group",
       });
@@ -242,7 +392,10 @@ async function handleGroupMessage(chatId: number, message: any) {
         console.error("Error saving Thailand product:", error);
         await sendMessage(chatId, "⚠️ שגיאה בשמירת הקישור");
       } else {
-        await sendMessage(chatId, "✅ קישור נשמר למאגר תאילנד\n📝 זכור לעדכן שם ותמונה ב-Dino");
+        const statusParts = [`✅ נשמר למאגר תאילנד`];
+        if (productName !== "מוצר חדש — לעדכון") statusParts.push(`📦 ${productName.substring(0, 60)}`);
+        if (category !== "כללי") statusParts.push(`🏷️ ${category}`);
+        await sendMessage(chatId, statusParts.join("\n"));
       }
     }
   }
