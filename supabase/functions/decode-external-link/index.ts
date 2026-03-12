@@ -117,6 +117,7 @@ async function getProductFromAliExpressAPI(productId: string): Promise<{
       category: p.first_level_category_name || p.second_level_category_name || "כללי",
       brand: "",
       image_url: p.product_main_image_url || null,
+      promotion_link: p.promotion_link || null,
     };
   } catch (e) {
     console.error("AliExpress API error:", e);
