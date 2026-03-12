@@ -1744,14 +1744,19 @@ async function handleExternalLink(chatId: number, userId: number, url: string) {
       return;
     }
 
-    // Cache the result
-    extLinkCache.set(chatId, {
-      product: data.product,
-      platform: data.platform,
-      affiliate_url: data.affiliate_url,
-      product_id: data.product_id,
-      currency_symbol: data.currency_symbol,
-      timestamp: Date.now(),
+    // Store result in DB
+    const svcClient = createServiceClient();
+    await svcClient.from("user_sessions").upsert({
+      user_id: userId,
+      state: "waiting_external_info",
+      data: {
+        product: data.product,
+        platform: data.platform,
+        affiliate_url: data.affiliate_url,
+        product_id: data.product_id,
+        currency_symbol: data.currency_symbol,
+      },
+      last_updated: new Date().toISOString(),
     });
 
     const platformLabel = data.platform === "aliexpress" ? "🇮🇱 AliExpress" : "🇹🇭 Lazada";
@@ -1765,14 +1770,6 @@ async function handleExternalLink(chatId: number, userId: number, url: string) {
     }
     details += "\nיש מידע נוסף? שלח טקסט או כתוב <b>לא</b>";
     await sendMessage(chatId, details);
-
-    // Update state to waiting for extra info
-    const svcClient = createServiceClient();
-    await svcClient.from("user_sessions").upsert({
-      user_id: userId,
-      state: "waiting_external_info",
-      last_updated: new Date().toISOString(),
-    });
   } catch (e) {
     console.error("External link decode error:", e);
     await sendMessage(chatId, "⚠️ שגיאה בפענוח הקישור");
