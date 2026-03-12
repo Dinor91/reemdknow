@@ -1641,7 +1641,31 @@ async function handleExternalInfo(chatId: number, userId: number, text: string) 
     } catch { /* continue with existing data */ }
   }
 
-  // Generate deal message
+  // Ask user to pick a category before generating
+  await sendMessage(chatId, "📂 בחר קטגוריה לדיל:", {
+    reply_markup: {
+      inline_keyboard: DEAL_CATEGORIES.map((c: string) => [{ text: c, callback_data: `extcat:${c}` }]),
+    },
+  });
+
+  // Update state to waiting for category selection
+  const svcClient2 = createServiceClient();
+  await svcClient2.from("user_sessions").upsert({
+    user_id: userId,
+    state: "waiting_external_category",
+    last_updated: new Date().toISOString(),
+  });
+}
+
+async function handleExternalCategoryAndGenerate(chatId: number, userId: number, category: string) {
+  const cached = extLinkCache.get(chatId);
+  if (!cached || Date.now() - cached.timestamp > 10 * 60 * 1000) {
+    await sendMessage(chatId, "⏰ הנתונים פגו, שלח /start להתחלה מחדש");
+    const svcClient = createServiceClient();
+    await svcClient.from("user_sessions").delete().eq("user_id", userId);
+    return;
+  }
+
   await sendMessage(chatId, "📝 יוצר הודעת דיל...");
 
   try {
