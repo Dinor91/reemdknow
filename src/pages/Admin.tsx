@@ -82,7 +82,7 @@ const CATEGORIES_THAILAND = [
 
 // Unified categories imported from shared module
 import { DEAL_CATEGORIES } from "@/lib/categories";
-const CATEGORIES_ISRAEL = DEAL_CATEGORIES;
+const CATEGORIES_ISRAEL: string[] = [...DEAL_CATEGORIES];
 
 // Israel Editor Product interface (separate table from feed)
 interface IsraelEditorProduct {

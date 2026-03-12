@@ -1710,7 +1710,7 @@ async function handleExternalInfo(chatId: number, userId: number, text: string) 
           lazada_product_id: cached.product_id,
           name_hebrew: product?.name || "מוצר חדש",
           affiliate_link: cached.affiliate_url,
-          category: product?.category || "כללי",
+          category: validCategory,
           price_thb: product?.price ? parseFloat(product.price) : null,
           rating: product?.rating ? parseFloat(product.rating) : null,
           sales_count: product?.sales_7d ? parseInt(product.sales_7d) : null,
