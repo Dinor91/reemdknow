@@ -8,7 +8,7 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ISRAEL_GROUP_ID = parseInt(Deno.env.get("TELEGRAM_ISRAEL_GROUP_ID") || "0");
 const THAILAND_GROUP_ID = parseInt(Deno.env.get("TELEGRAM_THAILAND_GROUP_ID") || "0");
-console.log(`[DIAG] Group IDs config — Israel: ${ISRAEL_GROUP_ID}, Thailand: ${THAILAND_GROUP_ID}`);
+
 
 function createServiceClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -1999,7 +1999,7 @@ serve(async (req) => {
 
     // Handle group messages
     if (chat.type === "group" || chat.type === "supergroup") {
-      console.log(`[DIAG] Group message from chatId: ${chatId}, match: israel=${chatId === ISRAEL_GROUP_ID}, thailand=${chatId === THAILAND_GROUP_ID}`);
+      
       if (chatId === ISRAEL_GROUP_ID || chatId === THAILAND_GROUP_ID) {
         await handleGroupMessage(chatId, message);
       }
