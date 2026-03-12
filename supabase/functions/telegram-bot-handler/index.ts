@@ -1706,12 +1706,11 @@ async function handleExternalCategoryAndGenerate(chatId: number, userId: number,
 
       // Save to deals_sent
       const sc = createServiceClient();
-      const validCategory = DEAL_CATEGORIES.includes(product?.category || "") ? product.category : "כללי";
       await sc.from("deals_sent").insert({
         product_name: product?.name || "מוצר",
         product_name_hebrew: product?.name || "מוצר",
         platform: cached.platform === "aliexpress" ? "israel" : "thailand",
-        category: validCategory,
+        category: category,
         affiliate_url: cached.affiliate_url,
         product_id: cached.product_id,
       });
