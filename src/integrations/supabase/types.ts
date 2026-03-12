@@ -658,16 +658,19 @@ export type Database = {
       }
       user_sessions: {
         Row: {
+          data: Json | null
           last_updated: string | null
           state: string
           user_id: number
         }
         Insert: {
+          data?: Json | null
           last_updated?: string | null
           state?: string
           user_id: number
         }
         Update: {
+          data?: Json | null
           last_updated?: string | null
           state?: string
           user_id?: number
