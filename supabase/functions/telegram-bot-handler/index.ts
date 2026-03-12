@@ -16,6 +16,17 @@ function createServiceClient() {
 // Excluded categories for Thailand feed_products queries
 const EXCLUDED_FEED_CATEGORIES = '(ציוד רפואי,פסלים,ציוד משרדי,מכונות,ציוד תעשייתי,הדברה,מוצרי מזון ישראליים)';
 
+// Unified deal categories (must match src/lib/categories.ts)
+const DEAL_CATEGORIES = [
+  "גאדג׳טים ובית חכם",
+  "משחקים ופתרונות לילדים",
+  "מוצרי חשמל קטנים",
+  "ציוד לנסיעות וטיולים",
+  "אביזרים לרכב ולאופנוע",
+  "חיות מחמד",
+  "כללי",
+];
+
 // ────────── TELEGRAM API HELPERS ──────────
 
 async function sendMessage(chatId: number, text: string, options: any = {}) {
@@ -1630,7 +1641,31 @@ async function handleExternalInfo(chatId: number, userId: number, text: string) 
     } catch { /* continue with existing data */ }
   }
 
-  // Generate deal message
+  // Ask user to pick a category before generating
+  await sendMessage(chatId, "📂 בחר קטגוריה לדיל:", {
+    reply_markup: {
+      inline_keyboard: DEAL_CATEGORIES.map((c: string) => [{ text: c, callback_data: `extcat:${c}` }]),
+    },
+  });
+
+  // Update state to waiting for category selection
+  const svcClient2 = createServiceClient();
+  await svcClient2.from("user_sessions").upsert({
+    user_id: userId,
+    state: "waiting_external_category",
+    last_updated: new Date().toISOString(),
+  });
+}
+
+async function handleExternalCategoryAndGenerate(chatId: number, userId: number, category: string) {
+  const cached = extLinkCache.get(chatId);
+  if (!cached || Date.now() - cached.timestamp > 10 * 60 * 1000) {
+    await sendMessage(chatId, "⏰ הנתונים פגו, שלח /start להתחלה מחדש");
+    const svcClient = createServiceClient();
+    await svcClient.from("user_sessions").delete().eq("user_id", userId);
+    return;
+  }
+
   await sendMessage(chatId, "📝 יוצר הודעת דיל...");
 
   try {
@@ -1647,7 +1682,7 @@ async function handleExternalInfo(chatId: number, userId: number, text: string) 
           rating: product?.rating || null,
           sales_7d: product?.sales_7d ? parseInt(product.sales_7d) : null,
           brand: product?.brand || "",
-          category: product?.category || "",
+          category: category,
           url: cached.affiliate_url,
         },
         coupon: undefined,
@@ -1675,7 +1710,7 @@ async function handleExternalInfo(chatId: number, userId: number, text: string) 
         product_name: product?.name || "מוצר",
         product_name_hebrew: product?.name || "מוצר",
         platform: cached.platform === "aliexpress" ? "israel" : "thailand",
-        category: product?.category || "כללי",
+        category: category,
         affiliate_url: cached.affiliate_url,
         product_id: cached.product_id,
       });
@@ -1686,7 +1721,7 @@ async function handleExternalInfo(chatId: number, userId: number, text: string) 
           aliexpress_product_id: cached.product_id,
           product_name_hebrew: product?.name || "מוצר חדש",
           tracking_link: cached.affiliate_url,
-          category_name_hebrew: product?.category || "כללי",
+          category_name_hebrew: category,
           price_usd: product?.price ? parseFloat(product.price) : null,
           rating: product?.rating ? parseFloat(product.rating) : null,
           sales_count: product?.sales_7d ? parseInt(product.sales_7d) : null,
@@ -1698,7 +1733,7 @@ async function handleExternalInfo(chatId: number, userId: number, text: string) 
           lazada_product_id: cached.product_id,
           name_hebrew: product?.name || "מוצר חדש",
           affiliate_link: cached.affiliate_url,
-          category: product?.category || "כללי",
+          category: category,
           price_thb: product?.price ? parseFloat(product.price) : null,
           rating: product?.rating ? parseFloat(product.rating) : null,
           sales_count: product?.sales_7d ? parseInt(product.sales_7d) : null,
@@ -1787,6 +1822,11 @@ serve(async (req) => {
       else if (data.startsWith("deal_gen:")) await handleDealGenerate(chatId, data.split(":")[1]);
       // Search deal callback
       else if (data.startsWith("search_deal:")) await handleSearchDealCallback(chatId, parseInt(data.split(":")[1]));
+      // External link category selection
+      else if (data.startsWith("extcat:")) {
+        const category = data.substring(7);
+        await handleExternalCategoryAndGenerate(chatId, userId, category);
+      }
       // Legacy weekly_msg
       else if (data.startsWith("weekly_msg")) await handleWeeklyPlatformMessage(chatId, "thailand");
 

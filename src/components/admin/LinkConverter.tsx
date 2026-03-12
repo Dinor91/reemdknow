@@ -25,80 +25,51 @@ interface ConvertedLink {
   detectedCategory?: string;
 }
 
-const CATEGORIES_ISRAEL = [
-  "רכב",
-  "גאדג׳טים",
-  "ילדים",
-  "בית",
-  "בית חכם",
-  "אופנה",
-  "נסיעות",
-  "בריאות",
-  "כלי עבודה",
-  "כללי"
-];
+import { DEAL_CATEGORIES } from "@/lib/categories";
+const CATEGORIES_ISRAEL = DEAL_CATEGORIES;
 
-// Auto-detect category from product name using keywords
+// Auto-detect category from product name using keywords (mapped to unified DEAL_CATEGORIES)
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  "רכב": [
+  "אביזרים לרכב ולאופנוע": [
     "car", "auto", "vehicle", "tire", "wheel", "motor", "engine", "dashboard", 
     "gps", "driving", "parking", "seat cover", "steering", "headlight", "brake",
     "motorcycle", "bike holder", "trunk", "windshield", "charger car", "obd",
     "fuel", "rearview", "mirror car", "bumper", "wiper", "car seat"
   ],
-  "גאדג׳טים": [
+  "גאדג׳טים ובית חכם": [
     "gadget", "electronic", "usb", "bluetooth", "wireless", "speaker", "headphone",
     "earphone", "power bank", "cable", "charger", "adapter", "mouse", "keyboard",
     "webcam", "microphone", "led", "light strip", "drone", "camera", "tripod",
     "phone holder", "tablet", "smart watch", "fitness tracker", "vr", "gaming",
-    "earbuds", "tws", "headset", "portable", "hub", "dock", "stand phone"
-  ],
-  "ילדים": [
-    "kid", "child", "baby", "toy", "game", "puzzle", "doll", "lego", "educational",
-    "stroller", "diaper", "bottle", "pacifier", "infant", "toddler", "children",
-    "school", "backpack kid", "lunch box", "playmat", "breast pump", "breastfeeding",
-    "nursing", "newborn", "balloon", "party kids", "birthday"
-  ],
-  "בית": [
-    "home", "kitchen", "bathroom", "bedroom", "living room", "furniture", "decor",
-    "storage", "organizer", "shelf", "hook", "hanger", "towel", "curtain", "rug",
-    "mat", "pillow", "blanket", "bedding", "lamp", "vase", "plant", "garden",
-    "cleaning", "trash", "laundry", "iron", "vacuum", "pot", "pan", "bowl", 
-    "container", "lid", "utensil", "knife", "cutting board", "spoon", "fork",
-    "plate", "cup", "mug", "glass", "blender", "mixer", "oven", "microwave",
-    "coffee", "tea", "bbq", "grill", "cover pot", "silicone", "strap", "fixing",
-    "ice cream", "creami", "ninja", "opener", "can opener", "beverage"
-  ],
-  "בית חכם": [
+    "earbuds", "tws", "headset", "portable", "hub", "dock", "stand phone",
     "smart home", "wifi", "alexa", "google home", "automation", "sensor", "switch",
     "socket", "plug smart", "bulb smart", "camera security", "doorbell", "lock smart",
     "thermostat", "remote control", "zigbee", "tuya", "robot vacuum", "dreame",
     "xiaomi robot", "roborock", "roomba", "ecovacs"
   ],
-  "אופנה": [
-    "fashion", "clothing", "shirt", "dress", "pants", "jeans", "jacket", "coat",
-    "shoes", "sneakers", "boots", "sandals", "bag", "handbag", "wallet", "belt",
-    "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "sunglasses",
-    "hat", "scarf", "gloves", "underwear", "socks", "swimwear", "bikini",
-    "shorts", "cotton", "men", "women", "summer", "winter", "t-shirt"
+  "משחקים ופתרונות לילדים": [
+    "kid", "child", "baby", "toy", "game", "puzzle", "doll", "lego", "educational",
+    "stroller", "diaper", "bottle", "pacifier", "infant", "toddler", "children",
+    "school", "backpack kid", "lunch box", "playmat", "breast pump", "breastfeeding",
+    "nursing", "newborn", "balloon", "party kids", "birthday"
   ],
-  "נסיעות": [
+  "מוצרי חשמל קטנים": [
+    "home", "kitchen", "bathroom", "blender", "mixer", "oven", "microwave",
+    "coffee", "iron", "vacuum", "trimmer", "clipper", "shaver", "beard",
+    "hair cut", "barber", "razor", "diffuser", "pump inflat",
+    "tool", "drill", "screwdriver", "wrench", "hammer", "plier", "saw",
+    "multimeter", "soldering", "welding"
+  ],
+  "ציוד לנסיעות וטיולים": [
     "travel", "luggage", "suitcase", "backpack", "passport", "neck pillow", 
     "travel adapter", "packing", "organizer bag", "camping", "hiking", "outdoor",
-    "tent", "sleeping bag", "flashlight", "compass", "water bottle travel"
+    "tent", "sleeping bag", "flashlight", "compass", "water bottle travel",
+    "fitness", "exercise", "yoga", "gym"
   ],
-  "בריאות": [
-    "health", "medical", "massage", "fitness", "exercise", "yoga", "gym", "weight",
-    "scale", "blood pressure", "thermometer", "first aid", "vitamin", "supplement",
-    "posture", "back support", "knee", "wrist", "ankle", "pain relief", "sleep",
-    "trimmer", "clipper", "shaver", "beard", "hair cut", "barber", "razor",
-    "essential oil", "aromatherapy", "fragrance oil", "diffuser"
+  "חיות מחמד": [
+    "pet", "dog", "cat", "fish", "bird", "hamster", "rabbit", "aquarium",
+    "leash", "collar", "bowl pet", "treat", "grooming", "litter", "cage"
   ],
-  "כלי עבודה": [
-    "tool", "drill", "screwdriver", "wrench", "hammer", "plier", "saw", "measure",
-    "tape", "level", "multimeter", "soldering", "welding", "cutting", "grinding",
-    "toolbox", "work light", "gloves work", "safety", "ladder", "pump inflat"
-  ]
 };
 
 // Detect category from product name
