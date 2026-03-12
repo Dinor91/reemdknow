@@ -66,7 +66,9 @@ function extractLazadaProductId(url: string): string | null {
   return null;
 }
 
-async function getLazadaAffiliateLink(url: string): Promise<string | null> {
+async function getProductFromLazadaAPI(url: string): Promise<{
+  name: string; commission: string | null; affiliateLink: string | null; productId: string | null;
+} | null> {
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/lazada-api`, {
       method: "POST",
@@ -74,15 +76,32 @@ async function getLazadaAffiliateLink(url: string): Promise<string | null> {
       body: JSON.stringify({ action: "batch-links", inputType: "url", inputValue: url }),
     });
     const data = await resp.json();
+    console.log("Lazada batch-links response:", JSON.stringify(data).substring(0, 800));
+
+    // Parse the actual response structure: result.data.urlBatchGetLinkInfoList[0]
+    const linkList = data?.result?.data?.urlBatchGetLinkInfoList
+      || data?.data?.result?.data?.urlBatchGetLinkInfoList;
+    
+    if (linkList && linkList.length > 0) {
+      const item = linkList[0];
+      return {
+        name: item.productName || "",
+        commission: item.regularCommission || null,
+        affiliateLink: item.regularPromotionLink || item.promotionLink || null,
+        productId: item.productId ? String(item.productId) : null,
+      };
+    }
+
+    // Fallback: try other response shapes
     const linkData = data?.data?.result?.data;
-    if (linkData && linkData.link) return linkData.link;
-    if (linkData && Array.isArray(linkData) && linkData[0]?.link) return linkData[0].link;
-    // Try nested
-    if (data?.data?.result?.link) return data.data.result.link;
-    console.log("Lazada batch-links response:", JSON.stringify(data).substring(0, 500));
+    if (linkData && linkData.link) {
+      return { name: "", commission: null, affiliateLink: linkData.link, productId: null };
+    }
+
+    console.log("Lazada API: no usable data found");
     return null;
   } catch (e) {
-    console.error("Lazada affiliate link error:", e);
+    console.error("Lazada API error:", e);
     return null;
   }
 }
