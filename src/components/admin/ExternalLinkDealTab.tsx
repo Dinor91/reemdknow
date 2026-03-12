@@ -235,7 +235,7 @@ export const ExternalLinkDealTab = () => {
     setEditCategory("כללי");
     setEditBrand("");
     setManualFields(new Set());
-  };
+    setImageUrl(null);
 
   const manualInputClass = "border-orange-400 border-2";
 
