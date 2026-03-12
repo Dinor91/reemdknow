@@ -391,12 +391,12 @@ async function handleGroupMessage(chatId: number, message: any) {
 
       if (error) {
         console.error("Error saving Thailand product:", error);
-        await sendMessage(chatId, "⚠️ שגיאה בשמירת הקישור");
+        await sendMessage(AUTHORIZED_USER_ID, "⚠️ שגיאה בשמירת הקישור");
       } else {
         const statusParts = [`✅ נשמר למאגר תאילנד`];
         if (productName !== "מוצר חדש — לעדכון") statusParts.push(`📦 ${productName.substring(0, 60)}`);
         if (category !== "כללי") statusParts.push(`🏷️ ${category}`);
-        await sendMessage(chatId, statusParts.join("\n"));
+        await sendMessage(AUTHORIZED_USER_ID, statusParts.join("\n"));
       }
     }
   }
