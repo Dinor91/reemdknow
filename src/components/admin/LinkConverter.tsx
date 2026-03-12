@@ -30,45 +30,56 @@ const CATEGORIES_ISRAEL = DEAL_CATEGORIES;
 
 // Auto-detect category from product name using keywords (mapped to unified DEAL_CATEGORIES)
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  "אביזרים לרכב ולאופנוע": [
-    "car", "auto", "vehicle", "tire", "wheel", "motor", "engine", "dashboard", 
-    "gps", "driving", "parking", "seat cover", "steering", "headlight", "brake",
-    "motorcycle", "bike holder", "trunk", "windshield", "charger car", "obd",
-    "fuel", "rearview", "mirror car", "bumper", "wiper", "car seat"
-  ],
   "גאדג׳טים ובית חכם": [
     "gadget", "electronic", "usb", "bluetooth", "wireless", "speaker", "headphone",
     "earphone", "power bank", "cable", "charger", "adapter", "mouse", "keyboard",
     "webcam", "microphone", "led", "light strip", "drone", "camera", "tripod",
-    "phone holder", "tablet", "smart watch", "fitness tracker", "vr", "gaming",
+    "phone holder", "tablet", "smart watch", "fitness tracker", "vr",
     "earbuds", "tws", "headset", "portable", "hub", "dock", "stand phone",
     "smart home", "wifi", "alexa", "google home", "automation", "sensor", "switch",
     "socket", "plug smart", "bulb smart", "camera security", "doorbell", "lock smart",
     "thermostat", "remote control", "zigbee", "tuya", "robot vacuum", "dreame",
     "xiaomi robot", "roborock", "roomba", "ecovacs"
   ],
-  "משחקים ופתרונות לילדים": [
+  "רכב ותחבורה": [
+    "car", "auto", "vehicle", "tire", "wheel", "motor", "engine", "dashboard",
+    "gps", "driving", "parking", "seat cover", "steering", "headlight", "brake",
+    "motorcycle", "bike holder", "trunk", "windshield", "charger car", "obd",
+    "fuel", "rearview", "mirror car", "bumper", "wiper", "car seat",
+    "helmet", "dashcam", "scooter", "bicycle", "ebike", "e-bike"
+  ],
+  "בית ומטבח": [
+    "home", "kitchen", "bathroom", "blender", "mixer", "oven", "microwave",
+    "coffee", "iron", "vacuum", "diffuser", "cookware", "pot", "pan", "utensil",
+    "storage", "organizer", "shelf", "hook", "hanger", "curtain", "pillow",
+    "blanket", "towel", "mat", "rug", "decoration", "vase", "clock", "lamp"
+  ],
+  "אופנה וסטייל": [
+    "fashion", "dress", "shirt", "pants", "jacket", "coat", "shoe", "sneaker",
+    "boot", "sandal", "bag", "handbag", "wallet", "belt", "hat", "cap",
+    "sunglasses", "jewelry", "necklace", "bracelet", "ring", "earring", "watch fashion",
+    "scarf", "glove", "sock", "underwear", "swimwear", "bikini"
+  ],
+  "ילדים ומשחקים": [
     "kid", "child", "baby", "toy", "game", "puzzle", "doll", "lego", "educational",
     "stroller", "diaper", "bottle", "pacifier", "infant", "toddler", "children",
     "school", "backpack kid", "lunch box", "playmat", "breast pump", "breastfeeding",
-    "nursing", "newborn", "balloon", "party kids", "birthday"
+    "nursing", "newborn", "balloon", "party kids", "birthday",
+    "nintendo", "console", "gaming", "playstation", "xbox"
   ],
-  "מוצרי חשמל קטנים": [
-    "home", "kitchen", "bathroom", "blender", "mixer", "oven", "microwave",
-    "coffee", "iron", "vacuum", "trimmer", "clipper", "shaver", "beard",
-    "hair cut", "barber", "razor", "diffuser", "pump inflat",
+  "בריאות וספורט": [
+    "fitness", "exercise", "yoga", "gym", "sport", "running", "training",
+    "trimmer", "clipper", "shaver", "beard", "hair cut", "barber", "razor",
+    "massage", "therapy", "medical", "health", "vitamin", "supplement",
+    "weight", "dumbbell", "resistance band", "jump rope",
+    "pet", "dog", "cat", "fish", "aquarium", "leash", "collar", "grooming"
+  ],
+  "כלי עבודה וציוד": [
     "tool", "drill", "screwdriver", "wrench", "hammer", "plier", "saw",
-    "multimeter", "soldering", "welding"
-  ],
-  "ציוד לנסיעות וטיולים": [
-    "travel", "luggage", "suitcase", "backpack", "passport", "neck pillow", 
-    "travel adapter", "packing", "organizer bag", "camping", "hiking", "outdoor",
-    "tent", "sleeping bag", "flashlight", "compass", "water bottle travel",
-    "fitness", "exercise", "yoga", "gym"
-  ],
-  "חיות מחמד": [
-    "pet", "dog", "cat", "fish", "bird", "hamster", "rabbit", "aquarium",
-    "leash", "collar", "bowl pet", "treat", "grooming", "litter", "cage"
+    "multimeter", "soldering", "welding", "pump inflat", "compressor",
+    "tape measure", "level", "clamp", "sander", "grinder", "cutter",
+    "camping", "hiking", "outdoor", "tent", "sleeping bag", "flashlight",
+    "travel", "luggage", "suitcase", "backpack", "compass"
   ],
 };
 
