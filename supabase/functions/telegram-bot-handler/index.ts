@@ -304,7 +304,7 @@ async function handleGroupMessage(chatId: number, message: any) {
         .limit(1);
       
       if (existing && existing.length > 0) {
-        await sendMessage(chatId, "⚠️ קישור זה כבר קיים במאגר ישראל");
+        await sendMessage(AUTHORIZED_USER_ID, "⚠️ קישור זה כבר קיים במאגר ישראל");
         continue;
       }
 
@@ -341,13 +341,13 @@ async function handleGroupMessage(chatId: number, message: any) {
 
       if (error) {
         console.error("Error saving Israel product:", error);
-        await sendMessage(chatId, "⚠️ שגיאה בשמירת הקישור");
+        await sendMessage(AUTHORIZED_USER_ID, "⚠️ שגיאה בשמירת הקישור");
       } else {
         const statusParts = [`✅ נשמר למאגר ישראל`];
         if (productName !== "מוצר חדש — לעדכון") statusParts.push(`📦 ${productName.substring(0, 60)}`);
         if (category !== "כללי") statusParts.push(`🏷️ ${category}`);
         if (!imageUrl || !priceUsd) statusParts.push(`📝 חסרים: ${!imageUrl ? "תמונה " : ""}${!priceUsd ? "מחיר" : ""}`);
-        await sendMessage(chatId, statusParts.join("\n"));
+        await sendMessage(AUTHORIZED_USER_ID, statusParts.join("\n"));
       }
     } else {
       const productId = extractLazadaProductId(finalUrl);
@@ -360,7 +360,7 @@ async function handleGroupMessage(chatId: number, message: any) {
         .limit(1);
       
       if (existing && existing.length > 0) {
-        await sendMessage(chatId, "⚠️ קישור זה כבר קיים במאגר תאילנד");
+        await sendMessage(AUTHORIZED_USER_ID, "⚠️ קישור זה כבר קיים במאגר תאילנד");
         continue;
       }
 
@@ -391,12 +391,12 @@ async function handleGroupMessage(chatId: number, message: any) {
 
       if (error) {
         console.error("Error saving Thailand product:", error);
-        await sendMessage(chatId, "⚠️ שגיאה בשמירת הקישור");
+        await sendMessage(AUTHORIZED_USER_ID, "⚠️ שגיאה בשמירת הקישור");
       } else {
         const statusParts = [`✅ נשמר למאגר תאילנד`];
         if (productName !== "מוצר חדש — לעדכון") statusParts.push(`📦 ${productName.substring(0, 60)}`);
         if (category !== "כללי") statusParts.push(`🏷️ ${category}`);
-        await sendMessage(chatId, statusParts.join("\n"));
+        await sendMessage(AUTHORIZED_USER_ID, statusParts.join("\n"));
       }
     }
   }
