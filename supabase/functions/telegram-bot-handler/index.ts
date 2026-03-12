@@ -1823,6 +1823,7 @@ async function handleExternalInfo(chatId: number, userId: number, text: string) 
   await svcClient2.from("user_sessions").upsert({
     user_id: userId,
     state: "waiting_external_category",
+    data: cached,
     last_updated: new Date().toISOString(),
   });
 }
