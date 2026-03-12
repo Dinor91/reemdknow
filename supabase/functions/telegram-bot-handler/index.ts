@@ -1988,7 +1988,7 @@ serve(async (req) => {
     }
 
     // Handle regular messages
-    const message = update.message;
+    const message = update.message || update.channel_post;
     if (!message) return new Response("OK");
 
     const chatId = message.chat.id;

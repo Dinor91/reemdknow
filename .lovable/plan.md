@@ -1,36 +1,58 @@
 
 
-## Fix: Support `channel_post` in Telegram Bot Handler
+# תיקון זיכרון חיפוש — user_sessions
 
-### Problem
-Line 1991 reads only `update.message`. Telegram sends group/channel messages as `update.channel_post` when:
-- The chat is a channel
-- The group has "Sign Messages" disabled (posts appear as the channel name)
+## בעיה
+אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
 
-The bot silently ignores these with `return new Response("OK")`.
+## פתרון — טבלת `user_sessions`
 
-### Fix (1 line change)
+### שלב 1: מיגרציה
+```sql
+CREATE TABLE user_sessions (
+  user_id BIGINT PRIMARY KEY,
+  state TEXT NOT NULL DEFAULT 'idle',
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
+```
 
-**File:** `supabase/functions/telegram-bot-handler/index.ts`
+### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
 
-**Line 1991:** Change:
+**2a. ב-callback handler של `cmd:search` (שורה 1560):**
 ```typescript
-const message = update.message;
+else if (data === "cmd:search") {
+  const serviceClient = createServiceClient();
+  await serviceClient.from("user_sessions").upsert({
+    user_id: userId,
+    state: "waiting_search",
+    last_updated: new Date().toISOString(),
+  });
+  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
+}
 ```
-to:
+
+**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
 ```typescript
-const message = update.message || update.channel_post;
+// Check if waiting for search input
+const serviceClient = createServiceClient();
+const { data: session } = await serviceClient
+  .from("user_sessions")
+  .select("state")
+  .eq("user_id", userId)
+  .maybeSingle();
+
+if (session?.state === "waiting_search" && !text.startsWith("/")) {
+  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
+  await handleFreeTextSearch(chatId, text);
+  return new Response("OK");
+}
 ```
 
-### Additional: Verify webhook includes `channel_post`
+## קובץ
+- `supabase/functions/telegram-bot-handler/index.ts`
 
-After deploying, call `getWebhookInfo` to check `allowed_updates`. If `channel_post` is missing, re-register the webhook with:
-```
-allowed_updates: ["message", "callback_query", "channel_post"]
-```
-
-This can be done via a one-time curl to the Telegram API.
-
-### No other code changes needed
-The downstream logic (`chat.type`, `chat.id`, `message.text`, URL extraction) works identically for both `message` and `channel_post` payloads — Telegram uses the same structure for both.
+## תוצאה
+לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
 
