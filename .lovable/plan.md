@@ -1,58 +1,30 @@
 
 
-# תיקון זיכרון חיפוש — user_sessions
+## תוכנית: הוספת לוג דיאגנוסטי לזיהוי Group IDs
 
-## בעיה
-אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
+### בעיה
+ה-secrets `TELEGRAM_ISRAEL_GROUP_ID` ו-`TELEGRAM_THAILAND_GROUP_ID` מוצפנים ולא ניתן לקרוא את ערכיהם. צריך לוודא שהם תואמים ל-Chat IDs האמיתיים:
+- **ישראל:** `-1003542210795`
+- **תאילנד:** `-1003488760258`
 
-## פתרון — טבלת `user_sessions`
+### פתרון: הוספת לוג דיאגנוסטי זמני
 
-### שלב 1: מיגרציה
-```sql
-CREATE TABLE user_sessions (
-  user_id BIGINT PRIMARY KEY,
-  state TEXT NOT NULL DEFAULT 'idle',
-  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
-```
+**קובץ:** `supabase/functions/telegram-bot-handler/index.ts`
 
-### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
-
-**2a. ב-callback handler של `cmd:search` (שורה 1560):**
+**שינוי 1** — אחרי שורה 10, הוסף לוג שמדפיס את הערכים הנטענים:
 ```typescript
-else if (data === "cmd:search") {
-  const serviceClient = createServiceClient();
-  await serviceClient.from("user_sessions").upsert({
-    user_id: userId,
-    state: "waiting_search",
-    last_updated: new Date().toISOString(),
-  });
-  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
-}
+console.log(`Group IDs config — Israel: ${ISRAEL_GROUP_ID}, Thailand: ${THAILAND_GROUP_ID}`);
 ```
 
-**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
+**שינוי 2** — בשורה ~2000, לפני הבדיקה, הוסף לוג שמדפיס את ה-chatId הנכנס:
 ```typescript
-// Check if waiting for search input
-const serviceClient = createServiceClient();
-const { data: session } = await serviceClient
-  .from("user_sessions")
-  .select("state")
-  .eq("user_id", userId)
-  .maybeSingle();
-
-if (session?.state === "waiting_search" && !text.startsWith("/")) {
-  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
-  await handleFreeTextSearch(chatId, text);
-  return new Response("OK");
-}
+console.log(`Group message from chatId: ${chatId}, match: israel=${chatId === ISRAEL_GROUP_ID}, thailand=${chatId === THAILAND_GROUP_ID}`);
 ```
 
-## קובץ
-- `supabase/functions/telegram-bot-handler/index.ts`
+### תוצאה צפויה
+אחרי deploy, שליחת הודעה בקבוצה תראה בלוגים:
+- מה הערך שנטען מה-secret
+- האם יש match או לא
 
-## תוצאה
-לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
+אם אין match — נעדכן את ה-secrets לערכים הנכונים ונסיר את הלוגים הזמניים.
 
