@@ -412,11 +412,14 @@ serve(async (req) => {
     let product: { name: string; price: string; rating: string | null; sales_7d: string | null; category: string; brand: string; decode_success?: boolean };
     let apiUsed = "none";
 
+    let imageUrl: string | null = null;
+
     // For AliExpress: use API directly
     if (platform === "aliexpress" && productId) {
       const apiResult = await getProductFromAliExpressAPI(productId);
       if (apiResult && apiResult.name) {
         product = { ...apiResult, decode_success: true };
+        imageUrl = apiResult.image_url || null;
         if (apiResult.promotion_link) {
           affiliateUrl = apiResult.promotion_link;
           console.log(`✅ Using short promotion_link: ${affiliateUrl.substring(0, 80)}...`);
@@ -442,6 +445,8 @@ serve(async (req) => {
       };
       apiUsed = "lazada-api";
       console.log(`✅ Got product from Lazada API: ${lazadaResult.name}`);
+      // Try to get og:image for Lazada
+      imageUrl = await scrapeOgImage(resolvedUrl);
     } else {
       // Fallback: scrape + Gemini (with hallucination guard)
       const pageContent = await scrapeProductPage(resolvedUrl);
@@ -452,6 +457,10 @@ serve(async (req) => {
       } else {
         product = await extractProductWithGemini(resolvedUrl, pageContent, extra_info || undefined);
         apiUsed = "gemini";
+      }
+      // Try og:image for Lazada fallback too
+      if (platform === "lazada" && !imageUrl) {
+        imageUrl = await scrapeOgImage(resolvedUrl);
       }
     }
 

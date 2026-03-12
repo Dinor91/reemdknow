@@ -284,6 +284,12 @@ export const ExternalLinkDealTab = () => {
             <CardTitle className="text-base">פרטי מוצר</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {imageUrl && (
+              <div className="flex items-center gap-3">
+                <img src={imageUrl} alt={editName} className="w-20 h-20 object-cover rounded-lg border border-border" />
+                <span className="text-sm text-muted-foreground">תמונת מוצר</span>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm text-muted-foreground">שם מוצר</label>
