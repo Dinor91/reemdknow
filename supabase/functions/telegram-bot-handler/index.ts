@@ -497,8 +497,14 @@ async function handleFreeTextSearch(chatId: number, text: string) {
       }
     }
 
-    // Store results temporarily in a global map for callback handling
-    searchResultsCache.set(chatId, { results, timestamp: Date.now() });
+    // Store results in DB for callback handling
+    const scStore = createServiceClient();
+    await scStore.from("user_sessions").upsert({
+      user_id: chatId,
+      state: "search_results",
+      data: { results },
+      last_updated: new Date().toISOString(),
+    });
 
     await sendMessage(chatId, `✅ נמצאו ${results.length} מוצרים (${((data.search_time_ms || 0) / 1000).toFixed(1)}s)`);
   } catch (e) {
