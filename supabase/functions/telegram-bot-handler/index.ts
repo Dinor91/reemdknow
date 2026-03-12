@@ -1682,11 +1682,12 @@ async function handleExternalInfo(chatId: number, userId: number, text: string) 
 
       // Save to deals_sent
       const sc = createServiceClient();
+      const validCategory = DEAL_CATEGORIES.includes(product?.category || "") ? product.category : "כללי";
       await sc.from("deals_sent").insert({
         product_name: product?.name || "מוצר",
         product_name_hebrew: product?.name || "מוצר",
         platform: cached.platform === "aliexpress" ? "israel" : "thailand",
-        category: product?.category || "כללי",
+        category: validCategory,
         affiliate_url: cached.affiliate_url,
         product_id: cached.product_id,
       });
@@ -1697,7 +1698,7 @@ async function handleExternalInfo(chatId: number, userId: number, text: string) 
           aliexpress_product_id: cached.product_id,
           product_name_hebrew: product?.name || "מוצר חדש",
           tracking_link: cached.affiliate_url,
-          category_name_hebrew: product?.category || "כללי",
+          category_name_hebrew: validCategory,
           price_usd: product?.price ? parseFloat(product.price) : null,
           rating: product?.rating ? parseFloat(product.rating) : null,
           sales_count: product?.sales_7d ? parseInt(product.sales_7d) : null,
