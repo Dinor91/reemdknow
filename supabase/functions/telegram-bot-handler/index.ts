@@ -1822,6 +1822,11 @@ serve(async (req) => {
       else if (data.startsWith("deal_gen:")) await handleDealGenerate(chatId, data.split(":")[1]);
       // Search deal callback
       else if (data.startsWith("search_deal:")) await handleSearchDealCallback(chatId, parseInt(data.split(":")[1]));
+      // External link category selection
+      else if (data.startsWith("extcat:")) {
+        const category = data.substring(7);
+        await handleExternalCategoryAndGenerate(chatId, userId, category);
+      }
       // Legacy weekly_msg
       else if (data.startsWith("weekly_msg")) await handleWeeklyPlatformMessage(chatId, "thailand");
 
