@@ -1929,7 +1929,7 @@ async function handleExternalCategoryAndGenerate(chatId: number, userId: number,
   }
 
   // Clean up
-  extLinkCache.delete(chatId);
+  // DB cleanup handled below
   const svcClient = createServiceClient();
   await svcClient.from("user_sessions").delete().eq("user_id", userId);
 }
