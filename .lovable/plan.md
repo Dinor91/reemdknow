@@ -1,58 +1,58 @@
 
 
-# תיקון: שימוש ב-Lazada batch-links API לחילוץ פרטי מוצר
+# תיקון זיכרון חיפוש — user_sessions
 
-## הבעיה האמיתית
+## בעיה
+אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
 
-הלוגים מראים שה-API של Lazada **כבר מחזיר נתונים** — שם מוצר, עמלה, קישור אפיליאציה — אבל הקוד לא יודע לקרוא אותם:
+## פתרון — טבלת `user_sessions`
 
+### שלב 1: מיגרציה
+```sql
+CREATE TABLE user_sessions (
+  user_id BIGINT PRIMARY KEY,
+  state TEXT NOT NULL DEFAULT 'idle',
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
 ```
-Lazada batch-links response: {"result":{"data":{"urlBatchGetLinkInfoList":[{
-  "regularCommission":"11%",
-  "productName":"...",
-  "regularPromotionLink":"https://c.lazada.co.th/t/c.2Kyzso",
-  "productId":"6005890776"
-}]}}}
-```
 
-**באג 1:** `getLazadaAffiliateLink` מחפש `linkData.link` אבל השדה האמיתי הוא `urlBatchGetLinkInfoList[0].regularPromotionLink`.
+### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
 
-**באג 2:** ה-API כבר מחזיר `productName` אבל הקוד זורק אותו ומנסה לעשות סקרייפינג (שנכשל).
-
-## הפתרון
-
-### שינוי 1: פונקציה חדשה `getProductFromLazadaAPI`
-
-במקום רק לחלץ קישור אפיליאציה, נחלץ גם שם מוצר ועמלה מאותה קריאת API:
-
+**2a. ב-callback handler של `cmd:search` (שורה 1560):**
 ```typescript
-async function getProductFromLazadaAPI(url: string): Promise<{
-  name: string;
-  commission: string | null;
-  affiliateLink: string | null;
-  productId: string | null;
-} | null> {
-  // קורא ל-lazada-api עם action: "batch-links"
-  // מחלץ מ-urlBatchGetLinkInfoList[0]:
-  //   productName, regularCommission, regularPromotionLink, productId
+else if (data === "cmd:search") {
+  const serviceClient = createServiceClient();
+  await serviceClient.from("user_sessions").upsert({
+    user_id: userId,
+    state: "waiting_search",
+    last_updated: new Date().toISOString(),
+  });
+  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
 }
 ```
 
-### שינוי 2: עדכון הפלואו הראשי (שורות 330-377)
+**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
+```typescript
+// Check if waiting for search input
+const serviceClient = createServiceClient();
+const { data: session } = await serviceClient
+  .from("user_sessions")
+  .select("state")
+  .eq("user_id", userId)
+  .maybeSingle();
 
-```text
-Lazada flow:
-  1. קריאה ל-getProductFromLazadaAPI(resolvedUrl)
-  2. אם הצליח → שימוש בשם + קישור מה-API (בלי סקרייפינג בכלל)
-  3. אם נכשל → scrape + בדיקת 100 תווים (כמו היום)
+if (session?.state === "waiting_search" && !text.startsWith("/")) {
+  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
+  await handleFreeTextSearch(chatId, text);
+  return new Response("OK");
+}
 ```
 
-### שינוי 3: מחיקת `getLazadaAffiliateLink` (מוחלפת)
-
-## קובץ אחד: `supabase/functions/decode-external-link/index.ts`
+## קובץ
+- `supabase/functions/telegram-bot-handler/index.ts`
 
 ## תוצאה
-
-- קישור Lazada → API מחזיר שם + קישור קצר → דיל תקין
-- אם ה-API נכשל → fallback לסקרייפינג + הגנה מהזיות (< 100 תווים)
+לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
 

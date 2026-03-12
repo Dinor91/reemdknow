@@ -66,7 +66,9 @@ function extractLazadaProductId(url: string): string | null {
   return null;
 }
 
-async function getLazadaAffiliateLink(url: string): Promise<string | null> {
+async function getProductFromLazadaAPI(url: string): Promise<{
+  name: string; commission: string | null; affiliateLink: string | null; productId: string | null;
+} | null> {
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/lazada-api`, {
       method: "POST",
@@ -74,15 +76,32 @@ async function getLazadaAffiliateLink(url: string): Promise<string | null> {
       body: JSON.stringify({ action: "batch-links", inputType: "url", inputValue: url }),
     });
     const data = await resp.json();
+    console.log("Lazada batch-links response:", JSON.stringify(data).substring(0, 800));
+
+    // Parse the actual response structure: result.data.urlBatchGetLinkInfoList[0]
+    const linkList = data?.result?.data?.urlBatchGetLinkInfoList
+      || data?.data?.result?.data?.urlBatchGetLinkInfoList;
+    
+    if (linkList && linkList.length > 0) {
+      const item = linkList[0];
+      return {
+        name: item.productName || "",
+        commission: item.regularCommission || null,
+        affiliateLink: item.regularPromotionLink || item.promotionLink || null,
+        productId: item.productId ? String(item.productId) : null,
+      };
+    }
+
+    // Fallback: try other response shapes
     const linkData = data?.data?.result?.data;
-    if (linkData && linkData.link) return linkData.link;
-    if (linkData && Array.isArray(linkData) && linkData[0]?.link) return linkData[0].link;
-    // Try nested
-    if (data?.data?.result?.link) return data.data.result.link;
-    console.log("Lazada batch-links response:", JSON.stringify(data).substring(0, 500));
+    if (linkData && linkData.link) {
+      return { name: "", commission: null, affiliateLink: linkData.link, productId: null };
+    }
+
+    console.log("Lazada API: no usable data found");
     return null;
   } catch (e) {
-    console.error("Lazada affiliate link error:", e);
+    console.error("Lazada API error:", e);
     return null;
   }
 }
@@ -314,10 +333,10 @@ serve(async (req) => {
     // Step 3: Generate affiliate URL
     let affiliateUrl = resolvedUrl;
     let productId: string | null = null;
+    let lazadaResult: { name: string; commission: string | null; affiliateLink: string | null; productId: string | null } | null = null;
 
     if (platform === "aliexpress") {
       productId = extractAliExpressProductId(resolvedUrl);
-      // Add tracking params
       const TRACKING_ID = Deno.env.get("ALIEXPRESS_TRACKING_ID");
       const isAlreadyTracked = resolvedUrl.includes("s.click.aliexpress.com") ||
         resolvedUrl.includes("a.aliexpress.com") ||
@@ -328,14 +347,16 @@ serve(async (req) => {
         affiliateUrl = `${resolvedUrl}${separator}aff_fcid=${TRACKING_ID}&aff_platform=portals-tool`;
       }
     } else {
-      productId = extractLazadaProductId(resolvedUrl);
-      // Convert to affiliate link via Lazada API
-      const lazadaLink = await getLazadaAffiliateLink(resolvedUrl);
-      if (lazadaLink) {
-        affiliateUrl = lazadaLink;
-        console.log(`Lazada affiliate link generated: ${affiliateUrl.substring(0, 80)}...`);
+      lazadaResult = await getProductFromLazadaAPI(resolvedUrl);
+      if (lazadaResult) {
+        productId = lazadaResult.productId || extractLazadaProductId(resolvedUrl);
+        if (lazadaResult.affiliateLink) {
+          affiliateUrl = lazadaResult.affiliateLink;
+          console.log(`✅ Lazada affiliate link: ${affiliateUrl.substring(0, 80)}...`);
+        }
       } else {
-        console.log("Lazada affiliate link generation failed, using original URL");
+        productId = extractLazadaProductId(resolvedUrl);
+        console.log("Lazada API failed, using original URL");
       }
     }
 
@@ -343,12 +364,11 @@ serve(async (req) => {
     let product: { name: string; price: string; rating: string | null; sales_7d: string | null; category: string; brand: string; decode_success?: boolean };
     let apiUsed = "none";
 
-    // For AliExpress: use API directly (scraping doesn't work - AliExpress blocks server-side requests)
+    // For AliExpress: use API directly
     if (platform === "aliexpress" && productId) {
       const apiResult = await getProductFromAliExpressAPI(productId);
       if (apiResult && apiResult.name) {
         product = { ...apiResult, decode_success: true };
-        // Use promotion_link as affiliate URL if available (shorter)
         if (apiResult.promotion_link) {
           affiliateUrl = apiResult.promotion_link;
           console.log(`✅ Using short promotion_link: ${affiliateUrl.substring(0, 80)}...`);
@@ -356,17 +376,28 @@ serve(async (req) => {
         apiUsed = "aliexpress-api";
         console.log(`✅ Got product from AliExpress API: ${apiResult.name}`);
       } else {
-        // Fallback to Gemini with scrape (unlikely to work for AliExpress but try)
         console.log("⚠️ AliExpress API failed, falling back to scrape+Gemini");
         const pageContent = await scrapeProductPage(resolvedUrl);
         product = await extractProductWithGemini(resolvedUrl, pageContent, extra_info || undefined);
         apiUsed = "gemini-fallback";
       }
+    } else if (platform === "lazada" && lazadaResult?.name) {
+      // Lazada API returned product name — use it directly, no scraping needed
+      product = {
+        name: lazadaResult.name,
+        price: "",
+        rating: null,
+        sales_7d: null,
+        category: "כללי",
+        brand: "",
+        decode_success: !!lazadaResult.name,
+      };
+      apiUsed = "lazada-api";
+      console.log(`✅ Got product from Lazada API: ${lazadaResult.name}`);
     } else {
-      // Lazada or unknown: use scrape + Gemini
+      // Fallback: scrape + Gemini (with hallucination guard)
       const pageContent = await scrapeProductPage(resolvedUrl);
       if (pageContent.length < 100) {
-        // Scraping failed (Lazada blocks server-side requests) — skip Gemini to prevent hallucinations
         console.log(`⚠️ Scraping returned only ${pageContent.length} chars, skipping Gemini to avoid hallucination`);
         product = { name: "", price: "", rating: null, sales_7d: null, category: "כללי", brand: "", decode_success: false };
         apiUsed = "none-scrape-failed";
