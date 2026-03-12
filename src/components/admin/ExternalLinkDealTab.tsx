@@ -75,6 +75,7 @@ export const ExternalLinkDealTab = () => {
 
       const p = data.product;
       setProduct(p);
+      setImageUrl(data.product?.image_url || null);
       setEditName(p.name || "");
       setEditPrice(p.price || "");
       setEditRating(p.rating || "");
