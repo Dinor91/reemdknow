@@ -1713,8 +1713,7 @@ async function handleAddCoupon(chatId: number, text: string) {
 
 // ────────── EXTERNAL LINK DEAL FLOW ──────────
 
-// In-memory cache for external link decode results
-const extLinkCache = new Map<number, { product: any; platform: string; affiliate_url: string; product_id: string | null; currency_symbol: string; timestamp: number }>();
+// External link data is now stored in user_sessions.data (JSONB column)
 
 async function handleExternalLinkStart(chatId: number, userId: number) {
   const svcClient = createServiceClient();
