@@ -31,6 +31,7 @@ export const ExternalLinkDealTab = () => {
   const [productId, setProductId] = useState<string | null>(null);
   const [decodeSuccess, setDecodeSuccess] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState("$");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const [coupon, setCoupon] = useState("");
   const [dealMessage, setDealMessage] = useState("");
@@ -74,6 +75,7 @@ export const ExternalLinkDealTab = () => {
 
       const p = data.product;
       setProduct(p);
+      setImageUrl(data.product?.image_url || null);
       setEditName(p.name || "");
       setEditPrice(p.price || "");
       setEditRating(p.rating || "");
@@ -177,6 +179,7 @@ export const ExternalLinkDealTab = () => {
           price_usd: editPrice ? parseFloat(editPrice) : null,
           rating: editRating ? parseFloat(editRating) : null,
           sales_count: editSales ? parseInt(editSales) : null,
+          image_url: imageUrl || null,
           is_active: true,
           out_of_stock: false,
           source: "external_link",
@@ -197,6 +200,7 @@ export const ExternalLinkDealTab = () => {
           price_thb: editPrice ? parseFloat(editPrice) : null,
           rating: editRating ? parseFloat(editRating) : null,
           sales_count: editSales ? parseInt(editSales) : null,
+          image_url: imageUrl || null,
           is_active: true,
           out_of_stock: false,
           source: "external_link",
@@ -231,6 +235,7 @@ export const ExternalLinkDealTab = () => {
     setEditCategory("כללי");
     setEditBrand("");
     setManualFields(new Set());
+    setImageUrl(null);
   };
 
   const manualInputClass = "border-orange-400 border-2";
@@ -279,6 +284,12 @@ export const ExternalLinkDealTab = () => {
             <CardTitle className="text-base">פרטי מוצר</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {imageUrl && (
+              <div className="flex items-center gap-3">
+                <img src={imageUrl} alt={editName} className="w-20 h-20 object-cover rounded-lg border border-border" />
+                <span className="text-sm text-muted-foreground">תמונת מוצר</span>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm text-muted-foreground">שם מוצר</label>
