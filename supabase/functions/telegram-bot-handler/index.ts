@@ -360,7 +360,7 @@ async function handleGroupMessage(chatId: number, message: any) {
         .limit(1);
       
       if (existing && existing.length > 0) {
-        await sendMessage(chatId, "⚠️ קישור זה כבר קיים במאגר תאילנד");
+        await sendMessage(AUTHORIZED_USER_ID, "⚠️ קישור זה כבר קיים במאגר תאילנד");
         continue;
       }
 
