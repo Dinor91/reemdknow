@@ -513,15 +513,21 @@ async function handleFreeTextSearch(chatId: number, text: string) {
   }
 }
 
-// Simple in-memory cache for search results (per chat, expires after 10 min)
-const searchResultsCache = new Map<number, { results: any[]; timestamp: number }>();
-
 async function handleSearchDealCallback(chatId: number, resultIdx: number) {
-  const cached = searchResultsCache.get(chatId);
-  if (!cached || Date.now() - cached.timestamp > 10 * 60 * 1000) {
+  const scRead = createServiceClient();
+  const { data: session } = await scRead
+    .from("user_sessions")
+    .select("state, data, last_updated")
+    .eq("user_id", chatId)
+    .maybeSingle();
+
+  if (!session?.data || Date.now() - new Date(session.last_updated).getTime() > 10 * 60 * 1000) {
     await sendMessage(chatId, "⏰ תוצאות החיפוש פגו - שלח חיפוש חדש");
+    if (session) await scRead.from("user_sessions").delete().eq("user_id", chatId);
     return;
   }
+
+  const cached = session.data as any;
 
   const result = cached.results[resultIdx];
   if (!result) {
