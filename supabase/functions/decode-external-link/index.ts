@@ -90,7 +90,7 @@ async function getLazadaAffiliateLink(url: string): Promise<string | null> {
 // Get product details directly from AliExpress API (reliable, no scraping needed)
 async function getProductFromAliExpressAPI(productId: string): Promise<{
   name: string; price: string; rating: string | null; sales_7d: string | null;
-  category: string; brand: string; image_url: string | null;
+  category: string; brand: string; image_url: string | null; promotion_link: string | null;
 } | null> {
   try {
     console.log(`Calling AliExpress API for product: ${productId}`);
