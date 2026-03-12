@@ -477,6 +477,7 @@ serve(async (req) => {
           sales_7d: product.sales_7d,
           category: product.category,
           brand: product.brand,
+          image_url: imageUrl,
         },
         product_id: productId,
         affiliate_url: affiliateUrl,
