@@ -78,7 +78,6 @@ async function getProductFromLazadaAPI(url: string): Promise<{
     const data = await resp.json();
     console.log("Lazada batch-links response:", JSON.stringify(data).substring(0, 800));
 
-    // Parse the actual response structure: result.data.urlBatchGetLinkInfoList[0]
     const linkList = data?.result?.data?.urlBatchGetLinkInfoList
       || data?.data?.result?.data?.urlBatchGetLinkInfoList;
     
@@ -98,10 +97,59 @@ async function getProductFromLazadaAPI(url: string): Promise<{
       return { name: "", commission: null, affiliateLink: linkData.link, productId: null };
     }
 
+    // Fallback: retry with productId if URL-based call returned nothing
+    const pidFromUrl = extractLazadaProductId(url);
+    if (pidFromUrl) {
+      console.log(`Lazada URL batch failed, retrying with productId: ${pidFromUrl}`);
+      const resp2 = await fetch(`${SUPABASE_URL}/functions/v1/lazada-api`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({ action: "batch-links", inputType: "productId", inputValue: pidFromUrl }),
+      });
+      const data2 = await resp2.json();
+      console.log("Lazada productId retry response:", JSON.stringify(data2).substring(0, 800));
+
+      const linkList2 = data2?.result?.data?.urlBatchGetLinkInfoList
+        || data2?.data?.result?.data?.urlBatchGetLinkInfoList;
+      if (linkList2 && linkList2.length > 0) {
+        const item = linkList2[0];
+        return {
+          name: item.productName || "",
+          commission: item.regularCommission || null,
+          affiliateLink: item.regularPromotionLink || item.promotionLink || null,
+          productId: item.productId ? String(item.productId) : pidFromUrl,
+        };
+      }
+    }
+
     console.log("Lazada API: no usable data found");
     return null;
   } catch (e) {
     console.error("Lazada API error:", e);
+    return null;
+  }
+}
+
+async function scrapeOgImage(url: string): Promise<string | null> {
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+      redirect: "follow",
+    });
+    const html = await resp.text();
+    const match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    if (match && match[1]) {
+      console.log(`✅ og:image found: ${match[1].substring(0, 100)}`);
+      return match[1];
+    }
+    console.log("No og:image found");
+    return null;
+  } catch (e) {
+    console.error("scrapeOgImage error:", e);
     return null;
   }
 }

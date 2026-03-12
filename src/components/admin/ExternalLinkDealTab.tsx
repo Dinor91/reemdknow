@@ -31,6 +31,7 @@ export const ExternalLinkDealTab = () => {
   const [productId, setProductId] = useState<string | null>(null);
   const [decodeSuccess, setDecodeSuccess] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState("$");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const [coupon, setCoupon] = useState("");
   const [dealMessage, setDealMessage] = useState("");
