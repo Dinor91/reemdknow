@@ -25,18 +25,8 @@ interface ConvertedLink {
   detectedCategory?: string;
 }
 
-const CATEGORIES_ISRAEL = [
-  "רכב",
-  "גאדג׳טים",
-  "ילדים",
-  "בית",
-  "בית חכם",
-  "אופנה",
-  "נסיעות",
-  "בריאות",
-  "כלי עבודה",
-  "כללי"
-];
+import { DEAL_CATEGORIES } from "@/lib/categories";
+const CATEGORIES_ISRAEL = DEAL_CATEGORIES;
 
 // Auto-detect category from product name using keywords
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
