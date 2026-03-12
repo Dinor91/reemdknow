@@ -179,6 +179,7 @@ export const ExternalLinkDealTab = () => {
           price_usd: editPrice ? parseFloat(editPrice) : null,
           rating: editRating ? parseFloat(editRating) : null,
           sales_count: editSales ? parseInt(editSales) : null,
+          image_url: imageUrl || null,
           is_active: true,
           out_of_stock: false,
           source: "external_link",
