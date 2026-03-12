@@ -1,4 +1,4 @@
-import { Home, Baby, Sparkles, Hammer, Trees, Tent, Utensils, Sofa, ShieldCheck, WashingMachine, Search, X, ExternalLink, Package, Car, Smartphone, Heart, Plane, Wrench, Lightbulb } from "lucide-react";
+import { Home, Baby, Search, X, ExternalLink, Package, Car, Smartphone, Heart, Wrench, Shirt } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,20 +27,14 @@ interface DisplayProduct {
 }
 
 const categories: Category[] = [
-  { icon: Home, emoji: "🏠", title: "בית" },
-  { icon: Baby, emoji: "👶", title: "ילדים" },
-  { icon: Tent, emoji: "⛺", title: "טיולים" },
-  { icon: Heart, emoji: "💪", title: "בריאות" },
-  { icon: Smartphone, emoji: "📱", title: "גאדג׳טים" },
-  { icon: Plane, emoji: "✈️", title: "נסיעות" },
-  { icon: Car, emoji: "🚗", title: "רכב" },
-  { icon: Lightbulb, emoji: "💡", title: "בית חכם" },
-  { icon: Wrench, emoji: "🔧", title: "כלי עבודה" },
-  { icon: ShieldCheck, emoji: "🦟", title: "הדברה" },
-  { icon: Trees, emoji: "🌳", title: "חצר וגינה" },
-  { icon: Hammer, emoji: "🛠️", title: "DIY" },
-  { icon: Utensils, emoji: "🇮🇱", title: "מוצרי מזון ישראליים" },
-  { icon: Package, emoji: "📦", title: "כללי" }
+  { icon: Smartphone, emoji: "📱", title: "גאדג׳טים ובית חכם" },
+  { icon: Car, emoji: "🚗", title: "רכב ותחבורה" },
+  { icon: Home, emoji: "🏠", title: "בית ומטבח" },
+  { icon: Shirt, emoji: "👕", title: "אופנה וסטייל" },
+  { icon: Baby, emoji: "👶", title: "ילדים ומשחקים" },
+  { icon: Heart, emoji: "💪", title: "בריאות וספורט" },
+  { icon: Wrench, emoji: "🔧", title: "כלי עבודה וציוד" },
+  { icon: Package, emoji: "📦", title: "כללי" },
 ];
 
 const CTA_STORAGE_KEY = 'thailand_cta_last_shown';
