@@ -333,10 +333,10 @@ serve(async (req) => {
     // Step 3: Generate affiliate URL
     let affiliateUrl = resolvedUrl;
     let productId: string | null = null;
+    let lazadaResult: { name: string; commission: string | null; affiliateLink: string | null; productId: string | null } | null = null;
 
     if (platform === "aliexpress") {
       productId = extractAliExpressProductId(resolvedUrl);
-      // Add tracking params
       const TRACKING_ID = Deno.env.get("ALIEXPRESS_TRACKING_ID");
       const isAlreadyTracked = resolvedUrl.includes("s.click.aliexpress.com") ||
         resolvedUrl.includes("a.aliexpress.com") ||
@@ -347,8 +347,7 @@ serve(async (req) => {
         affiliateUrl = `${resolvedUrl}${separator}aff_fcid=${TRACKING_ID}&aff_platform=portals-tool`;
       }
     } else {
-      // Lazada: use batch-links API which returns product name + affiliate link
-      const lazadaResult = await getProductFromLazadaAPI(resolvedUrl);
+      lazadaResult = await getProductFromLazadaAPI(resolvedUrl);
       if (lazadaResult) {
         productId = lazadaResult.productId || extractLazadaProductId(resolvedUrl);
         if (lazadaResult.affiliateLink) {
