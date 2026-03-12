@@ -1,4 +1,4 @@
-import { Home, Baby, Sparkles, Hammer, Trees, Tent, Utensils, Sofa, ShieldCheck, WashingMachine, Search, X, ExternalLink, Package, Car, Smartphone, Heart, Plane, Wrench, Lightbulb } from "lucide-react";
+import { Home, Baby, Search, X, ExternalLink, Package, Car, Smartphone, Heart, Wrench, Shirt } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
