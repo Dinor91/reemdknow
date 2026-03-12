@@ -365,8 +365,15 @@ serve(async (req) => {
     } else {
       // Lazada or unknown: use scrape + Gemini
       const pageContent = await scrapeProductPage(resolvedUrl);
-      product = await extractProductWithGemini(resolvedUrl, pageContent, extra_info || undefined);
-      apiUsed = "gemini";
+      if (pageContent.length < 100) {
+        // Scraping failed (Lazada blocks server-side requests) — skip Gemini to prevent hallucinations
+        console.log(`⚠️ Scraping returned only ${pageContent.length} chars, skipping Gemini to avoid hallucination`);
+        product = { name: "", price: "", rating: null, sales_7d: null, category: "כללי", brand: "", decode_success: false };
+        apiUsed = "none-scrape-failed";
+      } else {
+        product = await extractProductWithGemini(resolvedUrl, pageContent, extra_info || undefined);
+        apiUsed = "gemini";
+      }
     }
 
     const currencySymbol = platform === "aliexpress" ? "$" : "฿";
