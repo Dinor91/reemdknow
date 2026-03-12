@@ -1998,6 +1998,7 @@ serve(async (req) => {
 
     // Handle group messages
     if (chat.type === "group" || chat.type === "supergroup") {
+      console.log(`[DIAG] Group message from chatId: ${chatId}, match: israel=${chatId === ISRAEL_GROUP_ID}, thailand=${chatId === THAILAND_GROUP_ID}`);
       if (chatId === ISRAEL_GROUP_ID || chatId === THAILAND_GROUP_ID) {
         await handleGroupMessage(chatId, message);
       }
