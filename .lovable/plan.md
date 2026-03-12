@@ -1,58 +1,34 @@
 
 
-# תיקון זיכרון חיפוש — user_sessions
+# שלב 4 — עדכון DEAL_CATEGORIES ב-4 קבצים
 
-## בעיה
-אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
-
-## פתרון — טבלת `user_sessions`
-
-### שלב 1: מיגרציה
-```sql
-CREATE TABLE user_sessions (
-  user_id BIGINT PRIMARY KEY,
-  state TEXT NOT NULL DEFAULT 'idle',
-  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
+## קובץ 1: `src/lib/categories.ts`
+החלפת הרשימה הנוכחית (7 ערכים) ברשימה החדשה (8 ערכים):
+```
+"גאדג׳טים ובית חכם", "רכב ותחבורה", "בית ומטבח", "אופנה וסטייל",
+"ילדים ומשחקים", "בריאות וספורט", "כלי עבודה וציוד", "כללי"
 ```
 
-### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
+## קובץ 2: `supabase/functions/telegram-bot-handler/index.ts` (שורות 19-28)
+אותה החלפה — הרשימה המקומית `DEAL_CATEGORIES` תתעדכן לאותם 8 ערכים.
 
-**2a. ב-callback handler של `cmd:search` (שורה 1560):**
-```typescript
-else if (data === "cmd:search") {
-  const serviceClient = createServiceClient();
-  await serviceClient.from("user_sessions").upsert({
-    user_id: userId,
-    state: "waiting_search",
-    last_updated: new Date().toISOString(),
-  });
-  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
-}
-```
+## קובץ 3: `src/components/admin/LinkConverter.tsx` (שורות 32-73)
+החלפת `CATEGORY_KEYWORDS` — מיפוי מילות מפתח למבנה החדש:
+- `"אביזרים לרכב ולאופנוע"` → `"רכב ותחבורה"` (+ helmet, dashcam, scooter)
+- `"משחקים ופתרונות לילדים"` → `"ילדים ומשחקים"` (+ nintendo, console)
+- `"מוצרי חשמל קטנים"` → פיצול: כלי עבודה → `"כלי עבודה וציוד"`, בית/מטבח → `"בית ומטבח"`, טיפוח → `"בריאות וספורט"`
+- `"ציוד לנסיעות וטיולים"` → נמחק (fitness/yoga → בריאות וספורט, travel → כללי)
+- `"חיות מחמד"` → נמחק (ימופה לכללי ב-fallback)
+- קטגוריות חדשות: `"בית ומטבח"`, `"אופנה וסטייל"`, `"בריאות וספורט"`, `"כלי עבודה וציוד"`
 
-**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
-```typescript
-// Check if waiting for search input
-const serviceClient = createServiceClient();
-const { data: session } = await serviceClient
-  .from("user_sessions")
-  .select("state")
-  .eq("user_id", userId)
-  .maybeSingle();
+## קובץ 4: `src/pages/Admin.tsx` (שורה 85)
+לא צריך שינוי — `CATEGORIES_ISRAEL` כבר מיובא מ-`categories.ts` ויתעדכן אוטומטית.
 
-if (session?.state === "waiting_search" && !text.startsWith("/")) {
-  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
-  await handleFreeTextSearch(chatId, text);
-  return new Response("OK");
-}
-```
-
-## קובץ
-- `supabase/functions/telegram-bot-handler/index.ts`
-
-## תוצאה
-לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
+## סיכום שינויים
+| קובץ | שינוי |
+|---|---|
+| `categories.ts` | רשימה חדשה (8 ערכים) |
+| `telegram-bot-handler` | רשימה מקומית חדשה (8 ערכים) |
+| `LinkConverter.tsx` | CATEGORY_KEYWORDS מעודכן ל-7 קטגוריות (כללי = fallback) |
+| `Admin.tsx` | ללא שינוי — import אוטומטי |
 
