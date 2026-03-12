@@ -1,58 +1,38 @@
 
 
-# תיקון זיכרון חיפוש — user_sessions
+## תוכנית: הודעות אישור בפרטי + הגדלת timeout
 
-## בעיה
-אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
+### שינוי 1 — הודעות אישור לפרטי בלבד
 
-## פתרון — טבלת `user_sessions`
+**מצב נוכחי:** `handleGroupMessage` (שורות 276-401) שולח את כל ההודעות (`✅ נשמר`, `⚠️ כפילות`, `⚠️ שגיאה`) ל-`chatId` — כלומר לקבוצה עצמה.
 
-### שלב 1: מיגרציה
-```sql
-CREATE TABLE user_sessions (
-  user_id BIGINT PRIMARY KEY,
-  state TEXT NOT NULL DEFAULT 'idle',
-  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
+**User ID של הבעלים:** כבר מוגדר בשורה 5:
 ```
-
-### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
-
-**2a. ב-callback handler של `cmd:search` (שורה 1560):**
-```typescript
-else if (data === "cmd:search") {
-  const serviceClient = createServiceClient();
-  await serviceClient.from("user_sessions").upsert({
-    user_id: userId,
-    state: "waiting_search",
-    last_updated: new Date().toISOString(),
-  });
-  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
-}
+const AUTHORIZED_USER_ID = parseInt(Deno.env.get("TELEGRAM_USER_ID") || "0");
 ```
+ערך: `5524069980`. אין צורך ב-secret חדש — נשתמש ב-`AUTHORIZED_USER_ID` הקיים.
 
-**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
-```typescript
-// Check if waiting for search input
-const serviceClient = createServiceClient();
-const { data: session } = await serviceClient
-  .from("user_sessions")
-  .select("state")
-  .eq("user_id", userId)
-  .maybeSingle();
+**שינוי:** בכל קריאות `sendMessage` בתוך `handleGroupMessage` (שורות 307, 344, 350, 363, 394, 399) — החלפת `chatId` ב-`AUTHORIZED_USER_ID`. סה"כ 6 מקומות.
 
-if (session?.state === "waiting_search" && !text.startsWith("/")) {
-  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
-  await handleFreeTextSearch(chatId, text);
-  return new Response("OK");
-}
-```
+הקבוצות יישארו שקטות לגמרי. כל האישורים/שגיאות → לצ'אט הפרטי שלך.
 
-## קובץ
-- `supabase/functions/telegram-bot-handler/index.ts`
+---
 
-## תוצאה
-לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
+### שינוי 2 — timeout
+
+**מצב נוכחי:** ה-timeout כבר **10 דקות** בכל 3 המקומות:
+
+| שורה | ערך | הקשר |
+|-------|-----|-------|
+| 515 | `10 * 60 * 1000` (10 דק') | תוצאות חיפוש |
+| 1775 | `10 * 60 * 1000` (10 דק') | ext link cache (בחירת קטגוריה) |
+| 1817 | `10 * 60 * 1000` (10 דק') | ext link cache (אישור שליחה) |
+
+**מסקנה:** ה-timeout כבר 10 דקות. אין צורך בשינוי.
+
+---
+
+### סיכום
+
+שינוי אחד בלבד בפועל — קובץ `telegram-bot-handler/index.ts`, החלפת `chatId` ב-`AUTHORIZED_USER_ID` ב-6 קריאות `sendMessage` בתוך `handleGroupMessage`.
 
