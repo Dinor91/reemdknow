@@ -1828,13 +1828,20 @@ async function handleExternalInfo(chatId: number, userId: number, text: string) 
 }
 
 async function handleExternalCategoryAndGenerate(chatId: number, userId: number, category: string) {
-  const cached = extLinkCache.get(chatId);
-  if (!cached || Date.now() - cached.timestamp > 10 * 60 * 1000) {
+  const scRead = createServiceClient();
+  const { data: session } = await scRead
+    .from("user_sessions")
+    .select("state, data, last_updated")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!session?.data || Date.now() - new Date(session.last_updated).getTime() > 10 * 60 * 1000) {
     await sendMessage(chatId, "⏰ הנתונים פגו, שלח /start להתחלה מחדש");
-    const svcClient = createServiceClient();
-    await svcClient.from("user_sessions").delete().eq("user_id", userId);
+    await scRead.from("user_sessions").delete().eq("user_id", userId);
     return;
   }
+
+  const cached = session.data as any;
 
   await sendMessage(chatId, "📝 יוצר הודעת דיל...");
 
