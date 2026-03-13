@@ -46,13 +46,7 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "coffee", "tea", "bbq", "grill", "cover pot", "silicone", "strap", "fixing",
     "ice cream", "creami", "ninja", "opener", "can opener", "beverage"
   ],
-  "בית חכם": [
-    "smart home", "wifi", "alexa", "google home", "automation", "sensor", "switch",
-    "socket", "plug smart", "bulb smart", "camera security", "doorbell", "lock smart",
-    "thermostat", "remote control", "zigbee", "tuya", "robot vacuum", "dreame",
-    "xiaomi robot", "roborock", "roomba", "ecovacs"
-  ],
-  "אופנה": [
+  "אופנה וסטייל": [
     "fashion", "clothing", "shirt", "dress", "pants", "jeans", "jacket", "coat",
     "shoes", "sneakers", "boots", "sandals", "bag", "handbag", "wallet", "belt",
     "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "sunglasses",
