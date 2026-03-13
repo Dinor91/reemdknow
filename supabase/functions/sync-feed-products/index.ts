@@ -67,12 +67,14 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "scale", "blood pressure", "thermometer", "first aid", "vitamin", "supplement",
     "posture", "back support", "knee", "wrist", "ankle", "pain relief", "sleep",
     "trimmer", "clipper", "shaver", "beard", "hair cut", "barber", "razor",
-    "essential oil", "aromatherapy", "fragrance oil", "diffuser"
+    "essential oil", "aromatherapy", "fragrance oil", "diffuser",
+    "toothpaste", "oral care", "dental"
   ],
   "כלי עבודה וציוד": [
     "tool", "drill", "screwdriver", "wrench", "hammer", "plier", "saw", "measure",
     "tape", "level", "multimeter", "soldering", "welding", "cutting", "grinding",
-    "toolbox", "work light", "gloves work", "safety", "ladder", "pump inflat"
+    "toolbox", "work light", "gloves work", "safety", "ladder", "pump inflat",
+    "lawn mower", "lawnmower"
   ]
 };
 
