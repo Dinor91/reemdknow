@@ -15,83 +15,38 @@ const LAZADA_API_URL = 'https://api.lazada.co.th/rest'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-// Hebrew category mapping using keywords (same as Israel Link Converter)
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  "רכב ותחבורה": [
-    "car", "auto", "vehicle", "tire", "wheel", "motor", "engine", "dashboard", 
-    "gps", "driving", "parking", "seat cover", "steering", "headlight", "brake",
-    "motorcycle", "bike holder", "trunk", "windshield", "charger car", "obd",
-    "fuel", "rearview", "mirror car", "bumper", "wiper", "car seat"
-  ],
-  "גאדג׳טים ובית חכם": [
-    "gadget", "electronic", "usb", "bluetooth", "wireless", "speaker", "headphone",
-    "earphone", "power bank", "cable", "charger", "adapter", "mouse", "keyboard",
-    "webcam", "microphone", "led", "light strip", "drone", "camera", "tripod",
-    "phone holder", "tablet", "smart watch", "fitness tracker", "vr", "gaming",
-    "earbuds", "tws", "headset", "portable", "hub", "dock", "stand phone",
-    "smart home", "wifi", "alexa", "google home", "automation", "sensor", "switch",
-    "socket", "plug smart", "bulb smart", "camera security", "doorbell", "lock smart",
-    "thermostat", "remote control", "zigbee", "tuya", "robot vacuum", "dreame",
-    "xiaomi robot", "roborock", "roomba", "ecovacs", "mini camera"
-  ],
-  "ילדים ומשחקים": [
-    "kid", "child", "baby", "toy", "game", "puzzle", "doll", "lego", "educational",
-    "stroller", "diaper", "bottle", "pacifier", "infant", "toddler", "children",
-    "school", "backpack kid", "lunch box", "playmat", "breast pump", "breastfeeding",
-    "nursing", "newborn", "balloon", "party kids", "birthday"
-  ],
-  "בית ומטבח": [
-    "home", "kitchen", "bathroom", "bedroom", "living room", "furniture", "decor",
-    "storage", "organizer", "shelf", "hook", "hanger", "towel", "curtain", "rug",
-    "mat", "pillow", "blanket", "bedding", "lamp", "vase", "plant", "garden",
-    "cleaning", "trash", "laundry", "iron", "vacuum", "pot", "pan", "bowl", 
-    "container", "lid", "utensil", "knife", "cutting board", "spoon", "fork",
-    "plate", "cup", "mug", "glass", "blender", "mixer", "oven", "microwave",
-    "coffee", "tea", "bbq", "grill", "cover pot", "silicone", "strap", "fixing",
-    "ice cream", "creami", "ninja", "opener", "can opener", "beverage"
-  ],
-  "אופנה וסטייל": [
-    "fashion", "clothing", "shirt", "dress", "pants", "jeans", "jacket", "coat",
-    "shoes", "sneakers", "boots", "sandals", "bag", "handbag", "wallet", "belt",
-    "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "sunglasses",
-    "hat", "scarf", "gloves", "underwear", "socks", "swimwear", "bikini",
-    "shorts", "cotton", "men", "women", "summer", "winter", "t-shirt"
-  ],
-  "כללי": [
-    "travel", "luggage", "suitcase", "backpack", "passport", "neck pillow", 
-    "travel adapter", "packing", "organizer bag", "camping", "hiking", "outdoor",
-    "tent", "sleeping bag", "flashlight", "compass", "water bottle travel"
-  ],
-  "בריאות וספורט": [
-    "health", "medical", "massage", "fitness", "exercise", "yoga", "gym", "weight",
-    "scale", "blood pressure", "thermometer", "first aid", "vitamin", "supplement",
-    "posture", "back support", "knee", "wrist", "ankle", "pain relief", "sleep",
-    "trimmer", "clipper", "shaver", "beard", "hair cut", "barber", "razor",
-    "essential oil", "aromatherapy", "fragrance oil", "diffuser",
-    "toothpaste", "oral care", "dental"
-  ],
-  "כלי עבודה וציוד": [
-    "tool", "drill", "screwdriver", "wrench", "hammer", "plier", "saw", "measure",
-    "tape", "level", "multimeter", "soldering", "welding", "cutting", "grinding",
-    "toolbox", "work light", "gloves work", "safety", "ladder", "pump inflat",
-    "lawn mower", "lawnmower"
-  ]
-};
+// Priority-based regex category detection
+function detectCategory(productName: string): string {
+  const name = productName.toLowerCase();
 
-// Detect Hebrew category from product name
-function detectHebrewCategory(productName: string): string {
-  if (!productName) return "כללי";
-  
-  const lowerName = productName.toLowerCase();
-  
-  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    for (const keyword of keywords) {
-      if (lowerName.includes(keyword.toLowerCase())) {
-        return category;
-      }
-    }
-  }
-  
+  // בריאות וספורט — first (catches cpap, toothpaste before vehicles)
+  if (/toothpaste|oral\s?care|dental|vitamin|supplement|protein|cpap|oxygen|medical|health|fitness|gym|yoga|sport|exercise|treadmill|massage/.test(name))
+    return "בריאות וספורט";
+
+  // ילדים ומשחקים — second (catches toy, baby, airtag kids)
+  if (/\btoy\b|baby|diaper|nappy|infant|lego|\bkids\b|children|stroller|puzzle|doll/.test(name))
+    return "ילדים ומשחקים";
+
+  // גאדג׳טים ובית חכם — third (catches smart watch, laptop, gps tracker, airtag)
+  if (/smart\s?watch|smartwatch|earphone|earbud|bluetooth|power\s?bank|led\s?strip|smart\s?home|router|\blaptop\b|drone|projector|network\s?card|airtag|gps\s?tracker|toner|printer|tripod/.test(name))
+    return "גאדג׳טים ובית חכם";
+
+  // כלי עבודה וציוד — fourth (catches lawn mower, tool cabinet)
+  if (/lawn\s?mower|lawnmower|\bdrill\b|wrench|screwdriver|\btool\b|garden|\bpump\b|ladder|generator|compressor|cabinet/.test(name))
+    return "כלי עבודה וציוד";
+
+  // אופנה וסטייל
+  if (/\bshirt\b|\bdress\b|\bpants\b|\bshoe\b|sneaker|\bbag\b|wallet|jewelry|necklace|bracelet|\bring\b|\bwatch\b|fashion|eyelash|makeup|lipstick|\bjacket\b(?!.*moto)/.test(name))
+    return "אופנה וסטייל";
+
+  // בית ומטבח
+  if (/kitchen|cookware|\bpot\b|\bpan\b|\bknife\b|furniture|pillow|bedding|curtain|storage|organizer|vacuum|blender|coffee\s?maker|air\s?fryer/.test(name))
+    return "בית ומטבח";
+
+  // רכב ותחבורה — last (only true vehicle products)
+  if (/\bcar\b|automotive|motorcycle|dash\s?cam|dashcam|\btire\b|\btyre\b|brake|steering|carplay|body\s?kit|roof\s?box|car\s?charger|car\s?mount|car\s?cover|car\s?seat|car\s?wash|\bhelmet\b(?=.*moto|\bhelmet\b)/.test(name))
+    return "רכב ותחבורה";
+
   return "כללי";
 }
 
