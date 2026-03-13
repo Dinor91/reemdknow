@@ -233,7 +233,7 @@ serve(async (req) => {
       }
 
       // Auto-detect Hebrew category from product name
-      const hebrewCategory = detectHebrewCategory(product.productName);
+      const hebrewCategory = detectCategory(product.productName);
 
       const { error: upsertError } = await supabase
         .from('feed_products')
