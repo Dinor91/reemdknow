@@ -28,7 +28,11 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "earphone", "power bank", "cable", "charger", "adapter", "mouse", "keyboard",
     "webcam", "microphone", "led", "light strip", "drone", "camera", "tripod",
     "phone holder", "tablet", "smart watch", "fitness tracker", "vr", "gaming",
-    "earbuds", "tws", "headset", "portable", "hub", "dock", "stand phone"
+    "earbuds", "tws", "headset", "portable", "hub", "dock", "stand phone",
+    "smart home", "wifi", "alexa", "google home", "automation", "sensor", "switch",
+    "socket", "plug smart", "bulb smart", "camera security", "doorbell", "lock smart",
+    "thermostat", "remote control", "zigbee", "tuya", "robot vacuum", "dreame",
+    "xiaomi robot", "roborock", "roomba", "ecovacs", "mini camera"
   ],
   "ילדים ומשחקים": [
     "kid", "child", "baby", "toy", "game", "puzzle", "doll", "lego", "educational",
