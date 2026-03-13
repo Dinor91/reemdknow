@@ -58,7 +58,7 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "travel adapter", "packing", "organizer bag", "camping", "hiking", "outdoor",
     "tent", "sleeping bag", "flashlight", "compass", "water bottle travel"
   ],
-  "בריאות": [
+  "בריאות וספורט": [
     "health", "medical", "massage", "fitness", "exercise", "yoga", "gym", "weight",
     "scale", "blood pressure", "thermometer", "first aid", "vitamin", "supplement",
     "posture", "back support", "knee", "wrist", "ankle", "pain relief", "sleep",
