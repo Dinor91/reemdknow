@@ -36,7 +36,7 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "school", "backpack kid", "lunch box", "playmat", "breast pump", "breastfeeding",
     "nursing", "newborn", "balloon", "party kids", "birthday"
   ],
-  "בית": [
+  "בית ומטבח": [
     "home", "kitchen", "bathroom", "bedroom", "living room", "furniture", "decor",
     "storage", "organizer", "shelf", "hook", "hanger", "towel", "curtain", "rug",
     "mat", "pillow", "blanket", "bedding", "lamp", "vase", "plant", "garden",
