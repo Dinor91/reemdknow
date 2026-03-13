@@ -1,58 +1,44 @@
 
 
-# תיקון זיכרון חיפוש — user_sessions
+## מיפוי קטגוריות ל-8 הקטגוריות האחידות
 
-## בעיה
-אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
+### מצב נוכחי
 
-## פתרון — טבלת `user_sessions`
+**תאילנד (`category_products`)** - 201 מוצרים פעילים ב-17 קטגוריות ישנות
+**ישראל (`israel_editor_products`)** - 170 מוצרים פעילים ב-11 קטגוריות ישנות
 
-### שלב 1: מיגרציה
-```sql
-CREATE TABLE user_sessions (
-  user_id BIGINT PRIMARY KEY,
-  state TEXT NOT NULL DEFAULT 'idle',
-  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
-```
+2 מוצרים כבר ממופים נכון (1 `גאדג׳טים ובית חכם`, 1 `ילדים ומשחקים` בתאילנד, 1 `בית ומטבח` בישראל).
 
-### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
+### המיפוי שיבוצע
 
-**2a. ב-callback handler של `cmd:search` (שורה 1560):**
-```typescript
-else if (data === "cmd:search") {
-  const serviceClient = createServiceClient();
-  await serviceClient.from("user_sessions").upsert({
-    user_id: userId,
-    state: "waiting_search",
-    last_updated: new Date().toISOString(),
-  });
-  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
-}
-```
+**תאילנד:**
+| ישן | חדש | כמות |
+|-----|-----|------|
+| גאדג׳טים, בית חכם, מוצרי חשמל | גאדג׳טים ובית חכם | 14 |
+| רכב | רכב ותחבורה | 2 |
+| בית | בית ומטבח | 68 |
+| ילדים | ילדים ומשחקים | 44 |
+| בריאות | בריאות וספורט | 6 |
+| כלי עבודה, DIY | כלי עבודה וציוד | 11 |
+| נסיעות, טיולים, הדברה, חצר וגינה, מוצרי מזון ישראליים | כללי | 47 |
 
-**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
-```typescript
-// Check if waiting for search input
-const serviceClient = createServiceClient();
-const { data: session } = await serviceClient
-  .from("user_sessions")
-  .select("state")
-  .eq("user_id", userId)
-  .maybeSingle();
+**ישראל:**
+| ישן | חדש | כמות |
+|-----|-----|------|
+| גאדג׳טים, בית חכם | גאדג׳טים ובית חכם | 42 |
+| רכב | רכב ותחבורה | 45 |
+| בית | בית ומטבח | 28 |
+| ילדים | ילדים ומשחקים | 34 |
+| בריאות | בריאות וספורט | 3 |
+| כלי עבודה | כלי עבודה וציוד | 2 |
+| אופנה | אופנה וסטייל | 10 |
+| נסיעות | כללי | 3 |
 
-if (session?.state === "waiting_search" && !text.startsWith("/")) {
-  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
-  await handleFreeTextSearch(chatId, text);
-  return new Response("OK");
-}
-```
+### שינויים
 
-## קובץ
-- `supabase/functions/telegram-bot-handler/index.ts`
+14 פקודות UPDATE בדיוק כפי שכתבת -- 7 לתאילנד, 7 לישראל. לא נדרש שינוי קוד -- הפרונטנד כבר מסנן לפי 8 הקטגוריות האחידות.
 
-## תוצאה
-לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
+### תוצאה צפויה
+
+אחרי הביצוע, כל המוצרים יופיעו בקטגוריות הנכונות באקורדיון באתר.
 
