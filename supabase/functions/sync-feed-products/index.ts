@@ -53,7 +53,7 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "hat", "scarf", "gloves", "underwear", "socks", "swimwear", "bikini",
     "shorts", "cotton", "men", "women", "summer", "winter", "t-shirt"
   ],
-  "נסיעות": [
+  "כללי": [
     "travel", "luggage", "suitcase", "backpack", "passport", "neck pillow", 
     "travel adapter", "packing", "organizer bag", "camping", "hiking", "outdoor",
     "tent", "sleeping bag", "flashlight", "compass", "water bottle travel"
