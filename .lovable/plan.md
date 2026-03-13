@@ -1,28 +1,58 @@
 
 
-## עדכון לוגיקת סיווג קטגוריות ב-sync-feed-products
+# תיקון זיכרון חיפוש — user_sessions
 
-### מה ישתנה
+## בעיה
+אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
 
-החלפת המנגנון הישן (מילון `CATEGORY_KEYWORDS` + לולאת `includes`) בפונקציית `detectCategory` חדשה מבוססת **Regex עם סדר עדיפויות**:
+## פתרון — טבלת `user_sessions`
 
-1. **בריאות וספורט** — ראשון (תופס cpap, toothpaste לפני רכב)
-2. **ילדים ומשחקים** — שני (תופס baby, toy, airtag kids)
-3. **גאדג׳טים ובית חכם** — שלישי (תופס smart watch, laptop, gps tracker, airtag)
-4. **כלי עבודה וציוד** — רביעי (תופס lawn mower, drill, generator)
-5. **אופנה וסטייל** — חמישי (jacket ללא moto, pants, shoes)
-6. **בית ומטבח** — שישי (kitchen, vacuum, bedding)
-7. **רכב ותחבורה** — **אחרון** (רק מוצרים שבאמת קשורים לרכב)
-8. ברירת מחדל → **כללי**
+### שלב 1: מיגרציה
+```sql
+CREATE TABLE user_sessions (
+  user_id BIGINT PRIMARY KEY,
+  state TEXT NOT NULL DEFAULT 'idle',
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
+```
 
-### קובץ
+### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
 
-`supabase/functions/sync-feed-products/index.ts` — שורות 18-96:
-- מחיקת `CATEGORY_KEYWORDS` ו-`detectHebrewCategory`
-- הוספת `detectCategory` החדשה עם הביטויים הרגולריים שסיפקת
-- עדכון הקריאה בשורה ~275 מ-`detectHebrewCategory` ל-`detectCategory`
+**2a. ב-callback handler של `cmd:search` (שורה 1560):**
+```typescript
+else if (data === "cmd:search") {
+  const serviceClient = createServiceClient();
+  await serviceClient.from("user_sessions").upsert({
+    user_id: userId,
+    state: "waiting_search",
+    last_updated: new Date().toISOString(),
+  });
+  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
+}
+```
 
-### יתרון
+**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
+```typescript
+// Check if waiting for search input
+const serviceClient = createServiceClient();
+const { data: session } = await serviceClient
+  .from("user_sessions")
+  .select("state")
+  .eq("user_id", userId)
+  .maybeSingle();
 
-סדר העדיפויות מונע שגיאות סיווג (למשל cpap לא ייפול לרכב בגלל המילה "machine", jacket לא ייפול לרכב אלא אם יש "moto").
+if (session?.state === "waiting_search" && !text.startsWith("/")) {
+  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
+  await handleFreeTextSearch(chatId, text);
+  return new Response("OK");
+}
+```
+
+## קובץ
+- `supabase/functions/telegram-bot-handler/index.ts`
+
+## תוצאה
+לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
 
