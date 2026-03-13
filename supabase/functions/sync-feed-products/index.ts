@@ -23,7 +23,7 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "motorcycle", "bike holder", "trunk", "windshield", "charger car", "obd",
     "fuel", "rearview", "mirror car", "bumper", "wiper", "car seat"
   ],
-  "גאדג׳טים": [
+  "גאדג׳טים ובית חכם": [
     "gadget", "electronic", "usb", "bluetooth", "wireless", "speaker", "headphone",
     "earphone", "power bank", "cable", "charger", "adapter", "mouse", "keyboard",
     "webcam", "microphone", "led", "light strip", "drone", "camera", "tripod",
