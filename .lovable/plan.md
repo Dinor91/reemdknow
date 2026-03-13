@@ -1,19 +1,28 @@
 
 
-## תיקון סיבוב 4 — ניקוי שאריות ברכב ותחבורה
+## עדכון לוגיקת סיווג קטגוריות ב-sync-feed-products
 
-### מה יבוצע
+### מה ישתנה
 
-4 פקודות UPDATE על `feed_products` לתיקון מוצרים שעדיין משויכים בטעות ל-"רכב ותחבורה":
+החלפת המנגנון הישן (מילון `CATEGORY_KEYWORDS` + לולאת `includes`) בפונקציית `detectCategory` חדשה מבוססת **Regex עם סדר עדיפויות**:
 
-| מוצר (ILIKE) | ל- |
-|---|---|
-| naturemagic / pet carry / richell / wet food | כללי |
-| airtag | גאדג׳טים ובית חכם |
-| mouth | כלי עבודה וציוד |
-| cpap | בריאות וספורט |
+1. **בריאות וספורט** — ראשון (תופס cpap, toothpaste לפני רכב)
+2. **ילדים ומשחקים** — שני (תופס baby, toy, airtag kids)
+3. **גאדג׳טים ובית חכם** — שלישי (תופס smart watch, laptop, gps tracker, airtag)
+4. **כלי עבודה וציוד** — רביעי (תופס lawn mower, drill, generator)
+5. **אופנה וסטייל** — חמישי (jacket ללא moto, pants, shoes)
+6. **בית ומטבח** — שישי (kitchen, vacuum, bedding)
+7. **רכב ותחבורה** — **אחרון** (רק מוצרים שבאמת קשורים לרכב)
+8. ברירת מחדל → **כללי**
 
-### פרט טכני
+### קובץ
 
-מיגרציה אחת עם 4 פקודות UPDATE. אחרי הביצוע — שאילתת בדיקה של 30 מוצרי רכב שנותרו.
+`supabase/functions/sync-feed-products/index.ts` — שורות 18-96:
+- מחיקת `CATEGORY_KEYWORDS` ו-`detectHebrewCategory`
+- הוספת `detectCategory` החדשה עם הביטויים הרגולריים שסיפקת
+- עדכון הקריאה בשורה ~275 מ-`detectHebrewCategory` ל-`detectCategory`
+
+### יתרון
+
+סדר העדיפויות מונע שגיאות סיווג (למשל cpap לא ייפול לרכב בגלל המילה "machine", jacket לא ייפול לרכב אלא אם יש "moto").
 
