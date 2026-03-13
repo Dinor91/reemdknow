@@ -65,7 +65,7 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "trimmer", "clipper", "shaver", "beard", "hair cut", "barber", "razor",
     "essential oil", "aromatherapy", "fragrance oil", "diffuser"
   ],
-  "כלי עבודה": [
+  "כלי עבודה וציוד": [
     "tool", "drill", "screwdriver", "wrench", "hammer", "plier", "saw", "measure",
     "tape", "level", "multimeter", "soldering", "welding", "cutting", "grinding",
     "toolbox", "work light", "gloves work", "safety", "ladder", "pump inflat"
