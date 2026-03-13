@@ -30,7 +30,7 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
     "phone holder", "tablet", "smart watch", "fitness tracker", "vr", "gaming",
     "earbuds", "tws", "headset", "portable", "hub", "dock", "stand phone"
   ],
-  "ילדים": [
+  "ילדים ומשחקים": [
     "kid", "child", "baby", "toy", "game", "puzzle", "doll", "lego", "educational",
     "stroller", "diaper", "bottle", "pacifier", "infant", "toddler", "children",
     "school", "backpack kid", "lunch box", "playmat", "breast pump", "breastfeeding",
