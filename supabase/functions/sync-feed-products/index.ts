@@ -17,7 +17,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 // Hebrew category mapping using keywords (same as Israel Link Converter)
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  "רכב": [
+  "רכב ותחבורה": [
     "car", "auto", "vehicle", "tire", "wheel", "motor", "engine", "dashboard", 
     "gps", "driving", "parking", "seat cover", "steering", "headlight", "brake",
     "motorcycle", "bike holder", "trunk", "windshield", "charger car", "obd",
