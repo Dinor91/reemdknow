@@ -8,6 +8,7 @@ interface FeedProduct {
   id: string;
   lazada_product_id: string;
   product_name: string;
+  product_name_hebrew: string | null;
   image_url: string | null;
   price_thb: number | null;
   original_price_thb: number | null;
