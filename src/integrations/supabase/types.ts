@@ -63,6 +63,7 @@ export type Database = {
           image_url: string | null
           is_campaign_product: boolean | null
           is_featured: boolean | null
+          last_shown: string | null
           original_price_usd: number | null
           out_of_stock: boolean | null
           price_usd: number | null
@@ -86,6 +87,7 @@ export type Database = {
           image_url?: string | null
           is_campaign_product?: boolean | null
           is_featured?: boolean | null
+          last_shown?: string | null
           original_price_usd?: number | null
           out_of_stock?: boolean | null
           price_usd?: number | null
@@ -109,6 +111,7 @@ export type Database = {
           image_url?: string | null
           is_campaign_product?: boolean | null
           is_featured?: boolean | null
+          last_shown?: string | null
           original_price_usd?: number | null
           out_of_stock?: boolean | null
           price_usd?: number | null
@@ -356,6 +359,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_featured: boolean | null
+          last_shown: string | null
           lazada_product_id: string
           original_price_thb: number | null
           out_of_stock: boolean | null
@@ -380,6 +384,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_featured?: boolean | null
+          last_shown?: string | null
           lazada_product_id: string
           original_price_thb?: number | null
           out_of_stock?: boolean | null
@@ -404,6 +409,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_featured?: boolean | null
+          last_shown?: string | null
           lazada_product_id?: string
           original_price_thb?: number | null
           out_of_stock?: boolean | null
