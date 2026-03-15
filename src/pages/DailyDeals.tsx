@@ -177,9 +177,9 @@ const DailyDeals = () => {
         if (feedRes.error) throw feedRes.error;
         if (curatedRes.error) throw curatedRes.error;
 
-        const feedItems: ProductItem[] = (feedRes.data || []).map((p) => ({
+        const feedItems: ProductItem[] = (feedRes.data || []).map((p: any) => ({
           id: p.id,
-          name: p.product_name,
+          name: p.product_name_hebrew || p.product_name,
           image_url: p.image_url,
           price: p.price_thb,
           original_price: p.original_price_thb,

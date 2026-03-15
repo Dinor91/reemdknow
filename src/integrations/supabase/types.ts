@@ -365,6 +365,7 @@ export type Database = {
           out_of_stock: boolean | null
           price_thb: number | null
           product_name: string
+          product_name_hebrew: string | null
           rating: number | null
           reviews_count: number | null
           sales_7d: number | null
@@ -390,6 +391,7 @@ export type Database = {
           out_of_stock?: boolean | null
           price_thb?: number | null
           product_name: string
+          product_name_hebrew?: string | null
           rating?: number | null
           reviews_count?: number | null
           sales_7d?: number | null
@@ -415,6 +417,7 @@ export type Database = {
           out_of_stock?: boolean | null
           price_thb?: number | null
           product_name?: string
+          product_name_hebrew?: string | null
           rating?: number | null
           reviews_count?: number | null
           sales_7d?: number | null
