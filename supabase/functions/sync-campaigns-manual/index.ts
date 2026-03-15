@@ -14,7 +14,6 @@ const ALIEXPRESS_API_URL = 'https://api-sg.aliexpress.com/sync'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-// Hebrew category mapping using keywords
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   "רכב": ["car", "auto", "vehicle", "tire", "wheel", "motor", "engine", "dashboard", "gps", "driving", "parking", "seat cover", "steering", "headlight", "brake", "motorcycle", "bike holder", "trunk", "windshield", "charger car", "obd", "fuel", "rearview", "mirror car", "bumper", "wiper", "car seat"],
   "גאדג׳טים": ["gadget", "electronic", "usb", "bluetooth", "wireless", "speaker", "headphone", "earphone", "power bank", "cable", "charger", "adapter", "mouse", "keyboard", "webcam", "microphone", "led", "light strip", "drone", "camera", "tripod", "phone holder", "tablet", "smart watch", "fitness tracker", "vr", "gaming", "earbuds", "tws", "headset", "portable", "hub", "dock", "stand phone"],
@@ -25,17 +24,17 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   "נסיעות": ["travel", "luggage", "suitcase", "backpack", "passport", "neck pillow", "travel adapter", "packing", "organizer bag", "camping", "hiking", "outdoor", "tent", "sleeping bag", "flashlight", "compass", "water bottle travel"],
   "בריאות": ["health", "medical", "massage", "fitness", "exercise", "yoga", "gym", "weight", "scale", "blood pressure", "thermometer", "first aid", "vitamin", "supplement", "posture", "back support", "knee", "wrist", "ankle", "pain relief", "sleep", "trimmer", "clipper", "shaver", "beard", "hair cut", "barber", "razor", "essential oil", "aromatherapy", "diffuser"],
   "כלי עבודה": ["tool", "drill", "screwdriver", "wrench", "hammer", "plier", "saw", "measure", "tape", "level", "multimeter", "soldering", "welding", "cutting", "grinding", "toolbox", "work light", "gloves work", "safety", "ladder", "pump inflat"],
-};
+}
 
 function detectHebrewCategory(productName: string): string {
-  if (!productName) return "כללי";
-  const lowerName = productName.toLowerCase();
+  if (!productName) return "כללי"
+  const lowerName = productName.toLowerCase()
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
     for (const keyword of keywords) {
-      if (lowerName.includes(keyword.toLowerCase())) return category;
+      if (lowerName.includes(keyword.toLowerCase())) return category
     }
   }
-  return "כללי";
+  return "כללי"
 }
 
 function toHex(buffer: Uint8Array): string {
@@ -60,16 +59,10 @@ async function callAliExpressAPI(method: string, additionalParams: Record<string
     ...additionalParams,
   }
   if (ALIEXPRESS_TRACKING_ID) params.tracking_id = ALIEXPRESS_TRACKING_ID
-
   params.sign = await generateSignature(params, ALIEXPRESS_APP_SECRET!)
-
   const qs = Object.entries(params).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')
-  const url = `${ALIEXPRESS_API_URL}?${qs}`
-  console.log(`Calling AliExpress API: ${method}`)
-  const resp = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
-  const data = await resp.json()
-  console.log(`Response (first 500):`, JSON.stringify(data).substring(0, 500))
-  return data
+  const resp = await fetch(`${ALIEXPRESS_API_URL}?${qs}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
+  return await resp.json()
 }
 
 async function generateAffiliateLink(productUrl: string): Promise<string | null> {
@@ -86,10 +79,36 @@ async function generateAffiliateLink(productUrl: string): Promise<string | null>
   return null
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+// Dynamic pagination: fetch up to maxPages, break early if page < 50
+async function fetchProductsDynamic(
+  method: string, responseKey: string, extraParams: Record<string, string>, maxPages: number, label: string
+): Promise<{ products: any[]; pages: number }> {
+  const products: any[] = []
+  let pages = 0
+  for (let page = 1; page <= maxPages; page++) {
+    const result = await callAliExpressAPI(method, { ...extraParams, page_no: page.toString(), page_size: '50', target_currency: 'USD', target_language: 'EN' })
+    const pageProducts = result?.[responseKey]?.resp_result?.result?.products?.product || []
+    pages = page
+    if (pageProducts.length === 0) break
+    products.push(...pageProducts)
+    console.log(`[${label}] Page ${page}: ${pageProducts.length} products`)
+    if (pageProducts.length < 50) break
+    await new Promise(r => setTimeout(r, 500))
   }
+  return { products, pages }
+}
+
+function filterQuality(raw: any[]): any[] {
+  return raw.filter(p => {
+    if (!p.product_id || !p.product_main_image_url || !p.target_sale_price) return false
+    const evalRate = p.evaluate_rate ? parseFloat(String(p.evaluate_rate).replace('%', '')) : 0
+    const commRate = p.commission_rate ? parseFloat(String(p.commission_rate).replace('%', '')) : 0
+    return evalRate >= 70 && commRate >= 5
+  })
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   try {
     if (!ALIEXPRESS_APP_KEY || !ALIEXPRESS_APP_SECRET) {
@@ -99,93 +118,72 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    const now = new Date().toISOString()
 
-    // Step 1: Get featured promos (campaigns)
+    // === Step 1: Discover & persist campaigns ===
     console.log('=== Fetching Featured Promos ===')
     const promosResult = await callAliExpressAPI('aliexpress.affiliate.featuredpromo.get', {})
     const promos = promosResult?.aliexpress_affiliate_featuredpromo_get_response?.resp_result?.result?.promos?.promo || []
     console.log(`Found ${promos.length} active campaigns`)
 
     for (const promo of promos) {
-      console.log(`📢 Campaign: ${promo.promo_name || 'Unknown'} | ${promo.promo_desc || ''}`)
+      await supabase.from('aliexpress_campaigns').upsert({
+        promo_id: String(promo.promo_id || promo.promo_name),
+        promo_name: promo.promo_name || 'Unknown',
+        promo_desc: promo.promo_desc || null,
+        is_active: true,
+        last_synced: now,
+        updated_at: now,
+      }, { onConflict: 'promo_id' })
     }
 
-    // Step 2: Get products from campaigns (pages 1-2)
-    const allProducts: any[] = []
+    // Deactivate stale campaigns (last_synced > 7 days)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    await supabase.from('aliexpress_campaigns')
+      .update({ is_active: false, updated_at: now })
+      .lt('last_synced', sevenDaysAgo)
 
-    for (let page = 1; page <= 4; page++) {
-      console.log(`Fetching campaign products page ${page}...`)
-      const result = await callAliExpressAPI('aliexpress.affiliate.featuredpromo.products.get', {
-        promotion_link_type: '0',
-        page_no: page.toString(),
-        page_size: '50',
-        target_currency: 'USD',
-        target_language: 'EN',
-        promotion_start_time: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        promotion_end_time: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      })
+    // === Step 2: Fetch products globally with dynamic pagination ===
+    const { products: promoRaw, pages: promoPages } = await fetchProductsDynamic(
+      'aliexpress.affiliate.featuredpromo.products.get',
+      'aliexpress_affiliate_featuredpromo_products_get_response',
+      { promotion_link_type: '0' },
+      20,
+      'Featured Promo'
+    )
 
-      const products = result?.aliexpress_affiliate_featuredpromo_products_get_response?.resp_result?.result?.products?.product || []
-      if (products.length === 0) break
-      allProducts.push(...products)
-      console.log(`Page ${page}: ${products.length} products`)
-      await new Promise(r => setTimeout(r, 500))
-    }
+    const { products: hotRaw, pages: hotPages } = await fetchProductsDynamic(
+      'aliexpress.affiliate.hotproduct.query',
+      'aliexpress_affiliate_hotproduct_query_response',
+      { sort: 'LAST_VOLUME_DESC' },
+      20,
+      'Hot Products'
+    )
 
-    // Also try hot products for high-commission items
-    console.log('=== Fetching Hot Products ===')
-    for (let page = 1; page <= 4; page++) {
-      if (allProducts.length >= 400) break
-      const result = await callAliExpressAPI('aliexpress.affiliate.hotproduct.query', {
-        page_no: page.toString(),
-        page_size: '50',
-        target_currency: 'USD',
-        target_language: 'EN',
-        sort: 'LAST_VOLUME_DESC',
-      })
-      const products = result?.aliexpress_affiliate_hotproduct_query_response?.resp_result?.result?.products?.product || []
-      if (products.length === 0) break
-      allProducts.push(...products)
-      console.log(`Hot page ${page}: ${products.length} products`)
-      await new Promise(r => setTimeout(r, 500))
-    }
+    const promoQuality = filterQuality(promoRaw)
+    const hotQuality = filterQuality(hotRaw)
 
-    console.log(`Total raw products: ${allProducts.length}`)
+    // Tag products with source
+    const allTagged = [
+      ...promoQuality.map(p => ({ ...p, _campaign_name: 'Featured Promo' })),
+      ...hotQuality.map(p => ({ ...p, _campaign_name: 'Hot Products' })),
+    ]
 
-    // Step 3: Filter by quality (relaxed: rating >= 3.5 = evaluate_rate >= 70%, commission >= 5%)
-    const ratePassCount = allProducts.filter(p => {
-      const evalRate = p.evaluate_rate ? parseFloat(String(p.evaluate_rate).replace('%', '')) : 0
-      return evalRate >= 70
-    }).length
-    const commPassCount = allProducts.filter(p => {
-      const commRate = p.commission_rate ? parseFloat(String(p.commission_rate).replace('%', '')) : 0
-      return commRate >= 5
-    }).length
-
-    const qualityProducts = allProducts.filter(p => {
-      if (!p.product_id || !p.product_main_image_url || !p.target_sale_price) return false
-      const evalRate = p.evaluate_rate ? parseFloat(String(p.evaluate_rate).replace('%', '')) : 0
-      const commRate = p.commission_rate ? parseFloat(String(p.commission_rate).replace('%', '')) : 0
-      return evalRate >= 70 && commRate >= 5
-    })
-
-    console.log(`Filter breakdown: rate>=70: ${ratePassCount}, commission>=5: ${commPassCount}, both: ${qualityProducts.length}`)
-
-    // Deduplicate by product_id
+    // Deduplicate
     const seen = new Set<string>()
-    const uniqueProducts = qualityProducts.filter(p => {
+    const uniqueProducts = allTagged.filter(p => {
       const id = String(p.product_id)
       if (seen.has(id)) return false
       seen.add(id)
       return true
     })
 
-    console.log(`Quality filtered: ${uniqueProducts.length} (from ${allProducts.length} raw)`)
+    console.log(`Promo: ${promoRaw.length} raw → ${promoQuality.length} quality (${promoPages} pages)`)
+    console.log(`Hot: ${hotRaw.length} raw → ${hotQuality.length} quality (${hotPages} pages)`)
+    console.log(`Total unique: ${uniqueProducts.length}`)
 
-    // Step 4: Upsert into DB with is_campaign_product = true
-    let upserted = 0
-    let errors = 0
-    let totalCommission = 0
+    // === Step 3: Upsert products ===
+    let upserted = 0, errors = 0, totalKids = 0
 
     for (const product of uniqueProducts) {
       const productId = String(product.product_id)
@@ -207,16 +205,9 @@ serve(async (req) => {
       const hotRate = product.hot_product_commission_rate ? parseFloat(String(product.hot_product_commission_rate).replace('%', '')) : 0
       const totalRate = (baseRate + hotRate) / 100
       const commissionRate = totalRate > 0 ? totalRate : null
-      if (commissionRate) totalCommission += commissionRate
 
-      // Log first 3 products for debugging commission fields
-      if (upserted < 3) {
-        console.log(`📊 Product ${productId}: base=${baseRate}%, hot_bonus=${hotRate}%, total=${totalRate * 100}%`)
-        console.log(`📊 Raw fields: commission_rate=${product.commission_rate}, hot_product_commission_rate=${product.hot_product_commission_rate}`)
-      }
-
-      // Auto-detect Hebrew category from product title
-      const hebrewCategory = detectHebrewCategory(product.product_title || '');
+      const hebrewCategory = detectHebrewCategory(product.product_title || '')
+      if (hebrewCategory === 'ילדים') totalKids++
 
       const { error } = await supabase.from('aliexpress_feed_products').upsert({
         aliexpress_product_id: productId,
@@ -234,20 +225,15 @@ serve(async (req) => {
         tracking_link: trackingLink,
         out_of_stock: false,
         is_campaign_product: true,
-        updated_at: new Date().toISOString(),
+        campaign_name: product._campaign_name,
+        updated_at: now,
       }, { onConflict: 'aliexpress_product_id' })
 
-      if (error) {
-        console.error(`Upsert error ${productId}:`, error)
-        errors++
-      } else {
-        upserted++
-      }
+      if (error) { errors++; console.error(`Upsert error ${productId}:`, error) }
+      else upserted++
     }
 
-    const avgCommission = upserted > 0 ? Math.round((totalCommission / upserted) * 100) : 0
-
-    // Auto-translate
+    // === Step 4: Translate ===
     let translatedCount = 0
     try {
       const translateResp = await fetch(`${SUPABASE_URL}/functions/v1/translate-products`, {
@@ -259,34 +245,36 @@ serve(async (req) => {
         const result = await translateResp.json()
         translatedCount = result?.results?.aliexpress?.translated || 0
       }
-    } catch (e) {
-      console.error('Translation error:', e)
-    }
+    } catch (e) { console.error('Translation error:', e) }
 
-    // Cleanup: mark expired campaign products as out_of_stock
+    // Cleanup expired
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-    const { data: expiredData, error: cleanupError } = await supabase
+    const { data: expiredData } = await supabase
       .from('aliexpress_feed_products')
       .update({ out_of_stock: true })
       .eq('is_campaign_product', true)
       .lt('updated_at', thirtyDaysAgo)
       .select('id')
-    const expiredCount = cleanupError ? 0 : (expiredData?.length || 0)
-    if (expiredCount > 0) console.log(`Cleaned up ${expiredCount} expired campaign products`)
+    const expiredCount = expiredData?.length || 0
+
+    // Category breakdown for kids count
+    const promoKids = promoQuality.filter(p => detectHebrewCategory(p.product_title || '') === 'ילדים').length
+    const hotKids = hotQuality.filter(p => detectHebrewCategory(p.product_title || '') === 'ילדים').length
 
     const summary = {
       campaigns_found: promos.length,
+      campaign_breakdown: {
+        'Featured Promo': { raw: promoRaw.length, pages: promoPages, quality: promoQuality.length, kids: promoKids },
+        'Hot Products': { raw: hotRaw.length, pages: hotPages, quality: hotQuality.length, kids: hotKids },
+      },
       products_imported: upserted,
-      avg_commission_rate: `${avgCommission}%`,
+      total_kids_products: totalKids,
       translated: translatedCount,
       errors,
-      total_raw: allProducts.length,
-      quality_filtered: uniqueProducts.length,
       expired_cleaned: expiredCount,
     }
 
     console.log('Campaign sync complete:', JSON.stringify(summary))
-
     return new Response(JSON.stringify({ success: true, ...summary }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
