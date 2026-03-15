@@ -1462,8 +1462,9 @@ async function handleDealCategoryHighCommission(chatId: number, messageId: numbe
         url: p.tracking_link,
         image_url: p.image_url,
         commission_rate: p.commission_rate,
-        platform: "thailand",
+        platform: "thailand" as const,
       }));
+    products = diversifyProducts(products.filter(p => isProductRelevantForCategory(p.name, category)));
   }
 
   if (products.length === 0) {
