@@ -120,13 +120,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Translate Lazada feed_products
+    // Translate Lazada feed_products — product names to Hebrew
     if (platform === "both" || platform === "lazada") {
       const { data: lazadaProducts, error: lazadaError } = await supabase
         .from("feed_products")
-        .select("id, product_name, category_name_hebrew")
-        .is("category_name_hebrew", null)
-        .limit(30);
+        .select("id, product_name, product_name_hebrew")
+        .is("product_name_hebrew", null)
+        .eq("out_of_stock", false)
+        .limit(50);
 
       if (lazadaError) throw lazadaError;
 
@@ -141,7 +142,7 @@ Deno.serve(async (req) => {
           const { error } = await supabase
             .from("feed_products")
             .update({ 
-              category_name_hebrew: item.translation,
+              product_name_hebrew: item.translation,
               updated_at: new Date().toISOString()
             })
             .eq("id", item.id);

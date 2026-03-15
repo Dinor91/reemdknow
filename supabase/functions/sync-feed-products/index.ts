@@ -2,6 +2,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { verifyAdminAuth, createUnauthorizedResponse, createForbiddenResponse } from '../_shared/auth.ts'
 
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -213,8 +215,63 @@ serve(async (req) => {
       })
       .slice(0, 100) // Limit to 100 products
 
+    // Translate product names to Hebrew via AI before upsert
+    const hebrewNames = new Map<string, string>()
+    if (LOVABLE_API_KEY) {
+      console.log('Translating product names to Hebrew...')
+      const batchSize = 50
+      for (let i = 0; i < validProducts.length; i += batchSize) {
+        const batch = validProducts.slice(i, i + batchSize)
+        const names = batch.map((p: any) => p.productName).join('\n---\n')
+        try {
+          const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [
+                { role: 'system', content: `You are a product translator for an Israeli e-commerce site.
+RULES:
+1. Translate product names to SHORT Hebrew (3-5 words maximum)
+2. Include the BRAND NAME only if it's a well-known international brand
+3. Focus on: Brand (if known) + What the product does
+4. Remove all technical specs, model numbers, colors, sizes
+5. Return ONLY the translations, one per line, separated by ---
+
+EXAMPLES:
+"Xiaomi Redmi Buds 4 Lite TWS Bluetooth Earphones" → "Xiaomi - אוזניות בלוטות'"
+"Anker 737 Power Bank 24000mAh 140W" → "Anker - סוללה ניידת"
+"High Quality 100% Pure Silver Headphone Cable 3.5mm" → "כבל אוזניות"
+"Smart Watch Men Women Fitness Tracker" → "שעון חכם ספורטיבי"` },
+                { role: 'user', content: `Translate these product names to Hebrew (3-5 words, include brand if well-known):\n\n${names}` }
+              ],
+              temperature: 0.3,
+            }),
+          })
+          if (aiResp.ok) {
+            const aiData = await aiResp.json()
+            const translations = (aiData.choices?.[0]?.message?.content || '').split('---').map((t: string) => t.trim()).filter((t: string) => t)
+            batch.forEach((p: any, idx: number) => {
+              if (translations[idx]) {
+                hebrewNames.set(String(p.productId), translations[idx])
+              }
+            })
+            console.log(`Translated batch ${Math.floor(i / batchSize) + 1}: ${translations.length} names`)
+          }
+        } catch (translateErr) {
+          console.error('AI translation batch error:', translateErr)
+        }
+        if (i + batchSize < validProducts.length) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
+      }
+    }
+
     // Get tracking links for all products
-    const productIds = validProducts.map(p => String(p.productId))
+    const productIds = validProducts.map((p: any) => String(p.productId))
     const trackingLinks = await getTrackingLinks(productIds)
 
     // Upsert products into feed_products table
@@ -253,6 +310,7 @@ serve(async (req) => {
           category_name_hebrew: hebrewCategory,
           brand_name: product.brandName,
           tracking_link: trackingLinks.get(productId) || `https://www.lazada.co.th/products/-i${productId}.html`,
+          product_name_hebrew: hebrewNames.get(productId) || null,
           out_of_stock: product.outOfStock || false,
           updated_at: new Date().toISOString()
         }, {

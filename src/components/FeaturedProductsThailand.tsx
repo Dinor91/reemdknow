@@ -8,6 +8,7 @@ interface FeedProduct {
   id: string;
   lazada_product_id: string;
   product_name: string;
+  product_name_hebrew: string | null;
   image_url: string | null;
   price_thb: number | null;
   original_price_thb: number | null;
@@ -54,7 +55,7 @@ const useFeaturedProducts = () => {
 const toUnifiedProduct = (product: FeedProduct): UnifiedProduct => ({
   id: product.id,
   productId: product.lazada_product_id,
-  productName: product.product_name,
+  productName: product.product_name_hebrew || product.product_name,
   productNameHebrew: product.category_name_hebrew,
   imageUrl: product.image_url,
   priceUsd: convertThbToUsd(product.price_thb),

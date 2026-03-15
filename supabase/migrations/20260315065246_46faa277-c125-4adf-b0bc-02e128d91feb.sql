@@ -1,0 +1,1 @@
+ALTER TABLE feed_products ADD COLUMN product_name_hebrew text;

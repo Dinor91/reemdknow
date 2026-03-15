@@ -156,7 +156,7 @@ const DailyDeals = () => {
         // Query feed_products
         let feedQuery = supabase
           .from("feed_products")
-          .select("id, product_name, image_url, price_thb, original_price_thb, sales_7d, rating, brand_name, category_name_hebrew, tracking_link, discount_percentage, category_l1")
+          .select("id, product_name, product_name_hebrew, image_url, price_thb, original_price_thb, sales_7d, rating, brand_name, category_name_hebrew, tracking_link, discount_percentage, category_l1")
           .eq("out_of_stock", false);
         if (cat.filterValues !== "all") {
           feedQuery = feedQuery.in("category_l1", cat.filterValues as number[]);
@@ -177,9 +177,9 @@ const DailyDeals = () => {
         if (feedRes.error) throw feedRes.error;
         if (curatedRes.error) throw curatedRes.error;
 
-        const feedItems: ProductItem[] = (feedRes.data || []).map((p) => ({
+        const feedItems: ProductItem[] = (feedRes.data || []).map((p: any) => ({
           id: p.id,
-          name: p.product_name,
+          name: p.product_name_hebrew || p.product_name,
           image_url: p.image_url,
           price: p.price_thb,
           original_price: p.original_price_thb,
