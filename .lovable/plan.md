@@ -1,15 +1,21 @@
 
 
-# שלב 9 — רוטציה חכמה + המלצות יומיות ✅
+## עדכון עקרונות קוד לפרויקט
 
-## מה הושלם
-1. **DB**: הוספת `last_shown` (timestamptz) ל-`feed_products` ול-`aliexpress_feed_products`
-2. **Edge Function**: `daily-recommendations/index.ts` — בוחר 3-5 מוצרים לכל פלטפורמה עם רוטציה חכמה
-3. **Cron Job**: `daily-recommendations` רץ כל יום ב-01:00 UTC (08:00 שעון תאילנד)
+העקרונות הבאים נקלטו ויחולו על **כל קוד עתידי** בפרויקט:
 
-## לוגיקה
-- סינון: `out_of_stock = false`, `rating >= 4`, `tracking_link IS NOT NULL`
-- מניעת כפילויות: לא נשלח כדיל ב-30 יום אחרונים
-- רוטציה: `last_shown IS NULL` → `last_shown > 7 days` → עמלה + מכירות
-- פיזור קטגוריות: מקסימום 2 מכל קטגוריה
-- שליחה: Product Card עם תמונה + כפתור "✍️ צור דיל" (`deal_gen:ID`)
+| עיקרון | כלל |
+|---|---|
+| **DRY** | לוגיקה כפולה → `_shared/`. אין copy-paste בין קבצים |
+| **Single Responsibility** | פונקציה = פעולה אחת. שליפה ≠ שליחה ≠ תרגום |
+| **Single Source of Truth** | קטגוריות ב-`_shared/categories.ts`, שערים ב-`_shared/constants.ts`, prompts ב-`_shared/translate.ts` |
+| **Separation of Concerns** | business logic / DB / UI / Telegram API — נפרדים |
+| **ורסטיליות** | `fetchProducts({ table, filters })` במקום פונקציה לכל מקרה |
+| **פנים קדימה** | חלק משתנה = פרמטר, לא hardcoded |
+
+### מה ייעשה
+עדכון `.lovable/plan.md` עם העקרונות האלה כסקשן קבוע שינחה כל שלב עתידי.
+
+### הערה
+העקרונות האלה מתיישרים ישירות עם ממצאי סקירת החוב הטכני. כל ריפקטורינג או פיצ׳ר חדש ייכתב לפיהם.
+
