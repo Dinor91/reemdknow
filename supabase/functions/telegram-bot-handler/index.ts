@@ -80,14 +80,50 @@ function formatRating(rating: any): string {
   return ` ⭐${Number(rating).toFixed(2)}`;
 }
 
+const KNOWN_BRANDS = /\b(samsung|apple|xiaomi|baseus|anker|sony|lg|jbl|philips|dyson|bosch|makita|dewalt|nike|adidas|puma|reebok|ugreen|orico|lenovo|asus|acer|dell|hp|huawei|oppo|realme|vivo|logitech)\b/i;
+
+function shortenProductName(name: string): string {
+  if (name.length <= 40) return name;
+
+  // Extract brand if present
+  const brandMatch = name.match(KNOWN_BRANDS);
+  const brand = brandMatch ? brandMatch[1] : "";
+
+  // Remove noise patterns
+  let cleaned = name
+    .replace(/\b(ready stock|free shipping|hot sale|new arrival|in stock|fast delivery|100% original|high quality)\b/gi, "")
+    .replace(/\b[A-Z0-9]{2,}-?[A-Z0-9]{2,}\b/g, "") // model numbers like AB-123X
+    .replace(/\b\d+\s*(cm|mm|ml|oz|inch|pcs|pieces?|sets?|pairs?|pack)\b/gi, "") // sizes
+    .replace(/\b(black|white|red|blue|green|pink|gold|silver|grey|gray|purple|yellow|brown|beige|navy)\b/gi, "") // colors
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  // Take first 5 meaningful words
+  const words = cleaned.split(/\s+/).filter(w => w.length >= 2);
+  let result = words.slice(0, 5).join(" ");
+
+  // Prepend brand if not already included
+  if (brand && !result.toLowerCase().includes(brand.toLowerCase())) {
+    result = `${brand} ${result}`;
+  }
+
+  return result || name.substring(0, 40);
+}
+
+function getOriginalProductName(p: any): string | undefined {
+  return p.product_name || p.name_english || undefined;
+}
+
 function getProductDisplayName(p: any, fallbackCategory?: string): string {
-  if (p.product_name_hebrew) return p.product_name_hebrew;
-  if (p.product_name_english) return p.product_name_english;
-  if (p.product_name) return p.product_name;
-  if (p.name_hebrew) return p.name_hebrew;
-  if (p.name_english) return p.name_english;
-  if (fallbackCategory) return `${fallbackCategory}`;
-  return "מוצר";
+  let name = "";
+  if (p.product_name_hebrew) name = p.product_name_hebrew;
+  else if (p.product_name_english) name = p.product_name_english;
+  else if (p.product_name) name = p.product_name;
+  else if (p.name_hebrew) name = p.name_hebrew;
+  else if (p.name_english) name = p.name_english;
+  else return fallbackCategory || "מוצר";
+
+  return shortenProductName(name);
 }
 
 // ────────── GROUP URL LISTENING ──────────
