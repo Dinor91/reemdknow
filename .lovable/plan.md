@@ -32,8 +32,11 @@
 
 ## 🔴 קריטי
 - ~~איחוד `detectCategory` ל-`_shared/categories.ts`~~ ✅ (B1)
+- ~~תיקון `isProductRelevantForCategory` — סינון יתר~~ ✅ (originalName + fallback כללי)
+- ~~קיצור שמות מוצרים ארוכים (`shortenProductName`)~~ ✅
+- ~~fallback < 3 מוצרים אחרי סינון~~ ✅
 - הוצאת Telegram helpers ל-`_shared/telegram.ts`
-- פירוק `telegram-bot-handler` (2,071 שורות) ל-modules
+- פירוק `telegram-bot-handler` (2,100+ שורות) ל-modules
 
 ## 🟠 גבוה
 - איחוד AI translate prompt ל-`_shared/translate.ts` (3 עותקים)
