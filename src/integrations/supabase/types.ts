@@ -709,6 +709,7 @@ export type Database = {
           out_of_stock: boolean
           price_thb: number
           product_name: string
+          product_name_hebrew: string
           tracking_link: string
           updated_at: string
         }[]
