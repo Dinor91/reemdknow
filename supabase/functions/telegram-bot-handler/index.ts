@@ -1420,6 +1420,8 @@ async function handleDealCategoryHighCommission(chatId: number, messageId: numbe
 
   let products: any[] = [];
 
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
   if (platform === "israel_hc") {
     const { data } = await serviceClient
       .from("aliexpress_feed_products")
@@ -1427,19 +1429,23 @@ async function handleDealCategoryHighCommission(chatId: number, messageId: numbe
       .eq("category_name_hebrew", category)
       .eq("is_campaign_product", true)
       .gte("commission_rate", 0.15)
+      .order("last_shown", { ascending: true, nullsFirst: true })
       .order("commission_rate", { ascending: false })
-      .limit(10);
-    products = (data || []).map(p => ({
-      id: p.id,
-      name: getProductDisplayName(p, category),
-      price: p.price_usd ? `$${p.price_usd}` : "לא ידוע",
-      rating: p.rating,
-      sales_7d: p.sales_30d,
-      url: p.tracking_link,
-      image_url: p.image_url,
-      commission_rate: p.commission_rate,
-      platform: "israel",
-    }));
+      .limit(20);
+    products = (data || [])
+      .filter(p => !p.last_shown || p.last_shown < sevenDaysAgo)
+      .slice(0, 10)
+      .map(p => ({
+        id: p.id,
+        name: getProductDisplayName(p, category),
+        price: p.price_usd ? `$${p.price_usd}` : "לא ידוע",
+        rating: p.rating,
+        sales_7d: p.sales_30d,
+        url: p.tracking_link,
+        image_url: p.image_url,
+        commission_rate: p.commission_rate,
+        platform: "israel",
+      }));
   } else {
     const { data } = await serviceClient
       .from("feed_products")
@@ -1448,19 +1454,23 @@ async function handleDealCategoryHighCommission(chatId: number, messageId: numbe
       .gte("commission_rate", 0.15)
       .eq("out_of_stock", false)
       .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES)
+      .order("last_shown", { ascending: true, nullsFirst: true })
       .order("commission_rate", { ascending: false })
-      .limit(10);
-    products = (data || []).map(p => ({
-      id: p.id,
-      name: getProductDisplayName(p, category),
-      price: p.price_thb ? `฿${p.price_thb}` : "לא ידוע",
-      rating: p.rating,
-      sales_7d: p.sales_7d,
-      url: p.tracking_link,
-      image_url: p.image_url,
-      commission_rate: p.commission_rate,
-      platform: "thailand",
-    }));
+      .limit(20);
+    products = (data || [])
+      .filter(p => !p.last_shown || p.last_shown < sevenDaysAgo)
+      .slice(0, 10)
+      .map(p => ({
+        id: p.id,
+        name: getProductDisplayName(p, category),
+        price: p.price_thb ? `฿${p.price_thb}` : "לא ידוע",
+        rating: p.rating,
+        sales_7d: p.sales_7d,
+        url: p.tracking_link,
+        image_url: p.image_url,
+        commission_rate: p.commission_rate,
+        platform: "thailand",
+      }));
   }
 
   if (products.length === 0) {
@@ -1484,6 +1494,13 @@ async function handleDealCategoryHighCommission(chatId: number, messageId: numbe
   }
 
   await editMessage(chatId, messageId, msg, { reply_markup: { inline_keyboard: rows } });
+
+  // Update last_shown for displayed products
+  const shownTable = platform === "israel_hc" ? "aliexpress_feed_products" : "feed_products";
+  const shownIds = products.map(p => p.id);
+  if (shownIds.length > 0) {
+    await serviceClient.from(shownTable).update({ last_shown: new Date().toISOString() }).in("id", shownIds);
+  }
 }
 
 async function handleDealGenerate(chatId: number, productId: string) {
