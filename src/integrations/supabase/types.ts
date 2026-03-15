@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      aliexpress_campaigns: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_synced: string | null
+          products_count: number | null
+          promo_desc: string | null
+          promo_id: string
+          promo_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_synced?: string | null
+          products_count?: number | null
+          promo_desc?: string | null
+          promo_id: string
+          promo_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_synced?: string | null
+          products_count?: number | null
+          promo_desc?: string | null
+          promo_id?: string
+          promo_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       aliexpress_feed_categories: {
         Row: {
           category_id: string
@@ -53,6 +89,7 @@ export type Database = {
       aliexpress_feed_products: {
         Row: {
           aliexpress_product_id: string
+          campaign_name: string | null
           category_id: string | null
           category_name_hebrew: string | null
           commission_rate: number | null
@@ -77,6 +114,7 @@ export type Database = {
         }
         Insert: {
           aliexpress_product_id: string
+          campaign_name?: string | null
           category_id?: string | null
           category_name_hebrew?: string | null
           commission_rate?: number | null
@@ -101,6 +139,7 @@ export type Database = {
         }
         Update: {
           aliexpress_product_id?: string
+          campaign_name?: string | null
           category_id?: string | null
           category_name_hebrew?: string | null
           commission_rate?: number | null
