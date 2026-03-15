@@ -1,58 +1,82 @@
 
 
-# תיקון זיכרון חיפוש — user_sessions
+## שלב 9 — רוטציה חכמה + המלצות יומיות אוטומטיות
 
-## בעיה
-אחרי לחיצה על "🔍 חיפוש מוצר" (`cmd:search`), הבוט שולח "מה אתה מחפש?" אבל כשהמשתמש שולח טקסט חופשי (למשל "אוזניות בלוטוס"), הטקסט לא עובר את `isSearchIntent` (חסרות מילות טריגר) והבוט מגיב "לא הבנתי".
+### סיכום
 
-## פתרון — טבלת `user_sessions`
+מערכת שתבחר כל יום 3-5 מוצרים מומלצים לכל פלטפורמה (ישראל/תאילנד), תשלח אותם בפרטי עם כפתור "צור דיל", ותמנע חזרה על מוצרים באמצעות עמודת `last_shown`.
 
-### שלב 1: מיגרציה
+---
+
+### שינויי DB (2 מיגרציות)
+
+1. **הוספת `last_shown` ל-`feed_products`:**
+   ```sql
+   ALTER TABLE feed_products ADD COLUMN last_shown timestamptz;
+   ```
+
+2. **הוספת `last_shown` ל-`aliexpress_feed_products`:**
+   ```sql
+   ALTER TABLE aliexpress_feed_products ADD COLUMN last_shown timestamptz;
+   ```
+
+---
+
+### Edge Function חדשה: `daily-recommendations`
+
+פונקציה שתופעל ב-cron כל בוקר (08:00 UTC+7 = 01:00 UTC):
+
+**לוגיקת בחירת מוצרים (לכל פלטפורמה בנפרד):**
+
+```text
+1. סנן: out_of_stock = false, tracking_link IS NOT NULL, rating >= 4
+2. סנן: לא נשלח כדיל ב-30 יום האחרונים (JOIN deals_sent)
+3. דרג לפי עדיפות:
+   a. last_shown IS NULL (לא הוצג מעולם) — עדיפות ראשונה
+   b. last_shown < NOW() - 7 days — עדיפות שנייה
+   c. commission_rate DESC, sales DESC
+4. פזר לפי קטגוריות — מקסימום 1-2 מכל קטגוריה
+5. בחר 3-5 מוצרים
+6. עדכן last_shown = NOW() למוצרים שנבחרו
+7. שלח Product Card לכל מוצר עם כפתור "✍️ צור דיל"
+```
+
+**פורמט ההודעה:**
+```text
+🌅 המלצות יומיות — ישראל 🇮🇱
+
+מוצר 1: [שם] | $XX | ⭐4.8 | עמלה 12%
+[כפתור: צור דיל]
+
+מוצר 2: ...
+```
+
+---
+
+### Cron Job
+
+pg_cron שרץ כל יום ב-01:00 UTC (08:00 שעון תאילנד):
+
 ```sql
-CREATE TABLE user_sessions (
-  user_id BIGINT PRIMARY KEY,
-  state TEXT NOT NULL DEFAULT 'idle',
-  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (true) WITH CHECK (true);
+cron.schedule('daily-recommendations', '0 1 * * *', ...)
 ```
 
-### שלב 2: שינויים ב-`telegram-bot-handler/index.ts`
+---
 
-**2a. ב-callback handler של `cmd:search` (שורה 1560):**
-```typescript
-else if (data === "cmd:search") {
-  const serviceClient = createServiceClient();
-  await serviceClient.from("user_sessions").upsert({
-    user_id: userId,
-    state: "waiting_search",
-    last_updated: new Date().toISOString(),
-  });
-  await sendMessage(chatId, "🔍 מה אתה מחפש?\n\nשלח תיאור קצר של המוצר ואחפש לך.");
-}
-```
+### קבצים
 
-**2b. ב-main message handler, לפני routing הפקודות (שורה ~1612, אחרי בדיקת authorized user):**
-```typescript
-// Check if waiting for search input
-const serviceClient = createServiceClient();
-const { data: session } = await serviceClient
-  .from("user_sessions")
-  .select("state")
-  .eq("user_id", userId)
-  .maybeSingle();
+| קובץ | שינוי |
+|---|---|
+| DB migration | הוספת `last_shown` לשתי טבלאות |
+| `supabase/functions/daily-recommendations/index.ts` | **חדש** — לוגיקת בחירה + שליחה |
+| `supabase/config.toml` | הוספת `[functions.daily-recommendations]` |
+| pg_cron (insert tool) | תזמון יומי |
 
-if (session?.state === "waiting_search" && !text.startsWith("/")) {
-  await serviceClient.from("user_sessions").delete().eq("user_id", userId);
-  await handleFreeTextSearch(chatId, text);
-  return new Response("OK");
-}
-```
+---
 
-## קובץ
-- `supabase/functions/telegram-bot-handler/index.ts`
+### הערות
 
-## תוצאה
-לחיצה על "חיפוש מוצר" → שליחת טקסט חופשי כלשהו → חיפוש מופעל, ללא צורך במילות טריגר.
+- הכפתור "צור דיל" ישתמש ב-callback `cmd:deal_PRODUCTID_PLATFORM` שכבר קיים בבוט
+- לא נוגע ב-`telegram-bot-handler` — הפונקציה החדשה שולחת ישירות דרך Telegram API
+- אם אין מספיק מוצרים (פחות מ-3) — שולח הודעה "📭 אין מספיק מוצרים חדשים היום"
 
