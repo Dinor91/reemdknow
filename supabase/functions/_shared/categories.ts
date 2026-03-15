@@ -57,8 +57,22 @@ export function detectCategory(productName: string): DealCategory {
  * Check if a product belongs to a specific category.
  * Versatile — works on any product from any table/platform.
  */
-export function isProductRelevantForCategory(productName: string, category: string): boolean {
-  return detectCategory(productName) === category;
+export function isProductRelevantForCategory(productName: string, category: string, originalName?: string): boolean {
+  const translatedResult = detectCategory(productName);
+  if (translatedResult === category) return true;
+
+  // Check original (English) name if provided
+  if (originalName) {
+    const originalResult = detectCategory(originalName);
+    if (originalResult === category) return true;
+    // Both return "כללי" — trust the DB assignment, don't filter out
+    if (translatedResult === "כללי" && originalResult === "כללי") return true;
+  } else {
+    // Only translated name available and it's "כללי" — trust DB
+    if (translatedResult === "כללי") return true;
+  }
+
+  return false;
 }
 
 const STOPWORDS = new Set([
