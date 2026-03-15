@@ -1,4 +1,16 @@
 
+# עקרונות קוד — חובה בכל כתיבה
+
+| עיקרון | כלל |
+|---|---|
+| **DRY** | לוגיקה כפולה → `_shared/`. אין copy-paste בין קבצים |
+| **Single Responsibility** | פונקציה = פעולה אחת. שליפה ≠ שליחה ≠ תרגום |
+| **Single Source of Truth** | קטגוריות ב-`_shared/categories.ts`, שערים ב-`_shared/constants.ts`, prompts ב-`_shared/translate.ts` |
+| **Separation of Concerns** | business logic / DB / UI / Telegram API — נפרדים |
+| **ורסטיליות** | `fetchProducts({ table, filters })` במקום פונקציה לכל מקרה |
+| **פנים קדימה** | חלק משתנה = פרמטר, לא hardcoded |
+
+---
 
 # שלב 9 — רוטציה חכמה + המלצות יומיות ✅
 
@@ -13,3 +25,26 @@
 - רוטציה: `last_shown IS NULL` → `last_shown > 7 days` → עמלה + מכירות
 - פיזור קטגוריות: מקסימום 2 מכל קטגוריה
 - שליחה: Product Card עם תמונה + כפתור "✍️ צור דיל" (`deal_gen:ID`)
+
+---
+
+# חוב טכני — ממתין לריפקטורינג
+
+## 🔴 קריטי
+- איחוד `detectCategory` ל-`_shared/categories.ts` (3 גרסאות שונות)
+- הוצאת Telegram helpers ל-`_shared/telegram.ts`
+- פירוק `telegram-bot-handler` (2,098 שורות) ל-modules
+
+## 🟠 גבוה
+- איחוד AI translate prompt ל-`_shared/translate.ts` (3 עותקים)
+- איחוד API signatures ל-`_shared/api-signatures.ts` (4 עותקים)
+- עדכון `get_public_feed_products` DB function (חסר `product_name_hebrew`)
+- הוספת `last_shown` ל-`handleDealCategory` + מיגרציה ל-`israel_editor_products`
+
+## 🟡 בינוני
+- `_shared/constants.ts` — exchange rates + excluded categories
+- איחוד product lookup (`findProductById`)
+
+## 🟢 נמוך
+- corsHeaders ל-`_shared/cors.ts`
+- פיצול `DailyDeals.tsx` ל-components
