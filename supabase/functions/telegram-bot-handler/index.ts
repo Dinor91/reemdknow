@@ -1498,6 +1498,7 @@ async function handleDealCategoryHighCommission(chatId: number, messageId: numbe
       .map(p => ({
         id: p.id,
         name: getProductDisplayName(p, category),
+        originalName: getOriginalProductName(p),
         price: p.price_thb ? `฿${p.price_thb}` : "לא ידוע",
         rating: p.rating,
         sales_7d: p.sales_7d,
@@ -1506,7 +1507,8 @@ async function handleDealCategoryHighCommission(chatId: number, messageId: numbe
         commission_rate: p.commission_rate,
         platform: "thailand" as const,
       }));
-    products = diversifyProducts(products.filter(p => isProductRelevantForCategory(p.name, category)));
+    const filtered = diversifyProducts(products.filter(p => isProductRelevantForCategory(p.name, category, p.originalName)));
+    products = filtered.length >= 3 ? filtered : diversifyProducts(products);
   }
 
   if (products.length === 0) {
