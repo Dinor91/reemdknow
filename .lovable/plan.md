@@ -1,50 +1,37 @@
 
-# עקרונות קוד — חובה בכל כתיבה
 
-| עיקרון | כלל |
-|---|---|
-| **DRY** | לוגיקה כפולה → `_shared/`. אין copy-paste בין קבצים |
-| **Single Responsibility** | פונקציה = פעולה אחת. שליפה ≠ שליחה ≠ תרגום |
-| **Single Source of Truth** | קטגוריות ב-`_shared/categories.ts`, שערים ב-`_shared/constants.ts`, prompts ב-`_shared/translate.ts` |
-| **Separation of Concerns** | business logic / DB / UI / Telegram API — נפרדים |
-| **ורסטיליות** | `fetchProducts({ table, filters })` במקום פונקציה לכל מקרה |
-| **פנים קדימה** | חלק משתנה = פרמטר, לא hardcoded |
+## תוכנית ביצוע — B1, B2, B3
 
----
+### B1 — איחוד `detectCategory` ל-`_shared/categories.ts`
 
-# שלב 9 — רוטציה חכמה + המלצות יומיות ✅
+**קובץ חדש:** `supabase/functions/_shared/categories.ts`
+- גרסה מאוחדת עם סדר עדיפויות: בריאות → ילדים → גאדג׳טים → כלי עבודה → אופנה → בית → רכב → כללי
+- מיזוג regex: English מהגרסה החדשה + Hebrew מהגרסה הישנה בבוט (שורות 170-195)
+- export: `detectCategory` + `DEAL_CATEGORIES` array
 
-## מה הושלם
-1. **DB**: הוספת `last_shown` (timestamptz) ל-`feed_products` ול-`aliexpress_feed_products`
-2. **Edge Function**: `daily-recommendations/index.ts` — בוחר 3-5 מוצרים לכל פלטפורמה עם רוטציה חכמה
-3. **Cron Job**: `daily-recommendations` רץ כל יום ב-01:00 UTC (08:00 שעון תאילנד)
-
-## לוגיקה
-- סינון: `out_of_stock = false`, `rating >= 4`, `tracking_link IS NOT NULL`
-- מניעת כפילויות: לא נשלח כדיל ב-30 יום אחרונים
-- רוטציה: `last_shown IS NULL` → `last_shown > 7 days` → עמלה + מכירות
-- פיזור קטגוריות: מקסימום 2 מכל קטגוריה
-- שליחה: Product Card עם תמונה + כפתור "✍️ צור דיל" (`deal_gen:ID`)
+**עדכון 3 קבצים:**
+1. `sync-feed-products/index.ts` — מחיקת שורות 20-53, הוספת import
+2. `sync-aliexpress-products/index.ts` — מחיקת שורות 20-46, הוספת import
+3. `telegram-bot-handler/index.ts` — מחיקת שורות 168-195, הוספת import
 
 ---
 
-# חוב טכני — ממתין לריפקטורינג
+### B2 — `last_shown` ב-`handleDealCategory`
 
-## 🔴 קריטי
-- איחוד `detectCategory` ל-`_shared/categories.ts` (3 גרסאות שונות)
-- הוצאת Telegram helpers ל-`_shared/telegram.ts`
-- פירוק `telegram-bot-handler` (2,098 שורות) ל-modules
+**מיגרציה:**
+```sql
+ALTER TABLE israel_editor_products ADD COLUMN last_shown timestamptz;
+```
 
-## 🟠 גבוה
-- איחוד AI translate prompt ל-`_shared/translate.ts` (3 עותקים)
-- איחוד API signatures ל-`_shared/api-signatures.ts` (4 עותקים)
-- עדכון `get_public_feed_products` DB function (חסר `product_name_hebrew`)
-- הוספת `last_shown` ל-`handleDealCategory` + מיגרציה ל-`israel_editor_products`
+**עדכון `handleDealCategory` (שורות 1194-1263):**
+- הוספת `sevenDaysAgo` (כמו שורה 1423)
+- Israel query: `.order("last_shown", { ascending: true, nullsFirst: true })` + `.limit(20)` + filter `.filter(p => !p.last_shown || p.last_shown < sevenDaysAgo).slice(0, 10)`
+- Thailand query: אותו דבר
+- הוספת עדכון `last_shown` בסוף (כמו שורות 1498-1503), עם זיהוי טבלה לפי platform
 
-## 🟡 בינוני
-- `_shared/constants.ts` — exchange rates + excluded categories
-- איחוד product lookup (`findProductById`)
+---
 
-## 🟢 נמוך
-- corsHeaders ל-`_shared/cors.ts`
-- פיצול `DailyDeals.tsx` ל-components
+### B3 — עדכון `get_public_feed_products`
+
+**מיגרציה:** `CREATE OR REPLACE FUNCTION` שמוסיפה `product_name_hebrew text` ל-RETURNS TABLE ול-SELECT.
+
