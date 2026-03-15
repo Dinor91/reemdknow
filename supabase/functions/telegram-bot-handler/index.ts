@@ -1218,8 +1218,9 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
       image_url: p.image_url,
       brand: p.brand_name,
       commission_rate: p.commission_rate,
-      platform: "thailand",
+      platform: "thailand" as const,
     }));
+    products = diversifyProducts(products.filter(p => isProductRelevantForCategory(p.name, category)));
   }
 
   if (products.length === 0) {
