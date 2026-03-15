@@ -1,31 +1,15 @@
 
 
-## עדכון פלואו עמלה גבוהה — הוספת רוטציית `last_shown`
+# שלב 9 — רוטציה חכמה + המלצות יומיות ✅
 
-### מה חסר
+## מה הושלם
+1. **DB**: הוספת `last_shown` (timestamptz) ל-`feed_products` ול-`aliexpress_feed_products`
+2. **Edge Function**: `daily-recommendations/index.ts` — בוחר 3-5 מוצרים לכל פלטפורמה עם רוטציה חכמה
+3. **Cron Job**: `daily-recommendations` רץ כל יום ב-01:00 UTC (08:00 שעון תאילנד)
 
-בפונקציה `handleDealCategoryHighCommission` (שורות 1417-1487):
-- **אין סינון** לפי `last_shown` — אותם מוצרים חוזרים כל פעם
-- **אין עדכון** של `last_shown` אחרי הצגה
-
-### שינויים
-
-**קובץ:** `supabase/functions/telegram-bot-handler/index.ts`
-
-1. **בשתי השאילתות** (Israel שורה 1424, Thailand שורה 1444) — הוסף:
-   - `.order("last_shown", { ascending: true, nullsFirst: true })` **לפני** ה-order הקיים של commission_rate
-   - הגדל limit ל-20 (כדי שיהיה מאגר לסינון)
-
-2. **אחרי השליפה** — סנן מוצרים ש-`last_shown` שלהם בתוך 7 הימים האחרונים, וחתוך ל-10
-
-3. **אחרי שליחת ההודעה** (אחרי שורה 1486) — עדכן `last_shown = NOW()` למוצרים שהוצגו:
-   ```typescript
-   const table = platform === "israel_hc" ? "aliexpress_feed_products" : "feed_products";
-   const shownIds = products.map(p => p.id);
-   await serviceClient.from(table).update({ last_shown: new Date().toISOString() }).in("id", shownIds);
-   ```
-
-### תוצאה
-
-מוצרי עמלה גבוהה יעברו רוטציה — לא יוצגו שוב במשך 7 ימים, בדיוק כמו בהמלצות היומיות.
-
+## לוגיקה
+- סינון: `out_of_stock = false`, `rating >= 4`, `tracking_link IS NOT NULL`
+- מניעת כפילויות: לא נשלח כדיל ב-30 יום אחרונים
+- רוטציה: `last_shown IS NULL` → `last_shown > 7 days` → עמלה + מכירות
+- פיזור קטגוריות: מקסימום 2 מכל קטגוריה
+- שליחה: Product Card עם תמונה + כפתור "✍️ צור דיל" (`deal_gen:ID`)
