@@ -310,6 +310,7 @@ EXAMPLES:
           category_name_hebrew: hebrewCategory,
           brand_name: product.brandName,
           tracking_link: trackingLinks.get(productId) || `https://www.lazada.co.th/products/-i${productId}.html`,
+          product_name_hebrew: hebrewNames.get(productId) || null,
           out_of_stock: product.outOfStock || false,
           updated_at: new Date().toISOString()
         }, {
