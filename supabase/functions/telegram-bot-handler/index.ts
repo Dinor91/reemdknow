@@ -1436,8 +1436,9 @@ async function handleDealCategoryHighCommission(chatId: number, messageId: numbe
         url: p.tracking_link,
         image_url: p.image_url,
         commission_rate: p.commission_rate,
-        platform: "israel",
+        platform: "israel" as const,
       }));
+    products = diversifyProducts(products.filter(p => isProductRelevantForCategory(p.name, category)));
   } else {
     const { data } = await serviceClient
       .from("feed_products")
