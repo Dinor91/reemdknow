@@ -52,3 +52,55 @@ export function detectCategory(productName: string): DealCategory {
 
   return "כללי";
 }
+
+/**
+ * Check if a product belongs to a specific category.
+ * Versatile — works on any product from any table/platform.
+ */
+export function isProductRelevantForCategory(productName: string, category: string): boolean {
+  return detectCategory(productName) === category;
+}
+
+const STOPWORDS = new Set([
+  "with", "from", "that", "this", "your", "have", "more", "will", "been",
+  "each", "make", "like", "long", "very", "when", "what", "were", "there",
+  "their", "about", "would", "which", "could", "other", "than", "then",
+  "them", "into", "over", "also", "back", "after", "only", "come", "made",
+  "find", "here", "thing", "many", "well", "anti", "multi", "super", "ultra",
+  "mini", "free", "high", "quality", "portable", "original", "style", "type",
+  "size", "color", "pack", "piece", "sets",
+]);
+
+/**
+ * Extract the "main keyword" from a product name.
+ * Returns the longest word (≥4 chars) that isn't a stopword.
+ */
+function extractMainKeyword(name: string): string {
+  const words = name.toLowerCase().replace(/[^a-zא-ת0-9\s]/g, "").split(/\s+/);
+  let best = "";
+  for (const w of words) {
+    if (w.length >= 4 && !STOPWORDS.has(w) && w.length > best.length) {
+      best = w;
+    }
+  }
+  return best;
+}
+
+/**
+ * Diversify a product list — max `maxSimilar` products sharing the same main keyword.
+ * Preserves original order. Works on any product array with a `name` field.
+ */
+export function diversifyProducts<T extends { name: string }>(
+  products: T[],
+  maxSimilar: number = 2
+): T[] {
+  const keywordCount = new Map<string, number>();
+  return products.filter(p => {
+    const kw = extractMainKeyword(p.name);
+    if (!kw) return true; // no keyword detected — keep
+    const count = keywordCount.get(kw) || 0;
+    if (count >= maxSimilar) return false;
+    keywordCount.set(kw, count + 1);
+    return true;
+  });
+}

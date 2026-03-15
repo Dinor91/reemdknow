@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isProductRelevantForCategory, diversifyProducts } from "../_shared/categories.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 const AUTHORIZED_USER_ID = parseInt(Deno.env.get("TELEGRAM_USER_ID") || "0");
@@ -1191,8 +1192,9 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
       sales_7d: p.sales_count,
       url: p.tracking_link,
       image_url: p.image_url,
-      platform: "israel",
+      platform: "israel" as const,
     }));
+    products = diversifyProducts(products.filter(p => isProductRelevantForCategory(p.name, category)));
   } else {
     const { data } = await serviceClient
       .from("feed_products")
@@ -1216,8 +1218,9 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
       image_url: p.image_url,
       brand: p.brand_name,
       commission_rate: p.commission_rate,
-      platform: "thailand",
+      platform: "thailand" as const,
     }));
+    products = diversifyProducts(products.filter(p => isProductRelevantForCategory(p.name, category)));
   }
 
   if (products.length === 0) {
@@ -1433,8 +1436,9 @@ async function handleDealCategoryHighCommission(chatId: number, messageId: numbe
         url: p.tracking_link,
         image_url: p.image_url,
         commission_rate: p.commission_rate,
-        platform: "israel",
+        platform: "israel" as const,
       }));
+    products = diversifyProducts(products.filter(p => isProductRelevantForCategory(p.name, category)));
   } else {
     const { data } = await serviceClient
       .from("feed_products")
@@ -1458,8 +1462,9 @@ async function handleDealCategoryHighCommission(chatId: number, messageId: numbe
         url: p.tracking_link,
         image_url: p.image_url,
         commission_rate: p.commission_rate,
-        platform: "thailand",
+        platform: "thailand" as const,
       }));
+    products = diversifyProducts(products.filter(p => isProductRelevantForCategory(p.name, category)));
   }
 
   if (products.length === 0) {
