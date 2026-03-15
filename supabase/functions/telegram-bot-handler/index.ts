@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isProductRelevantForCategory, diversifyProducts } from "../_shared/categories.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 const AUTHORIZED_USER_ID = parseInt(Deno.env.get("TELEGRAM_USER_ID") || "0");
