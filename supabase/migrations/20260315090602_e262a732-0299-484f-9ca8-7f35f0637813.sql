@@ -1,0 +1,1 @@
+ALTER TABLE israel_editor_products ADD COLUMN IF NOT EXISTS last_shown timestamptz;

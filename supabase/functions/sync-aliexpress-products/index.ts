@@ -17,33 +17,7 @@ const ALIEXPRESS_API_URL = 'https://api-sg.aliexpress.com/sync'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-// Priority-based regex category detection — same logic as sync-feed-products
-function detectCategory(productName: string): string {
-  const name = productName.toLowerCase();
-
-  if (/toothpaste|oral\s?care|dental|vitamin|supplement|protein|cpap|oxygen|medical|health|fitness|gym|yoga|sport|exercise|treadmill|massage/.test(name))
-    return "בריאות וספורט";
-
-  if (/\btoy\b|baby|diaper|nappy|infant|lego|\bkids\b|children|stroller|puzzle|doll/.test(name))
-    return "ילדים ומשחקים";
-
-  if (/smart\s?watch|smartwatch|earphone|earbud|bluetooth|power\s?bank|led\s?strip|smart\s?home|router|\blaptop\b|drone|projector|network\s?card|airtag|gps\s?tracker|toner|printer|tripod/.test(name))
-    return "גאדג׳טים ובית חכם";
-
-  if (/lawn\s?mower|lawnmower|\bdrill\b|wrench|screwdriver|\btool\b|garden|\bpump\b|ladder|generator|compressor|cabinet/.test(name))
-    return "כלי עבודה וציוד";
-
-  if (/\bshirt\b|\bdress\b|\bpants\b|\bshoe\b|sneaker|\bbag\b|wallet|jewelry|necklace|bracelet|\bring\b|\bwatch\b|fashion|eyelash|makeup|lipstick|\bjacket\b(?!.*moto)/.test(name))
-    return "אופנה וסטייל";
-
-  if (/kitchen|cookware|\bpot\b|\bpan\b|\bknife\b|furniture|pillow|bedding|curtain|storage|organizer|vacuum|blender|coffee\s?maker|air\s?fryer/.test(name))
-    return "בית ומטבח";
-
-  if (/\bcar\b|automotive|motorcycle|dash\s?cam|dashcam|\btire\b|\btyre\b|brake|steering|carplay|body\s?kit|roof\s?box|car\s?charger|car\s?mount|car\s?cover|car\s?seat|car\s?wash|\bhelmet\b(?=.*moto|\bhelmet\b)/.test(name))
-    return "רכב ותחבורה";
-
-  return "כללי";
-}
+import { detectCategory } from '../_shared/categories.ts'
 
 // Helper to convert Uint8Array to hex string
 function toHex(buffer: Uint8Array): string {

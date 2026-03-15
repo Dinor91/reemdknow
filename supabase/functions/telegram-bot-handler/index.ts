@@ -165,34 +165,7 @@ async function resolveShortLinks(urls: string[]): Promise<Record<string, string>
   }
 }
 
-// ────────── AUTO-CATEGORY DETECTION ──────────
-
-function detectCategory(productName: string): string {
-  const name = productName.toLowerCase();
-
-  if (/רכב|אופנוע|טנדר|גג|גלגל|מנוע|שמן|בלם|פנס|מראה|קסדה|car |vehicle|motor|tire|brake|helmet|steering|dashboard/.test(name))
-    return "רכב ותחבורה";
-
-  if (/ילד|תינוק|משחק|קארטינג|קסדת ילד|לגו|בובה|מתקן טיפוס|baby|kids|toy|lego|stroller|child/.test(name))
-    return "ילדים ומשחקים";
-
-  if (/מטבח|בית|כיסא|שולחן|מזרן|מיטה|כריות|וילון|מדף|אחסון|קפה|סיר|מחבת|kitchen|home|chair|table|mattress|bed|curtain|shelf|storage|coffee|pot|pan/.test(name))
-    return "בית ומטבח";
-
-  if (/טלפון|סמארטפון|מחשב|אוזניות|רמקול|מסך|מצלמה|טאבלט|ראוטר|רשת|חכם|smart|phone|bluetooth|wireless|speaker|camera|tablet|router|headphone|earphone|earbuds|laptop|usb|charger|led/.test(name))
-    return "גאדג׳טים ובית חכם";
-
-  if (/בריאות|ספורט|רפואי|cpap|חמצן|מזרן טיפולי|שעון ספורט|כושר|תוסף|health|sport|fitness|medical|yoga|gym|exercise/.test(name))
-    return "בריאות וספורט";
-
-  if (/שמלה|חולצה|מכנסיים|נעל|תיק|תכשיט|שעון יד|טבעת|שרשרת|אופנה|dress|shirt|pants|shoe|bag|jewelry|watch|ring|necklace|fashion|women|men/.test(name))
-    return "אופנה וסטייל";
-
-  if (/כלי עבודה|מברג|מקדחה|מפתח|מדידה|מנקה|תעשייתי|ממיר|משקל|tool|drill|wrench|screwdriver|industrial|cleaning/.test(name))
-    return "כלי עבודה וציוד";
-
-  return "כללי";
-}
+import { detectCategory } from '../_shared/categories.ts'
 
 // ────────── API ENRICHMENT FOR GROUP PRODUCTS ──────────
 
@@ -1196,6 +1169,7 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
   await editMessage(chatId, messageId, `⏳ טוען מוצרים מ-${category}...`);
 
   let products: any[] = [];
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   if (platform === "israel") {
     const { data } = await serviceClient
@@ -1203,9 +1177,13 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
       .select("*")
       .eq("category_name_hebrew", category)
       .eq("is_active", true)
+      .order("last_shown", { ascending: true, nullsFirst: true })
       .order("sales_count", { ascending: false, nullsFirst: false })
-      .limit(10);
-    products = (data || []).map(p => ({
+      .limit(20);
+    products = (data || [])
+      .filter(p => !p.last_shown || p.last_shown < sevenDaysAgo)
+      .slice(0, 10)
+      .map(p => ({
       id: p.id,
       name: getProductDisplayName(p, category),
       price: p.price_usd ? `$${p.price_usd}` : "לא ידוע",
@@ -1222,9 +1200,13 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
       .eq("category_name_hebrew", category)
       .eq("out_of_stock", false)
       .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES)
+      .order("last_shown", { ascending: true, nullsFirst: true })
       .order("sales_7d", { ascending: false, nullsFirst: false })
-      .limit(10);
-    products = (data || []).map(p => ({
+      .limit(20);
+    products = (data || [])
+      .filter(p => !p.last_shown || p.last_shown < sevenDaysAgo)
+      .slice(0, 10)
+      .map(p => ({
       id: p.id,
       name: getProductDisplayName(p, category),
       price: p.price_thb ? `฿${p.price_thb}` : "לא ידוע",
@@ -1260,6 +1242,13 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
   }
 
   await editMessage(chatId, messageId, msg, { reply_markup: { inline_keyboard: rows } });
+
+  // Update last_shown for displayed products (rotation)
+  const shownTable = platform === "israel" ? "israel_editor_products" : "feed_products";
+  const shownIds = products.map(p => p.id);
+  if (shownIds.length > 0) {
+    await serviceClient.from(shownTable).update({ last_shown: new Date().toISOString() }).in("id", shownIds);
+  }
 }
 
 // ────────── FIX 3: PRODUCT CARD WITH IMAGE ──────────
