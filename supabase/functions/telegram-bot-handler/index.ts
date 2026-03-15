@@ -1192,8 +1192,9 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
       sales_7d: p.sales_count,
       url: p.tracking_link,
       image_url: p.image_url,
-      platform: "israel",
+      platform: "israel" as const,
     }));
+    products = diversifyProducts(products.filter(p => isProductRelevantForCategory(p.name, category)));
   } else {
     const { data } = await serviceClient
       .from("feed_products")
