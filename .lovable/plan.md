@@ -1,8 +1,5 @@
 
-
-## עדכון עקרונות קוד לפרויקט
-
-העקרונות הבאים נקלטו ויחולו על **כל קוד עתידי** בפרויקט:
+# עקרונות קוד — חובה בכל כתיבה
 
 | עיקרון | כלל |
 |---|---|
@@ -13,9 +10,41 @@
 | **ורסטיליות** | `fetchProducts({ table, filters })` במקום פונקציה לכל מקרה |
 | **פנים קדימה** | חלק משתנה = פרמטר, לא hardcoded |
 
-### מה ייעשה
-עדכון `.lovable/plan.md` עם העקרונות האלה כסקשן קבוע שינחה כל שלב עתידי.
+---
 
-### הערה
-העקרונות האלה מתיישרים ישירות עם ממצאי סקירת החוב הטכני. כל ריפקטורינג או פיצ׳ר חדש ייכתב לפיהם.
+# שלב 9 — רוטציה חכמה + המלצות יומיות ✅
 
+## מה הושלם
+1. **DB**: הוספת `last_shown` (timestamptz) ל-`feed_products` ול-`aliexpress_feed_products`
+2. **Edge Function**: `daily-recommendations/index.ts` — בוחר 3-5 מוצרים לכל פלטפורמה עם רוטציה חכמה
+3. **Cron Job**: `daily-recommendations` רץ כל יום ב-01:00 UTC (08:00 שעון תאילנד)
+
+## לוגיקה
+- סינון: `out_of_stock = false`, `rating >= 4`, `tracking_link IS NOT NULL`
+- מניעת כפילויות: לא נשלח כדיל ב-30 יום אחרונים
+- רוטציה: `last_shown IS NULL` → `last_shown > 7 days` → עמלה + מכירות
+- פיזור קטגוריות: מקסימום 2 מכל קטגוריה
+- שליחה: Product Card עם תמונה + כפתור "✍️ צור דיל" (`deal_gen:ID`)
+
+---
+
+# חוב טכני — ממתין לריפקטורינג
+
+## 🔴 קריטי
+- איחוד `detectCategory` ל-`_shared/categories.ts` (3 גרסאות שונות)
+- הוצאת Telegram helpers ל-`_shared/telegram.ts`
+- פירוק `telegram-bot-handler` (2,098 שורות) ל-modules
+
+## 🟠 גבוה
+- איחוד AI translate prompt ל-`_shared/translate.ts` (3 עותקים)
+- איחוד API signatures ל-`_shared/api-signatures.ts` (4 עותקים)
+- עדכון `get_public_feed_products` DB function (חסר `product_name_hebrew`)
+- הוספת `last_shown` ל-`handleDealCategory` + מיגרציה ל-`israel_editor_products`
+
+## 🟡 בינוני
+- `_shared/constants.ts` — exchange rates + excluded categories
+- איחוד product lookup (`findProductById`)
+
+## 🟢 נמוך
+- corsHeaders ל-`_shared/cors.ts`
+- פיצול `DailyDeals.tsx` ל-components
