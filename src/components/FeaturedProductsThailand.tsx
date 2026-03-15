@@ -55,7 +55,7 @@ const useFeaturedProducts = () => {
 const toUnifiedProduct = (product: FeedProduct): UnifiedProduct => ({
   id: product.id,
   productId: product.lazada_product_id,
-  productName: product.product_name,
+  productName: product.product_name_hebrew || product.product_name,
   productNameHebrew: product.category_name_hebrew,
   imageUrl: product.image_url,
   priceUsd: convertThbToUsd(product.price_thb),
