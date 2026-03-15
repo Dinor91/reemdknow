@@ -31,15 +31,15 @@
 # חוב טכני — ממתין לריפקטורינג
 
 ## 🔴 קריטי
-- איחוד `detectCategory` ל-`_shared/categories.ts` (3 גרסאות שונות)
+- ~~איחוד `detectCategory` ל-`_shared/categories.ts`~~ ✅ (B1)
 - הוצאת Telegram helpers ל-`_shared/telegram.ts`
-- פירוק `telegram-bot-handler` (2,098 שורות) ל-modules
+- פירוק `telegram-bot-handler` (2,071 שורות) ל-modules
 
 ## 🟠 גבוה
 - איחוד AI translate prompt ל-`_shared/translate.ts` (3 עותקים)
 - איחוד API signatures ל-`_shared/api-signatures.ts` (4 עותקים)
-- עדכון `get_public_feed_products` DB function (חסר `product_name_hebrew`)
-- הוספת `last_shown` ל-`handleDealCategory` + מיגרציה ל-`israel_editor_products`
+- ~~עדכון `get_public_feed_products` DB function (חסר `product_name_hebrew`)~~ ✅ (B3)
+- ~~הוספת `last_shown` ל-`handleDealCategory` + מיגרציה ל-`israel_editor_products`~~ ✅ (B2)
 
 ## 🟡 בינוני
 - `_shared/constants.ts` — exchange rates + excluded categories
