@@ -437,6 +437,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean | null
+          last_shown: string | null
           original_price_usd: number | null
           out_of_stock: boolean | null
           price_usd: number | null
@@ -456,6 +457,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          last_shown?: string | null
           original_price_usd?: number | null
           out_of_stock?: boolean | null
           price_usd?: number | null
@@ -475,6 +477,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          last_shown?: string | null
           original_price_usd?: number | null
           out_of_stock?: boolean | null
           price_usd?: number | null
