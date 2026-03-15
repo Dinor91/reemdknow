@@ -1169,6 +1169,7 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
   await editMessage(chatId, messageId, `⏳ טוען מוצרים מ-${category}...`);
 
   let products: any[] = [];
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   if (platform === "israel") {
     const { data } = await serviceClient
@@ -1176,9 +1177,13 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
       .select("*")
       .eq("category_name_hebrew", category)
       .eq("is_active", true)
+      .order("last_shown", { ascending: true, nullsFirst: true })
       .order("sales_count", { ascending: false, nullsFirst: false })
-      .limit(10);
-    products = (data || []).map(p => ({
+      .limit(20);
+    products = (data || [])
+      .filter(p => !p.last_shown || p.last_shown < sevenDaysAgo)
+      .slice(0, 10)
+      .map(p => ({
       id: p.id,
       name: getProductDisplayName(p, category),
       price: p.price_usd ? `$${p.price_usd}` : "לא ידוע",
@@ -1195,9 +1200,13 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
       .eq("category_name_hebrew", category)
       .eq("out_of_stock", false)
       .not("category_name_hebrew", "in", EXCLUDED_FEED_CATEGORIES)
+      .order("last_shown", { ascending: true, nullsFirst: true })
       .order("sales_7d", { ascending: false, nullsFirst: false })
-      .limit(10);
-    products = (data || []).map(p => ({
+      .limit(20);
+    products = (data || [])
+      .filter(p => !p.last_shown || p.last_shown < sevenDaysAgo)
+      .slice(0, 10)
+      .map(p => ({
       id: p.id,
       name: getProductDisplayName(p, category),
       price: p.price_thb ? `฿${p.price_thb}` : "לא ידוע",
@@ -1233,6 +1242,13 @@ async function handleDealCategory(chatId: number, messageId: number, platform: s
   }
 
   await editMessage(chatId, messageId, msg, { reply_markup: { inline_keyboard: rows } });
+
+  // Update last_shown for displayed products (rotation)
+  const shownTable = platform === "israel" ? "israel_editor_products" : "feed_products";
+  const shownIds = products.map(p => p.id);
+  if (shownIds.length > 0) {
+    await serviceClient.from(shownTable).update({ last_shown: new Date().toISOString() }).in("id", shownIds);
+  }
 }
 
 // ────────── FIX 3: PRODUCT CARD WITH IMAGE ──────────
