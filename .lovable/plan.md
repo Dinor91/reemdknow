@@ -1,50 +1,56 @@
 
-# עקרונות קוד — חובה בכל כתיבה
 
-| עיקרון | כלל |
+## תיקון סינון יתר + שמות ארוכים + fallback
+
+### שינוי 1: `supabase/functions/_shared/categories.ts`
+
+**`isProductRelevantForCategory`** — שינוי חתימה:
+```ts
+isProductRelevantForCategory(productName: string, category: string, originalName?: string): boolean
+```
+- בודק `detectCategory` על שם מתורגם + שם מקורי
+- אם שניהם מחזירים "כללי" → `true` (סומך על ה-DB)
+- אם רק שם מתורגם קיים והוא "כללי" → `true`
+
+---
+
+### שינוי 2: `telegram-bot-handler/index.ts` — `getProductDisplayName`
+
+הוספת `shortenProductName(name)` שמופעלת על כל שם > 40 תווים:
+- מסיר רעש: "Ready Stock", "Free Shipping", מספרי מודל, גדלים, צבעים
+- שומר מותגים ידועים (Samsung, Apple, Xiaomi, Baseus, Anker וכו׳)
+- חותך ל-5 מילים משמעותיות ראשונות
+
+הוספת `getOriginalProductName(p)` — מחזיר את `product_name` או `name_english` המקורי.
+
+---
+
+### שינוי 3: `telegram-bot-handler/index.ts` — 4 בלוקי סינון
+
+בכל אחד מ-4 הבלוקים (2 ב-`handleDealCategory`, 2 ב-`handleDealCategoryHighCommission`):
+
+1. ב-`.map()` — הוסף `originalName: getOriginalProductName(p)`
+2. החלף שורת הסינון הנוכחית:
+```ts
+// לפני:
+products = diversifyProducts(products.filter(p => isProductRelevantForCategory(p.name, category)));
+
+// אחרי:
+const filtered = diversifyProducts(
+  products.filter(p => isProductRelevantForCategory(p.name, category, p.originalName))
+);
+products = filtered.length >= 3 ? filtered : diversifyProducts(products);
+```
+
+**Fallback:** אם אחרי `isProductRelevantForCategory` + `diversifyProducts` נשארו פחות מ-3 → מפעיל רק `diversifyProducts` על כל המוצרים (ללא סינון קטגוריה).
+
+---
+
+### סיכום
+
+| קובץ | שינוי |
 |---|---|
-| **DRY** | לוגיקה כפולה → `_shared/`. אין copy-paste בין קבצים |
-| **Single Responsibility** | פונקציה = פעולה אחת. שליפה ≠ שליחה ≠ תרגום |
-| **Single Source of Truth** | קטגוריות ב-`_shared/categories.ts`, שערים ב-`_shared/constants.ts`, prompts ב-`_shared/translate.ts` |
-| **Separation of Concerns** | business logic / DB / UI / Telegram API — נפרדים |
-| **ורסטיליות** | `fetchProducts({ table, filters })` במקום פונקציה לכל מקרה |
-| **פנים קדימה** | חלק משתנה = פרמטר, לא hardcoded |
+| `_shared/categories.ts` | `isProductRelevantForCategory` — פרמטר `originalName`, fallback "כללי" |
+| `telegram-bot-handler` | `shortenProductName` + `getOriginalProductName` חדשים |
+| `telegram-bot-handler` | 4 בלוקי סינון — `originalName` + fallback < 3 |
 
----
-
-# שלב 9 — רוטציה חכמה + המלצות יומיות ✅
-
-## מה הושלם
-1. **DB**: הוספת `last_shown` (timestamptz) ל-`feed_products` ול-`aliexpress_feed_products`
-2. **Edge Function**: `daily-recommendations/index.ts` — בוחר 3-5 מוצרים לכל פלטפורמה עם רוטציה חכמה
-3. **Cron Job**: `daily-recommendations` רץ כל יום ב-01:00 UTC (08:00 שעון תאילנד)
-
-## לוגיקה
-- סינון: `out_of_stock = false`, `rating >= 4`, `tracking_link IS NOT NULL`
-- מניעת כפילויות: לא נשלח כדיל ב-30 יום אחרונים
-- רוטציה: `last_shown IS NULL` → `last_shown > 7 days` → עמלה + מכירות
-- פיזור קטגוריות: מקסימום 2 מכל קטגוריה
-- שליחה: Product Card עם תמונה + כפתור "✍️ צור דיל" (`deal_gen:ID`)
-
----
-
-# חוב טכני — ממתין לריפקטורינג
-
-## 🔴 קריטי
-- ~~איחוד `detectCategory` ל-`_shared/categories.ts`~~ ✅ (B1)
-- הוצאת Telegram helpers ל-`_shared/telegram.ts`
-- פירוק `telegram-bot-handler` (2,071 שורות) ל-modules
-
-## 🟠 גבוה
-- איחוד AI translate prompt ל-`_shared/translate.ts` (3 עותקים)
-- איחוד API signatures ל-`_shared/api-signatures.ts` (4 עותקים)
-- ~~עדכון `get_public_feed_products` DB function (חסר `product_name_hebrew`)~~ ✅ (B3)
-- ~~הוספת `last_shown` ל-`handleDealCategory` + מיגרציה ל-`israel_editor_products`~~ ✅ (B2)
-
-## 🟡 בינוני
-- `_shared/constants.ts` — exchange rates + excluded categories
-- איחוד product lookup (`findProductById`)
-
-## 🟢 נמוך
-- corsHeaders ל-`_shared/cors.ts`
-- פיצול `DailyDeals.tsx` ל-components
