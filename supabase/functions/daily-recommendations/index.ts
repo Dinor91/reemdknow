@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { DEAL_CATEGORIES } from "../_shared/categories.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 const ADMIN_CHAT_ID = parseInt(Deno.env.get("TELEGRAM_USER_ID") || "0");
@@ -8,6 +9,28 @@ const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 function createServiceClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+}
+
+async function resetCategoryIfExhausted(
+  db: any, table: string, categoryColumn: string, category: string
+) {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { count } = await db
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .eq(categoryColumn, category)
+    .eq("out_of_stock", false)
+    .not("tracking_link", "is", null)
+    .or(`last_shown.is.null,last_shown.lt.${sevenDaysAgo}`);
+
+  if (count === 0) {
+    await db
+      .from(table)
+      .update({ last_shown: null })
+      .eq(categoryColumn, category);
+    console.log(`🔄 קטגוריה "${category}" אופסה — סבב חדש החל (${table})`);
+  }
 }
 
 async function sendMessage(chatId: number, text: string, extra?: any) {
@@ -45,6 +68,11 @@ interface RecommendedProduct {
 }
 
 async function getIsraelRecommendations(db: any): Promise<RecommendedProduct[]> {
+  // Reset exhausted categories before fetching
+  for (const cat of DEAL_CATEGORIES) {
+    await resetCategoryIfExhausted(db, "aliexpress_feed_products", "category_name_hebrew", cat);
+  }
+
   // Get product IDs sent as deals in last 30 days
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: recentDeals } = await db
@@ -102,6 +130,11 @@ async function getIsraelRecommendations(db: any): Promise<RecommendedProduct[]> 
 }
 
 async function getThailandRecommendations(db: any): Promise<RecommendedProduct[]> {
+  // Reset exhausted categories before fetching
+  for (const cat of DEAL_CATEGORIES) {
+    await resetCategoryIfExhausted(db, "feed_products", "category_name_hebrew", cat);
+  }
+
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: recentDeals } = await db
     .from("deals_sent")
