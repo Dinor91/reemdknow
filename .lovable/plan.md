@@ -1,49 +1,53 @@
 
+# עקרונות קוד — חובה בכל כתיבה
 
-## הוספת פקודת /sync לבוט הטלגרם
-
-### סיכום
-הוספת פקודת `/sync` לבוט הטלגרם שמאפשרת הרצת סנכרון ידני מהטלפון — רק למשתמש המורשה (AUTHORIZED_USER_ID).
-
-### שינויים
-
-**קובץ: `supabase/functions/telegram-bot-handler/index.ts`**
-
-1. **פונקציה חדשה `handleSync(chatId, subcommand)`**:
-   - מפרסרת את ה-subcommand: `lazada` / `aliexpress` / `all`
-   - שולחת הודעת "מתחיל סנכרון..." לטלגרם
-   - קוראת ל-edge functions הרלוונטיות עם `Authorization: Bearer SERVICE_ROLE_KEY`:
-     - `lazada` → `sync-feed-products`
-     - `aliexpress` → `sync-campaigns-manual`
-     - `all` → שניהם ברצף
-   - מודדת זמן ריצה (`Date.now()` לפני/אחרי)
-   - שולחת סיכום חזרה לטלגרם בפורמט:
-     ```
-     ✅ סנכרון Lazada הושלם (45s)
-     📦 נשלפו: 180 גאדג׳טים, 95 בית ומטבח...
-     🔄 upserted: 450
-     📴 out_of_stock: 12
-     ⚠️ מוצרים לא רצויים: 0
-     ```
-   - אם שגיאה → שולחת `❌ שגיאה בסנכרון: {error}`
-   - אם subcommand לא מוכר → שולחת הודעת עזרה: `/sync lazada | aliexpress | all`
-
-2. **רישום הפקודה** — בבלוק ה-command routing (שורות 2117-2128):
-   ```ts
-   else if (text.startsWith("/sync")) {
-     const sub = text.replace("/sync", "").trim();
-     await handleSync(chatId, sub);
-   }
-   ```
-
-### פרטים טכניים
-- הקריאה ל-edge functions תהיה עם `SUPABASE_SERVICE_KEY` (כבר קיים כמשתנה) כדי לעבור את ה-auth check של cron/service-role
-- הפקודה כבר מוגנת ע"י בדיקת `AUTHORIZED_USER_ID` בשורה 2088
-- הסיכום מפרסר את ה-JSON שחוזר מ-`sync-feed-products` (שדות: `perCategoryFetched`, `upserted`, `markedOutOfStock`, `unwantedProducts`)
-- עבור `sync-campaigns-manual` — מפרסר את השדות הרלוונטיים שחוזרים
-
-### קבצים
-| קובץ | פעולה |
+| עיקרון | כלל |
 |---|---|
-| `telegram-bot-handler/index.ts` | הוספת `handleSync` + routing |
+| **DRY** | לוגיקה כפולה → `_shared/`. אין copy-paste בין קבצים |
+| **Single Responsibility** | פונקציה = פעולה אחת. שליפה ≠ שליחה ≠ תרגום |
+| **Single Source of Truth** | קטגוריות ב-`_shared/categories.ts`, שערים ב-`_shared/constants.ts`, prompts ב-`_shared/translate.ts` |
+| **Separation of Concerns** | business logic / DB / UI / Telegram API — נפרדים |
+| **ורסטיליות** | `fetchProducts({ table, filters })` במקום פונקציה לכל מקרה |
+| **פנים קדימה** | חלק משתנה = פרמטר, לא hardcoded |
 
+---
+
+# שלב 9 — רוטציה חכמה + המלצות יומיות ✅
+
+## מה הושלם
+1. **DB**: הוספת `last_shown` (timestamptz) ל-`feed_products` ול-`aliexpress_feed_products`
+2. **Edge Function**: `daily-recommendations/index.ts` — בוחר 3-5 מוצרים לכל פלטפורמה עם רוטציה חכמה
+3. **Cron Job**: `daily-recommendations` רץ כל יום ב-01:00 UTC (08:00 שעון תאילנד)
+
+## לוגיקה
+- סינון: `out_of_stock = false`, `rating >= 4`, `tracking_link IS NOT NULL`
+- מניעת כפילויות: לא נשלח כדיל ב-30 יום אחרונים
+- רוטציה: `last_shown IS NULL` → `last_shown > 7 days` → עמלה + מכירות
+- פיזור קטגוריות: מקסימום 2 מכל קטגוריה
+- שליחה: Product Card עם תמונה + כפתור "✍️ צור דיל" (`deal_gen:ID`)
+
+---
+
+# חוב טכני — ממתין לריפקטורינג
+
+## 🔴 קריטי
+- ~~איחוד `detectCategory` ל-`_shared/categories.ts`~~ ✅ (B1)
+- ~~תיקון `isProductRelevantForCategory` — סינון יתר~~ ✅ (originalName + fallback כללי)
+- ~~קיצור שמות מוצרים ארוכים (`shortenProductName`)~~ ✅
+- ~~fallback < 3 מוצרים אחרי סינון~~ ✅
+- הוצאת Telegram helpers ל-`_shared/telegram.ts`
+- פירוק `telegram-bot-handler` (2,100+ שורות) ל-modules
+
+## 🟠 גבוה
+- איחוד AI translate prompt ל-`_shared/translate.ts` (3 עותקים)
+- איחוד API signatures ל-`_shared/api-signatures.ts` (4 עותקים)
+- ~~עדכון `get_public_feed_products` DB function (חסר `product_name_hebrew`)~~ ✅ (B3)
+- ~~הוספת `last_shown` ל-`handleDealCategory` + מיגרציה ל-`israel_editor_products`~~ ✅ (B2)
+
+## 🟡 בינוני
+- `_shared/constants.ts` — exchange rates + excluded categories
+- איחוד product lookup (`findProductById`)
+
+## 🟢 נמוך
+- corsHeaders ל-`_shared/cors.ts`
+- פיצול `DailyDeals.tsx` ל-components

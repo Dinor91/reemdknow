@@ -1990,6 +1990,71 @@ async function handleExternalCategoryAndGenerate(chatId: number, userId: number,
   await svcClient.from("user_sessions").delete().eq("user_id", userId);
 }
 
+// ────────── SYNC COMMAND ──────────
+
+async function handleSync(chatId: number, subcommand: string) {
+  const validCommands = ['lazada', 'aliexpress', 'all'];
+  if (!validCommands.includes(subcommand)) {
+    await sendMessage(chatId, "🔄 <b>שימוש:</b>\n/sync lazada\n/sync aliexpress\n/sync all");
+    return;
+  }
+
+  const targets = subcommand === 'all' ? ['lazada', 'aliexpress'] : [subcommand];
+  const results: string[] = [];
+
+  for (const target of targets) {
+    const funcName = target === 'lazada' ? 'sync-feed-products' : 'sync-campaigns-manual';
+    await sendMessage(chatId, `⏳ מתחיל סנכרון ${target}...`);
+
+    const start = Date.now();
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/${funcName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        },
+      });
+
+      const elapsed = Math.round((Date.now() - start) / 1000);
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        results.push(`❌ ${target} נכשל (${elapsed}s): ${errText.substring(0, 200)}`);
+        continue;
+      }
+
+      const data = await resp.json();
+
+      if (target === 'lazada') {
+        const catLines = Object.entries(data.perCategoryFetched || {})
+          .map(([cat, count]) => `  ${cat}: ${count}`)
+          .join('\n');
+
+        results.push(
+          `✅ <b>Lazada</b> (${elapsed}s)\n` +
+          `📦 נשלפו: ${data.totalFetched || 0} → תקינים: ${data.validProducts || 0}\n` +
+          `🔄 upserted: ${data.upserted || 0}\n` +
+          `📴 out_of_stock: ${data.markedOutOfStock || 0}\n` +
+          `🌐 תורגמו: ${data.translated || 0}\n` +
+          `⚠️ לא רצויים: ${(data.unwantedProducts || []).length}\n` +
+          (catLines ? `\n📊 לפי קטגוריה:\n${catLines}` : '')
+        );
+      } else {
+        results.push(
+          `✅ <b>AliExpress</b> (${elapsed}s)\n` +
+          `${JSON.stringify(data).substring(0, 300)}`
+        );
+      }
+    } catch (err: any) {
+      const elapsed = Math.round((Date.now() - start) / 1000);
+      results.push(`❌ ${target} שגיאה (${elapsed}s): ${err.message}`);
+    }
+  }
+
+  await sendMessage(chatId, results.join('\n\n'));
+}
+
 // ────────── MAIN HANDLER ──────────
 
 serve(async (req) => {
@@ -2123,6 +2188,10 @@ serve(async (req) => {
     else if (text === "/events" || text === "/אירועים") await handleEvents(chatId);
     else if (text === "/coupons" || text === "/קופונים") await handleCoupons(chatId);
     else if (text.startsWith("/addcoupon")) await handleAddCoupon(chatId, text);
+    else if (text.startsWith("/sync")) {
+      const sub = text.replace("/sync", "").trim();
+      await handleSync(chatId, sub);
+    }
     else if (isSearchIntent(text)) await handleFreeTextSearch(chatId, text);
     else {
       await sendMessage(chatId, "לא הבנתי 🤔\nנסה /start לתפריט הפקודות");
