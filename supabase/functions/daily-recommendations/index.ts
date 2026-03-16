@@ -68,6 +68,11 @@ interface RecommendedProduct {
 }
 
 async function getIsraelRecommendations(db: any): Promise<RecommendedProduct[]> {
+  // Reset exhausted categories before fetching
+  for (const cat of DEAL_CATEGORIES) {
+    await resetCategoryIfExhausted(db, "aliexpress_feed_products", "category_name_hebrew", cat);
+  }
+
   // Get product IDs sent as deals in last 30 days
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: recentDeals } = await db
