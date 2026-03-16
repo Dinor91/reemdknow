@@ -226,11 +226,12 @@ serve(async (req) => {
     // ── Step 1: Fetch products by category ──
     const allProducts: RawProduct[] = []
     const perCategoryFetched: Record<string, number> = {}
+    const maxPagesForMode = isBatchMode ? 3 : 5
 
     for (const [categoryName, categoryIds] of categoryEntries) {
       let categoryTotal = 0
       for (const categoryId of categoryIds) {
-        const products = await fetchLazadaByCategory(categoryId, categoryName)
+        const products = await fetchLazadaByCategory(categoryId, categoryName, maxPagesForMode)
         allProducts.push(...products)
         categoryTotal += products.length
       }

@@ -2249,7 +2249,7 @@ serve(async (req) => {
     else if (text === "/coupons" || text === "/קופונים") await handleCoupons(chatId);
     else if (text.startsWith("/addcoupon")) await handleAddCoupon(chatId, text);
     else if (text.startsWith("/sync")) {
-      const sub = text.replace("/sync", "").trim();
+      const sub = text.split(/\s+/)[1]?.toLowerCase().trim() || '';
       await handleSync(chatId, sub);
     }
     else if (isSearchIntent(text)) await handleFreeTextSearch(chatId, text);
