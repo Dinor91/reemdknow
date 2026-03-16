@@ -129,6 +129,7 @@ async function getThailandRecommendations(db: any): Promise<RecommendedProduct[]
     if (recentDealIds.has(p.id)) return false;
     if (p.last_shown && p.last_shown > sevenDaysAgo) return false;
     if (EXCLUDED.includes(p.category_name_hebrew)) return false;
+    if (p.rating !== null && p.rating < 4) return false;
     return true;
   });
 
