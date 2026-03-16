@@ -118,7 +118,6 @@ async function getThailandRecommendations(db: any): Promise<RecommendedProduct[]
     .select("*")
     .eq("out_of_stock", false)
     .not("tracking_link", "is", null)
-    .gte("rating", 4)
     .order("last_shown", { ascending: true, nullsFirst: true })
     .order("commission_rate", { ascending: false, nullsFirst: false })
     .order("sales_7d", { ascending: false, nullsFirst: false })
@@ -130,6 +129,7 @@ async function getThailandRecommendations(db: any): Promise<RecommendedProduct[]
     if (recentDealIds.has(p.id)) return false;
     if (p.last_shown && p.last_shown > sevenDaysAgo) return false;
     if (EXCLUDED.includes(p.category_name_hebrew)) return false;
+    if (p.rating !== null && p.rating < 4) return false;
     return true;
   });
 
