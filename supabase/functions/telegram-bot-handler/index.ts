@@ -2124,6 +2124,7 @@ serve(async (req) => {
 
   try {
     const update = await req.json();
+    console.log("update type:", Object.keys(update));
     console.log("Telegram update:", JSON.stringify(update).substring(0, 500));
 
     // Handle callback queries (inline keyboard presses)
