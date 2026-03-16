@@ -2192,27 +2192,39 @@ serve(async (req) => {
       return new Response("OK");
     }
 
-    // Handle regular messages
+    // ─── INFINITE LOOP PREVENTION (multi-layer) ───
     const message = update.message || update.channel_post;
     if (!message) return new Response("OK");
 
-    // Block bot-authored messages to prevent infinite loops
-    // channel_post often has no .from field, so also check sender_chat (bot posting as channel)
+    // Layer 1: Any channel_post — always ignore (bot posts to channels)
+    if (update.channel_post) {
+      console.log("🛑 Ignoring channel_post entirely");
+      return new Response("OK");
+    }
+
+    // Layer 2: Bot-authored messages
     if (message.from?.is_bot === true) {
-      console.log("Ignoring bot-authored message (from.is_bot)");
+      console.log("🛑 Ignoring bot message (from.is_bot)");
       return new Response("OK");
     }
 
-    // channel_post from a channel (sender_chat.type === "channel") — bot's own posts
-    if (update.channel_post && message.sender_chat) {
-      console.log("Ignoring channel_post from sender_chat:", message.sender_chat.id);
+    // Layer 3: No sender (shouldn't happen for message, but safety net)
+    if (!message.from) {
+      console.log("🛑 Ignoring message with no from field");
       return new Response("OK");
     }
 
-    // Block bot status messages (⏳, ❌, 🔄) to prevent self-triggering loops
+    // Layer 4: Bot status emojis (our own output)
     const rawText = (message.text || "").trim();
-    if (rawText.startsWith("⏳") || rawText.startsWith("❌") || rawText.startsWith("🔄")) {
-      console.log("Ignoring bot status message:", rawText.substring(0, 50));
+    const STATUS_PREFIXES = ["⏳", "❌", "🔄", "✅", "📊", "🎯", "💰", "📈", "🏷", "📋", "🔍", "📦", "🛒"];
+    if (STATUS_PREFIXES.some(e => rawText.startsWith(e))) {
+      console.log("🛑 Ignoring status message:", rawText.substring(0, 50));
+      return new Response("OK");
+    }
+
+    // Layer 5: sender_chat means message posted as channel identity
+    if (message.sender_chat) {
+      console.log("🛑 Ignoring sender_chat message:", message.sender_chat.id);
       return new Response("OK");
     }
 
