@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { DEAL_CATEGORIES } from "../_shared/categories.ts";
 
 const TELEGRAM_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 const ADMIN_CHAT_ID = parseInt(Deno.env.get("TELEGRAM_USER_ID") || "0");
@@ -8,6 +9,28 @@ const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 function createServiceClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+}
+
+async function resetCategoryIfExhausted(
+  db: any, table: string, categoryColumn: string, category: string
+) {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { count } = await db
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .eq(categoryColumn, category)
+    .eq("out_of_stock", false)
+    .not("tracking_link", "is", null)
+    .or(`last_shown.is.null,last_shown.lt.${sevenDaysAgo}`);
+
+  if (count === 0) {
+    await db
+      .from(table)
+      .update({ last_shown: null })
+      .eq(categoryColumn, category);
+    console.log(`🔄 קטגוריה "${category}" אופסה — סבב חדש החל (${table})`);
+  }
 }
 
 async function sendMessage(chatId: number, text: string, extra?: any) {
