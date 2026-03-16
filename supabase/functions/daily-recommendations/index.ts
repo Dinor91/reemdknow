@@ -130,6 +130,11 @@ async function getIsraelRecommendations(db: any): Promise<RecommendedProduct[]> 
 }
 
 async function getThailandRecommendations(db: any): Promise<RecommendedProduct[]> {
+  // Reset exhausted categories before fetching
+  for (const cat of DEAL_CATEGORIES) {
+    await resetCategoryIfExhausted(db, "feed_products", "category_name_hebrew", cat);
+  }
+
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: recentDeals } = await db
     .from("deals_sent")
