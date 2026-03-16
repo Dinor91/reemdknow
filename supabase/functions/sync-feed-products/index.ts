@@ -188,17 +188,46 @@ serve(async (req) => {
       )
     }
 
+    // Parse batch parameter from body
+    let batchIndex: number | null = null
+    const BATCH_SIZE = 2
+    try {
+      const body = await req.json()
+      if (body.batch !== undefined && body.batch !== null) {
+        batchIndex = parseInt(String(body.batch))
+      }
+    } catch { /* no body = run all (backward compat for cron) */ }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    // ── Step 0: "Before" snapshot ──
-    const before = await getSnapshot(supabase)
-    console.log(`📊 BEFORE: total=${before.total}`, JSON.stringify(before.byCategory))
+    // Determine which categories to process
+    const allCategoryEntries = Object.entries(LAZADA_CATEGORY_MAP)
+    const totalBatches = Math.ceil(allCategoryEntries.length / BATCH_SIZE)
+    const isLastBatch = batchIndex !== null ? batchIndex >= totalBatches - 1 : true
+    const isBatchMode = batchIndex !== null
+
+    let categoryEntries: [string, number[]][]
+    if (isBatchMode) {
+      const start = batchIndex! * BATCH_SIZE
+      categoryEntries = allCategoryEntries.slice(start, start + BATCH_SIZE)
+      console.log(`🔄 Batch ${batchIndex}/${totalBatches - 1}: processing ${categoryEntries.map(e => e[0]).join(', ')}`)
+    } else {
+      categoryEntries = allCategoryEntries
+      console.log(`Running all categories (no batch parameter)`)
+    }
+
+    // ── Step 0: "Before" snapshot (only for full run or last batch) ──
+    let before: { total: number, byCategory: Record<string, number> } | null = null
+    if (!isBatchMode || isLastBatch) {
+      before = await getSnapshot(supabase)
+      console.log(`📊 BEFORE: total=${before.total}`, JSON.stringify(before.byCategory))
+    }
 
     // ── Step 1: Fetch products by category ──
     const allProducts: RawProduct[] = []
     const perCategoryFetched: Record<string, number> = {}
 
-    for (const [categoryName, categoryIds] of Object.entries(LAZADA_CATEGORY_MAP)) {
+    for (const [categoryName, categoryIds] of categoryEntries) {
       let categoryTotal = 0
       for (const categoryId of categoryIds) {
         const products = await fetchLazadaByCategory(categoryId, categoryName)
@@ -328,77 +357,88 @@ EXAMPLES:
       }
     }
 
-    // ── Step 6: Mark stale products as out_of_stock ──
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-    const { data: staleProducts } = await supabase
-      .from('feed_products')
-      .update({ out_of_stock: true })
-      .lt('updated_at', thirtyDaysAgo)
-      .eq('out_of_stock', false)
-      .select('id')
-
-    const markedOutOfStock = staleProducts?.length || 0
-    console.log(`📦 Marked ${markedOutOfStock} stale products as out_of_stock`)
-
-    // ── Step 7: Auto-translate new products ──
-    let translatedCount = 0
-    try {
-      const translateResponse = await fetch(
-        `${SUPABASE_URL}/functions/v1/translate-products`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-          },
-          body: JSON.stringify({ platform: 'lazada' })
-        }
-      )
-      if (translateResponse.ok) {
-        const translateResult = await translateResponse.json()
-        translatedCount = translateResult?.results?.lazada?.translated || 0
-        console.log(`Auto-translated ${translatedCount} products to Hebrew`)
-      }
-    } catch (translateError) {
-      console.error('Auto-translation error:', translateError)
-    }
-
-    // ── Step 8: "After" snapshot + unwanted product check ──
-    const after = await getSnapshot(supabase)
-    console.log(`📊 AFTER: total=${after.total}`, JSON.stringify(after.byCategory))
-
-    // Check for unwanted products (amulets, tea, etc.)
-    const allUnwanted: any[] = []
-    for (const keyword of UNWANTED_PRODUCT_KEYWORDS) {
-      const { data } = await supabase
+    // ── Step 6: Mark stale products as out_of_stock (only full run or last batch) ──
+    let markedOutOfStock = 0
+    if (!isBatchMode || isLastBatch) {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      const { data: staleProducts } = await supabase
         .from('feed_products')
-        .select('id, product_name, category_name_hebrew')
+        .update({ out_of_stock: true })
+        .lt('updated_at', thirtyDaysAgo)
         .eq('out_of_stock', false)
-        .ilike('product_name', `%${keyword}%`)
-        .limit(5)
-      if (data?.length) allUnwanted.push(...data)
+        .select('id')
+
+      markedOutOfStock = staleProducts?.length || 0
+      console.log(`📦 Marked ${markedOutOfStock} stale products as out_of_stock`)
     }
 
-    // Deduplicate
-    const seenIds = new Set<string>()
-    const uniqueUnwanted = allUnwanted.filter(p => {
-      if (seenIds.has(p.id)) return false
-      seenIds.add(p.id)
-      return true
-    })
-
-    if (uniqueUnwanted.length > 0) {
-      console.log(`⚠️ Found ${uniqueUnwanted.length} potentially unwanted products:`)
-      for (const p of uniqueUnwanted) {
-        console.log(`  - ${p.product_name} [${p.category_name_hebrew}]`)
+    // ── Step 7: Auto-translate new products (only full run or last batch) ──
+    let translatedCount = 0
+    if (!isBatchMode || isLastBatch) {
+      try {
+        const translateResponse = await fetch(
+          `${SUPABASE_URL}/functions/v1/translate-products`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            },
+            body: JSON.stringify({ platform: 'lazada' })
+          }
+        )
+        if (translateResponse.ok) {
+          const translateResult = await translateResponse.json()
+          translatedCount = translateResult?.results?.lazada?.translated || 0
+          console.log(`Auto-translated ${translatedCount} products to Hebrew`)
+        }
+      } catch (translateError) {
+        console.error('Auto-translation error:', translateError)
       }
-    } else {
-      console.log('✅ No unwanted products (amulets/tea/etc.) found')
+    }
+
+    // ── Step 8: "After" snapshot + unwanted product check (only full run or last batch) ──
+    let after: { total: number, byCategory: Record<string, number> } | null = null
+    let uniqueUnwanted: any[] = []
+
+    if (!isBatchMode || isLastBatch) {
+      after = await getSnapshot(supabase)
+      console.log(`📊 AFTER: total=${after.total}`, JSON.stringify(after.byCategory))
+
+      const allUnwanted: any[] = []
+      for (const keyword of UNWANTED_PRODUCT_KEYWORDS) {
+        const { data } = await supabase
+          .from('feed_products')
+          .select('id, product_name, category_name_hebrew')
+          .eq('out_of_stock', false)
+          .ilike('product_name', `%${keyword}%`)
+          .limit(5)
+        if (data?.length) allUnwanted.push(...data)
+      }
+
+      const seenIds = new Set<string>()
+      uniqueUnwanted = allUnwanted.filter(p => {
+        if (seenIds.has(p.id)) return false
+        seenIds.add(p.id)
+        return true
+      })
+
+      if (uniqueUnwanted.length > 0) {
+        console.log(`⚠️ Found ${uniqueUnwanted.length} potentially unwanted products:`)
+        for (const p of uniqueUnwanted) {
+          console.log(`  - ${p.product_name} [${p.category_name_hebrew}]`)
+        }
+      } else {
+        console.log('✅ No unwanted products (amulets/tea/etc.) found')
+      }
     }
 
     return new Response(
       JSON.stringify({
         message: 'Sync complete',
+        batch: batchIndex,
+        totalBatches,
+        isLastBatch,
         before,
         after,
         perCategoryFetched,
