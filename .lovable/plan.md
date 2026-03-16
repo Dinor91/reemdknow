@@ -1,53 +1,64 @@
 
-# עקרונות קוד — חובה בכל כתיבה
 
-| עיקרון | כלל |
-|---|---|
-| **DRY** | לוגיקה כפולה → `_shared/`. אין copy-paste בין קבצים |
-| **Single Responsibility** | פונקציה = פעולה אחת. שליפה ≠ שליחה ≠ תרגום |
-| **Single Source of Truth** | קטגוריות ב-`_shared/categories.ts`, שערים ב-`_shared/constants.ts`, prompts ב-`_shared/translate.ts` |
-| **Separation of Concerns** | business logic / DB / UI / Telegram API — נפרדים |
-| **ורסטיליות** | `fetchProducts({ table, filters })` במקום פונקציה לכל מקרה |
-| **פנים קדימה** | חלק משתנה = פרמטר, לא hardcoded |
+## תוכנית: הוספת `resetCategoryIfExhausted` ל-daily-recommendations
 
----
+### מה ייעשה
 
-# שלב 9 — רוטציה חכמה + המלצות יומיות ✅
+הוספת פונקציית עזר גנרית `resetCategoryIfExhausted(db, table, categoryColumn, category)` שבודקת אם נותרו מוצרים זמינים (last_shown IS NULL או ישן מ-7 ימים) בקטגוריה נתונה. אם 0 — מאפסת `last_shown = NULL` לכל מוצרי הקטגוריה.
 
-## מה הושלם
-1. **DB**: הוספת `last_shown` (timestamptz) ל-`feed_products` ול-`aliexpress_feed_products`
-2. **Edge Function**: `daily-recommendations/index.ts` — בוחר 3-5 מוצרים לכל פלטפורמה עם רוטציה חכמה
-3. **Cron Job**: `daily-recommendations` רץ כל יום ב-01:00 UTC (08:00 שעון תאילנד)
+### שינויים בקובץ `supabase/functions/daily-recommendations/index.ts`
 
-## לוגיקה
-- סינון: `out_of_stock = false`, `rating >= 4`, `tracking_link IS NOT NULL`
-- מניעת כפילויות: לא נשלח כדיל ב-30 יום אחרונים
-- רוטציה: `last_shown IS NULL` → `last_shown > 7 days` → עמלה + מכירות
-- פיזור קטגוריות: מקסימום 2 מכל קטגוריה
-- שליחה: Product Card עם תמונה + כפתור "✍️ צור דיל" (`deal_gen:ID`)
+**1. פונקציה חדשה (אחרי שורה 11):**
+```ts
+const CATEGORIES = [
+  "גאדג׳טים ובית חכם", "רכב ותחבורה", "בית ומטבח",
+  "אופנה וסטייל", "ילדים ומשחקים", "בריאות וספורט",
+  "כלי עבודה וציוד", "כללי",
+];
 
----
+async function resetCategoryIfExhausted(
+  db: any, table: string, categoryColumn: string, category: string
+) {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  
+  // Count available (not recently shown) products in this category
+  const { count } = await db
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .eq(categoryColumn, category)
+    .eq("out_of_stock", false)
+    .not("tracking_link", "is", null)
+    .or(`last_shown.is.null,last_shown.lt.${sevenDaysAgo}`);
 
-# חוב טכני — ממתין לריפקטורינג
+  if (count === 0) {
+    // Reset all products in this category
+    await db
+      .from(table)
+      .update({ last_shown: null })
+      .eq(categoryColumn, category);
+    console.log(`🔄 קטגוריה "${category}" אופסה — סבב חדש החל (${table})`);
+  }
+}
+```
 
-## 🔴 קריטי
-- ~~איחוד `detectCategory` ל-`_shared/categories.ts`~~ ✅ (B1)
-- ~~תיקון `isProductRelevantForCategory` — סינון יתר~~ ✅ (originalName + fallback כללי)
-- ~~קיצור שמות מוצרים ארוכים (`shortenProductName`)~~ ✅
-- ~~fallback < 3 מוצרים אחרי סינון~~ ✅
-- הוצאת Telegram helpers ל-`_shared/telegram.ts`
-- פירוק `telegram-bot-handler` (2,100+ שורות) ל-modules
+**2. בתחילת `getIsraelRecommendations` (לפני שליפת מוצרים, שורה ~48):**
+```ts
+// Reset exhausted categories before fetching
+for (const cat of CATEGORIES) {
+  await resetCategoryIfExhausted(db, "aliexpress_feed_products", "category_name_hebrew", cat);
+}
+```
 
-## 🟠 גבוה
-- איחוד AI translate prompt ל-`_shared/translate.ts` (3 עותקים)
-- איחוד API signatures ל-`_shared/api-signatures.ts` (4 עותקים)
-- ~~עדכון `get_public_feed_products` DB function (חסר `product_name_hebrew`)~~ ✅ (B3)
-- ~~הוספת `last_shown` ל-`handleDealCategory` + מיגרציה ל-`israel_editor_products`~~ ✅ (B2)
+**3. בתחילת `getThailandRecommendations` (לפני שליפת מוצרים, שורה ~104):**
+```ts
+for (const cat of CATEGORIES) {
+  await resetCategoryIfExhausted(db, "feed_products", "category_name_hebrew", cat);
+}
+```
 
-## 🟡 בינוני
-- `_shared/constants.ts` — exchange rates + excluded categories
-- איחוד product lookup (`findProductById`)
+### עקרונות
+- פונקציה אחת גנרית לשתי הפלטפורמות (DRY) — מקבלת `table` ו-`categoryColumn` כפרמטרים
+- 8 הקטגוריות מיובאות מ-`_shared/categories.ts` (DEAL_CATEGORIES) במקום רשימה כפולה
+- איפוס per-category, לא גלובלי
+- `head: true` + `count: "exact"` — שאילתה קלה בלי שליפת שורות
 
-## 🟢 נמוך
-- corsHeaders ל-`_shared/cors.ts`
-- פיצול `DailyDeals.tsx` ל-components
