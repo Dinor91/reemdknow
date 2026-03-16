@@ -2197,8 +2197,22 @@ serve(async (req) => {
     if (!message) return new Response("OK");
 
     // Block bot-authored messages to prevent infinite loops
+    // channel_post often has no .from field, so also check sender_chat (bot posting as channel)
     if (message.from?.is_bot === true) {
-      console.log("Ignoring bot-authored message");
+      console.log("Ignoring bot-authored message (from.is_bot)");
+      return new Response("OK");
+    }
+
+    // channel_post from a channel (sender_chat.type === "channel") — bot's own posts
+    if (update.channel_post && message.sender_chat) {
+      console.log("Ignoring channel_post from sender_chat:", message.sender_chat.id);
+      return new Response("OK");
+    }
+
+    // Block bot status messages (⏳, ❌, 🔄) to prevent self-triggering loops
+    const rawText = (message.text || "").trim();
+    if (rawText.startsWith("⏳") || rawText.startsWith("❌") || rawText.startsWith("🔄")) {
+      console.log("Ignoring bot status message:", rawText.substring(0, 50));
       return new Response("OK");
     }
 
