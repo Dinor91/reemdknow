@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { verifyAdminAuth, createUnauthorizedResponse, createForbiddenResponse } from '../_shared/auth.ts'
+import { LAZADA_CATEGORY_MAP, UNWANTED_PRODUCT_KEYWORDS } from '../_shared/constants.ts'
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
 
@@ -17,28 +18,24 @@ const LAZADA_API_URL = 'https://api.lazada.co.th/rest'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-import { detectCategory } from '../_shared/categories.ts'
+// ── Lazada API helpers (unchanged) ──────────────────────────────
 
 async function generateSignatureAsync(apiPath: string, params: Record<string, string>): Promise<string> {
   const sortedParams = Object.keys(params)
     .sort()
     .map(key => `${key}${params[key]}`)
     .join('')
-  
+
   const signStr = apiPath + sortedParams
-  
+
   const encoder = new TextEncoder()
   const keyData = encoder.encode(LAZADA_APP_SECRET!)
   const messageData = encoder.encode(signStr)
-  
+
   const key = await crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
+    'raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
   )
-  
+
   const signature = await crypto.subtle.sign('HMAC', key, messageData)
   const hashArray = Array.from(new Uint8Array(signature))
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
@@ -46,7 +43,6 @@ async function generateSignatureAsync(apiPath: string, params: Record<string, st
 
 async function callLazadaAPI(apiPath: string, additionalParams: Record<string, string> = {}) {
   const timestamp = Date.now().toString()
-  
   const params: Record<string, string> = {
     app_key: LAZADA_APP_KEY!,
     timestamp,
@@ -54,34 +50,29 @@ async function callLazadaAPI(apiPath: string, additionalParams: Record<string, s
     userToken: LAZADA_USER_TOKEN!,
     ...additionalParams
   }
-  
+
   const signature = await generateSignatureAsync(apiPath, params)
   params.sign = signature
-  
+
   const queryString = Object.entries(params)
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
     .join('&')
-  
+
   const url = `${LAZADA_API_URL}${apiPath}?${queryString}`
-  
   const response = await fetch(url, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' }
   })
-  
   return await response.json()
 }
 
-// Get tracking links for products
 async function getTrackingLinks(productIds: string[]): Promise<Map<string, string>> {
   const linkMap = new Map<string, string>()
-  
   try {
     const result = await callLazadaAPI('/marketing/getlink', {
       inputType: 'productId',
       inputValue: productIds.join(',')
     })
-    
     const links = result?.result?.data?.productBatchGetLinkInfoList || []
     for (const link of links) {
       if (link.productId && link.regularPromotionLink) {
@@ -91,9 +82,81 @@ async function getTrackingLinks(productIds: string[]): Promise<Map<string, strin
   } catch (error) {
     console.error('Error getting tracking links:', error)
   }
-  
   return linkMap
 }
+
+// ── Category-based fetch ────────────────────────────────────────
+
+interface RawProduct {
+  productId: string | number
+  productName: string
+  discountPrice: number | null
+  originalPrice: number | null
+  pictures: string[]
+  ratingScore: number | null
+  reviewCount: number | null
+  outOfStock: boolean
+  currency: string
+  sales7d: number | null
+  totalCommissionRate: number | null
+  categoryL1: number | null
+  brandName: string | null
+  _categoryNameHebrew?: string
+}
+
+async function fetchLazadaByCategory(
+  categoryId: number,
+  categoryName: string,
+  maxPages: number = 10
+): Promise<RawProduct[]> {
+  const products: RawProduct[] = []
+
+  for (let page = 1; page <= maxPages; page++) {
+    const result = await callLazadaAPI('/marketing/product/feed', {
+      offerType: '1',
+      categoryL1: categoryId.toString(),
+      page: page.toString(),
+      limit: '50'
+    })
+
+    const batch = result?.result?.data || []
+    if (batch.length === 0) break
+
+    for (const p of batch) {
+      p._categoryNameHebrew = categoryName
+    }
+    products.push(...batch)
+
+    console.log(`  [${categoryName}] cat=${categoryId} page=${page} got=${batch.length}`)
+
+    if (batch.length < 50) break // last page
+    await new Promise(resolve => setTimeout(resolve, 300))
+  }
+
+  return products
+}
+
+// ── Snapshot helper ─────────────────────────────────────────────
+
+async function getSnapshot(supabase: any): Promise<{ total: number, byCategory: Record<string, number> }> {
+  const { count: total } = await supabase
+    .from('feed_products')
+    .select('*', { count: 'exact', head: true })
+
+  const { data: products } = await supabase
+    .from('feed_products')
+    .select('category_name_hebrew')
+
+  const byCategory: Record<string, number> = {}
+  for (const p of products || []) {
+    const cat = p.category_name_hebrew || 'כללי'
+    byCategory[cat] = (byCategory[cat] || 0) + 1
+  }
+
+  return { total: total || 0, byCategory }
+}
+
+// ── Main handler ────────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -101,23 +164,21 @@ serve(async (req) => {
   }
 
   try {
-    // Allow service role key bypass for cron jobs, otherwise require admin auth
+    // Auth: cron bypass or admin check
     const authHeader = req.headers.get('Authorization')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const isCronCall = authHeader === `Bearer ${serviceRoleKey}`
-    
+
     if (!isCronCall) {
       const authResult = await verifyAdminAuth(authHeader)
-      
       if (authResult.error === 'Missing authorization header' || authResult.error === 'Invalid auth token') {
         return createUnauthorizedResponse(authResult.error, corsHeaders)
       }
-      
       if (!authResult.isAdmin) {
         return createForbiddenResponse('Admin access required', corsHeaders)
       }
     }
-    
+
     console.log(`Auth: ${isCronCall ? 'cron/service-role' : 'admin user'}`)
 
     if (!LAZADA_APP_KEY || !LAZADA_APP_SECRET || !LAZADA_USER_TOKEN) {
@@ -129,60 +190,40 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    // Get active feed categories
-    const { data: categories, error: catError } = await supabase
-      .from('feed_categories')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order')
+    // ── Step 0: "Before" snapshot ──
+    const before = await getSnapshot(supabase)
+    console.log(`📊 BEFORE: total=${before.total}`, JSON.stringify(before.byCategory))
 
-    if (catError) throw catError
+    // ── Step 1: Fetch products by category ──
+    const allProducts: RawProduct[] = []
+    const perCategoryFetched: Record<string, number> = {}
 
-    console.log(`Found ${categories?.length || 0} active categories`)
-
-    const allProducts: any[] = []
-    const categoryNameMap = new Map<number, string>()
-
-    // Build category name map
-    for (const cat of categories || []) {
-      categoryNameMap.set(cat.category_id, cat.category_name_hebrew)
+    for (const [categoryName, categoryIds] of Object.entries(LAZADA_CATEGORY_MAP)) {
+      let categoryTotal = 0
+      for (const categoryId of categoryIds) {
+        const products = await fetchLazadaByCategory(categoryId, categoryName)
+        allProducts.push(...products)
+        categoryTotal += products.length
+      }
+      perCategoryFetched[categoryName] = categoryTotal
+      console.log(`✅ ${categoryName}: ${categoryTotal} products`)
     }
 
-    // Fetch products from the feed (we'll assign categories based on categoryL1)
-    for (let page = 1; page <= 10; page++) {
-      const result = await callLazadaAPI('/marketing/product/feed', {
-        offerType: '1',
-        page: page.toString(),
-        limit: '50'
-      })
-      
-      const products = result?.result?.data || []
-      if (products.length === 0) break
-      
-      allProducts.push(...products)
-      console.log(`Fetched page ${page}, total: ${allProducts.length}`)
-      
-      await new Promise(resolve => setTimeout(resolve, 300))
-    }
+    console.log(`Total fetched from API: ${allProducts.length}`)
 
-    console.log(`Total products from feed: ${allProducts.length}`)
+    // ── Step 2: Filter ──
+    const validProducts = allProducts.filter(p => {
+      if (p.outOfStock) return false
+      if (!p.discountPrice || p.discountPrice <= 0) return false
+      if (!p.pictures?.length) return false
+      // Rating: if exists AND < 4 → filter. If null → keep.
+      if (p.ratingScore != null && p.ratingScore < 4) return false
+      return true
+    })
 
-    // Filter and categorize products - now with minimum 4-star rating filter (like Israel)
-    const validProducts = allProducts
-      .filter(p => {
-        // Basic filters
-        if (p.outOfStock || !p.discountPrice || p.discountPrice <= 0 || !p.pictures?.length) {
-          return false;
-        }
-        // Rating filter: minimum 4 stars (if rating exists)
-        if (p.ratingScore && p.ratingScore < 4) {
-          return false;
-        }
-        return true;
-      })
-      .slice(0, 100) // Limit to 100 products
+    console.log(`Valid after filter: ${validProducts.length} (from ${allProducts.length})`)
 
-    // Translate product names to Hebrew via AI before upsert
+    // ── Step 3: AI Translation ──
     const hebrewNames = new Map<string, string>()
     if (LOVABLE_API_KEY) {
       console.log('Translating product names to Hebrew...')
@@ -237,27 +278,23 @@ EXAMPLES:
       }
     }
 
-    // Get tracking links for all products
+    // ── Step 4: Tracking links ──
     const productIds = validProducts.map((p: any) => String(p.productId))
     const trackingLinks = await getTrackingLinks(productIds)
 
-    // Upsert products into feed_products table
+    // ── Step 5: Upsert ──
     let upserted = 0
     for (const product of validProducts) {
       const productId = String(product.productId)
-      
-      // Calculate discount percentage
+
       let discountPercentage = null
       if (product.originalPrice && product.discountPrice) {
-        const original = parseFloat(product.originalPrice)
-        const sale = parseFloat(product.discountPrice)
+        const original = parseFloat(String(product.originalPrice))
+        const sale = parseFloat(String(product.discountPrice))
         if (original > sale) {
           discountPercentage = Math.round(((original - sale) / original) * 100)
         }
       }
-
-      // Auto-detect Hebrew category from product name
-      const hebrewCategory = detectCategory(product.productName);
 
       const { error: upsertError } = await supabase
         .from('feed_products')
@@ -274,11 +311,11 @@ EXAMPLES:
           sales_7d: product.sales7d || 0,
           commission_rate: product.totalCommissionRate,
           category_l1: product.categoryL1,
-          category_name_hebrew: hebrewCategory,
+          category_name_hebrew: product._categoryNameHebrew || null,
           brand_name: product.brandName,
           tracking_link: trackingLinks.get(productId) || `https://www.lazada.co.th/products/-i${productId}.html`,
           product_name_hebrew: hebrewNames.get(productId) || null,
-          out_of_stock: product.outOfStock || false,
+          out_of_stock: false,
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'lazada_product_id'
@@ -291,8 +328,19 @@ EXAMPLES:
       }
     }
 
-    // Auto-translate new products to Hebrew
-    console.log('Starting auto-translation of new products...')
+    // ── Step 6: Mark stale products as out_of_stock ──
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: staleProducts } = await supabase
+      .from('feed_products')
+      .update({ out_of_stock: true })
+      .lt('updated_at', thirtyDaysAgo)
+      .eq('out_of_stock', false)
+      .select('id')
+
+    const markedOutOfStock = staleProducts?.length || 0
+    console.log(`📦 Marked ${markedOutOfStock} stale products as out_of_stock`)
+
+    // ── Step 7: Auto-translate new products ──
     let translatedCount = 0
     try {
       const translateResponse = await fetch(
@@ -306,7 +354,6 @@ EXAMPLES:
           body: JSON.stringify({ platform: 'lazada' })
         }
       )
-      
       if (translateResponse.ok) {
         const translateResult = await translateResponse.json()
         translatedCount = translateResult?.results?.lazada?.translated || 0
@@ -316,14 +363,51 @@ EXAMPLES:
       console.error('Auto-translation error:', translateError)
     }
 
+    // ── Step 8: "After" snapshot + unwanted product check ──
+    const after = await getSnapshot(supabase)
+    console.log(`📊 AFTER: total=${after.total}`, JSON.stringify(after.byCategory))
+
+    // Check for unwanted products (amulets, tea, etc.)
+    const allUnwanted: any[] = []
+    for (const keyword of UNWANTED_PRODUCT_KEYWORDS) {
+      const { data } = await supabase
+        .from('feed_products')
+        .select('id, product_name, category_name_hebrew')
+        .eq('out_of_stock', false)
+        .ilike('product_name', `%${keyword}%`)
+        .limit(5)
+      if (data?.length) allUnwanted.push(...data)
+    }
+
+    // Deduplicate
+    const seenIds = new Set<string>()
+    const uniqueUnwanted = allUnwanted.filter(p => {
+      if (seenIds.has(p.id)) return false
+      seenIds.add(p.id)
+      return true
+    })
+
+    if (uniqueUnwanted.length > 0) {
+      console.log(`⚠️ Found ${uniqueUnwanted.length} potentially unwanted products:`)
+      for (const p of uniqueUnwanted) {
+        console.log(`  - ${p.product_name} [${p.category_name_hebrew}]`)
+      }
+    } else {
+      console.log('✅ No unwanted products (amulets/tea/etc.) found')
+    }
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         message: 'Sync complete',
+        before,
+        after,
+        perCategoryFetched,
         totalFetched: allProducts.length,
         validProducts: validProducts.length,
         upserted,
+        markedOutOfStock,
         translated: translatedCount,
-        categories: categories?.length || 0
+        unwantedProducts: uniqueUnwanted,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
