@@ -1,41 +1,53 @@
 
-מטרת התיקון: לעצור טריגר חוזר שבו הודעות שהבוט עצמו שלח נכנסות שוב למסלול העיבוד.
+# עקרונות קוד — חובה בכל כתיבה
 
-מה בדקתי:
-- ב-`supabase/functions/telegram-bot-handler/index.ts` יש:
-  - `const message = update.message || update.channel_post;`
-- אחרי זה אין כרגע סינון להודעות של הבוט עצמו.
-- לכן אם Telegram מחזיר update עם `message.from?.is_bot === true`, ההודעה עדיין יכולה להגיע להמשך הזרימה.
+| עיקרון | כלל |
+|---|---|
+| **DRY** | לוגיקה כפולה → `_shared/`. אין copy-paste בין קבצים |
+| **Single Responsibility** | פונקציה = פעולה אחת. שליפה ≠ שליחה ≠ תרגום |
+| **Single Source of Truth** | קטגוריות ב-`_shared/categories.ts`, שערים ב-`_shared/constants.ts`, prompts ב-`_shared/translate.ts` |
+| **Separation of Concerns** | business logic / DB / UI / Telegram API — נפרדים |
+| **ורסטיליות** | `fetchProducts({ table, filters })` במקום פונקציה לכל מקרה |
+| **פנים קדימה** | חלק משתנה = פרמטר, לא hardcoded |
 
-התיקון שאבצע:
-- קובץ: `supabase/functions/telegram-bot-handler/index.ts`
-- להוסיף Early Return מיד אחרי חילוץ `message` ולפני כל לוגיקה אחרת:
-```ts
-if (message.from?.is_bot === true) {
-  console.log("Ignoring bot-authored message");
-  return new Response("OK");
-}
-```
+---
 
-למה זה המיקום הנכון:
-- זה חוסם גם `message` וגם `channel_post`
-- זה עוצר לפני:
-  - `handleGroupMessage`
-  - בדיקות הרשאה
-  - ניתוב פקודות כמו `/sync`
+# שלב 9 — רוטציה חכמה + המלצות יומיות ✅
 
-מה לא אשנה:
-- לא אשנה את פרסור `/sync`
-- לא אשנה batching / timeout
-- לא אשנה `allowed_updates`
-- לא אוסיף לוגיקה אחרת מעבר לסינון הזה
+## מה הושלם
+1. **DB**: הוספת `last_shown` (timestamptz) ל-`feed_products` ול-`aliexpress_feed_products`
+2. **Edge Function**: `daily-recommendations/index.ts` — בוחר 3-5 מוצרים לכל פלטפורמה עם רוטציה חכמה
+3. **Cron Job**: `daily-recommendations` רץ כל יום ב-01:00 UTC (08:00 שעון תאילנד)
 
-תוצאה צפויה:
-- אם הודעה של הבוט עצמו חוזרת כ-update, היא תידחה מיידית
-- `/sync lazada` לא יופעל שוב בגלל echo/self-message
-- שאר ההודעות של משתמשים ימשיכו לעבוד כרגיל
+## לוגיקה
+- סינון: `out_of_stock = false`, `rating >= 4`, `tracking_link IS NOT NULL`
+- מניעת כפילויות: לא נשלח כדיל ב-30 יום אחרונים
+- רוטציה: `last_shown IS NULL` → `last_shown > 7 days` → עמלה + מכירות
+- פיזור קטגוריות: מקסימום 2 מכל קטגוריה
+- שליחה: Product Card עם תמונה + כפתור "✍️ צור דיל" (`deal_gen:ID`)
 
-בדיקת אימות אחרי היישום:
-1. לשלוח `/sync lazada` פעם אחת
-2. לבדוק בלוגים שאין טריגרים חוזרים של אותה פקודה
-3. אם מתקבלת הודעת self-update, לראות log של `Ignoring bot-authored message`
+---
+
+# חוב טכני — ממתין לריפקטורינג
+
+## 🔴 קריטי
+- ~~איחוד `detectCategory` ל-`_shared/categories.ts`~~ ✅ (B1)
+- ~~תיקון `isProductRelevantForCategory` — סינון יתר~~ ✅ (originalName + fallback כללי)
+- ~~קיצור שמות מוצרים ארוכים (`shortenProductName`)~~ ✅
+- ~~fallback < 3 מוצרים אחרי סינון~~ ✅
+- הוצאת Telegram helpers ל-`_shared/telegram.ts`
+- פירוק `telegram-bot-handler` (2,100+ שורות) ל-modules
+
+## 🟠 גבוה
+- איחוד AI translate prompt ל-`_shared/translate.ts` (3 עותקים)
+- איחוד API signatures ל-`_shared/api-signatures.ts` (4 עותקים)
+- ~~עדכון `get_public_feed_products` DB function (חסר `product_name_hebrew`)~~ ✅ (B3)
+- ~~הוספת `last_shown` ל-`handleDealCategory` + מיגרציה ל-`israel_editor_products`~~ ✅ (B2)
+
+## 🟡 בינוני
+- `_shared/constants.ts` — exchange rates + excluded categories
+- איחוד product lookup (`findProductById`)
+
+## 🟢 נמוך
+- corsHeaders ל-`_shared/cors.ts`
+- פיצול `DailyDeals.tsx` ל-components

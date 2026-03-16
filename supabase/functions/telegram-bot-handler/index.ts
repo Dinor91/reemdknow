@@ -2195,6 +2195,12 @@ serve(async (req) => {
     const message = update.message || update.channel_post;
     if (!message) return new Response("OK");
 
+    // Block bot-authored messages to prevent infinite loops
+    if (message.from?.is_bot === true) {
+      console.log("Ignoring bot-authored message");
+      return new Response("OK");
+    }
+
     const chatId = message.chat.id;
     const chat = message.chat;
     const userId = message.from?.id;
