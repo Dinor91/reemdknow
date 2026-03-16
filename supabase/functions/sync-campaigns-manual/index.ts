@@ -107,6 +107,25 @@ function filterQuality(raw: any[]): any[] {
   })
 }
 
+// AliExpress top-level category IDs for per-category fetching
+const ALIEXPRESS_CATEGORY_IDS = [
+  "44",          // Electronics
+  "18",          // Sports & Outdoors
+  "21",          // Toys & Games
+  "502",         // Phones & Telecom
+  "2",           // Automobiles & Motorcycles
+  "1503",        // Home Improvement
+  "6",           // Jewelry & Accessories
+  "15",          // Shoes
+  "200003655",   // Tools
+  "26",          // Home & Garden
+  "200003498",   // Health & Beauty
+  "66",          // Bags & Luggage
+  "7",           // Computer & Office
+  "100003109",   // Lighting
+  "322",         // Security & Protection
+]
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
@@ -117,6 +136,8 @@ serve(async (req) => {
       })
     }
 
+    const startTime = Date.now()
+    const TIMEOUT_MS = 120_000 // 120 seconds safeguard
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     const now = new Date().toISOString()
 
@@ -143,7 +164,7 @@ serve(async (req) => {
       .update({ is_active: false, updated_at: now })
       .lt('last_synced', sevenDaysAgo)
 
-    // === Step 2: Fetch products globally with dynamic pagination ===
+    // === Step 2: Fetch Featured Promo products ===
     const { products: promoRaw, pages: promoPages } = await fetchProductsDynamic(
       'aliexpress.affiliate.featuredpromo.products.get',
       'aliexpress_affiliate_featuredpromo_products_get_response',
@@ -152,13 +173,29 @@ serve(async (req) => {
       'Featured Promo'
     )
 
-    const { products: hotRaw, pages: hotPages } = await fetchProductsDynamic(
-      'aliexpress.affiliate.hotproduct.query',
-      'aliexpress_affiliate_hotproduct_query_response',
-      { sort: 'LAST_VOLUME_DESC' },
-      20,
-      'Hot Products'
-    )
+    // === Step 3: Fetch Hot Products per category ===
+    const hotRaw: any[] = []
+    const categoryBreakdown: Record<string, { raw: number; pages: number }> = {}
+    let timedOut = false
+
+    for (const catId of ALIEXPRESS_CATEGORY_IDS) {
+      if (Date.now() - startTime > TIMEOUT_MS) {
+        console.log(`⏱ Timeout safeguard hit after ${Math.round((Date.now() - startTime) / 1000)}s, stopping at category ${catId}`)
+        timedOut = true
+        break
+      }
+
+      const label = `Hot-Cat-${catId}`
+      const { products: catProducts, pages: catPages } = await fetchProductsDynamic(
+        'aliexpress.affiliate.hotproduct.query',
+        'aliexpress_affiliate_hotproduct_query_response',
+        { category_ids: catId, sort: 'LAST_VOLUME_DESC' },
+        5,
+        label
+      )
+      hotRaw.push(...catProducts)
+      categoryBreakdown[catId] = { raw: catProducts.length, pages: catPages }
+    }
 
     const promoQuality = filterQuality(promoRaw)
     const hotQuality = filterQuality(hotRaw)
@@ -179,10 +216,10 @@ serve(async (req) => {
     })
 
     console.log(`Promo: ${promoRaw.length} raw → ${promoQuality.length} quality (${promoPages} pages)`)
-    console.log(`Hot: ${hotRaw.length} raw → ${hotQuality.length} quality (${hotPages} pages)`)
+    console.log(`Hot: ${hotRaw.length} raw → ${hotQuality.length} quality (${Object.keys(categoryBreakdown).length} categories)`)
     console.log(`Total unique: ${uniqueProducts.length}`)
 
-    // === Step 3: Upsert products ===
+    // === Step 4: Upsert products ===
     let upserted = 0, errors = 0, totalKids = 0
 
     for (const product of uniqueProducts) {
@@ -233,7 +270,7 @@ serve(async (req) => {
       else upserted++
     }
 
-    // === Step 4: Translate ===
+    // === Step 5: Translate ===
     let translatedCount = 0
     try {
       const translateResp = await fetch(`${SUPABASE_URL}/functions/v1/translate-products`, {
@@ -261,11 +298,17 @@ serve(async (req) => {
     const promoKids = promoQuality.filter(p => detectHebrewCategory(p.product_title || '') === 'ילדים').length
     const hotKids = hotQuality.filter(p => detectHebrewCategory(p.product_title || '') === 'ילדים').length
 
+    const elapsedSec = Math.round((Date.now() - startTime) / 1000)
+
     const summary = {
       campaigns_found: promos.length,
+      hot_categories_fetched: Object.keys(categoryBreakdown).length,
+      hot_categories_total: ALIEXPRESS_CATEGORY_IDS.length,
+      timed_out: timedOut,
+      elapsed_seconds: elapsedSec,
       campaign_breakdown: {
         'Featured Promo': { raw: promoRaw.length, pages: promoPages, quality: promoQuality.length, kids: promoKids },
-        'Hot Products': { raw: hotRaw.length, pages: hotPages, quality: hotQuality.length, kids: hotKids },
+        'Hot Products': { raw: hotRaw.length, quality: hotQuality.length, kids: hotKids, category_breakdown: categoryBreakdown },
       },
       products_imported: upserted,
       total_kids_products: totalKids,
