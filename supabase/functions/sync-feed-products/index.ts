@@ -107,7 +107,7 @@ interface RawProduct {
 async function fetchLazadaByCategory(
   categoryId: number,
   categoryName: string,
-  maxPages: number = 10
+  maxPages: number = 5
 ): Promise<RawProduct[]> {
   const products: RawProduct[] = []
 
