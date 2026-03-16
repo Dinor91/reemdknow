@@ -1,53 +1,57 @@
 
-# עקרונות קוד — חובה בכל כתיבה
 
-| עיקרון | כלל |
-|---|---|
-| **DRY** | לוגיקה כפולה → `_shared/`. אין copy-paste בין קבצים |
-| **Single Responsibility** | פונקציה = פעולה אחת. שליפה ≠ שליחה ≠ תרגום |
-| **Single Source of Truth** | קטגוריות ב-`_shared/categories.ts`, שערים ב-`_shared/constants.ts`, prompts ב-`_shared/translate.ts` |
-| **Separation of Concerns** | business logic / DB / UI / Telegram API — נפרדים |
-| **ורסטיליות** | `fetchProducts({ table, filters })` במקום פונקציה לכל מקרה |
-| **פנים קדימה** | חלק משתנה = פרמטר, לא hardcoded |
+## Problem Analysis
 
----
+The `sync-campaigns-manual` function currently fetches Hot Products **globally** (no `category_ids` parameter), which returns only ~48 products on 1 page. Yesterday's 1,652 result came from a version that iterated over **AliExpress category IDs** — each category returns up to 50 products per page × multiple pages, multiplied across all categories.
 
-# שלב 9 — רוטציה חכמה + המלצות יומיות ✅
+The current code (lines 155-161):
+```text
+fetchProductsDynamic(
+  'aliexpress.affiliate.hotproduct.query',
+  { sort: 'LAST_VOLUME_DESC' },   // ← no category_ids!
+  20 pages, 'Hot Products'
+)
+```
 
-## מה הושלם
-1. **DB**: הוספת `last_shown` (timestamptz) ל-`feed_products` ול-`aliexpress_feed_products`
-2. **Edge Function**: `daily-recommendations/index.ts` — בוחר 3-5 מוצרים לכל פלטפורמה עם רוטציה חכמה
-3. **Cron Job**: `daily-recommendations` רץ כל יום ב-01:00 UTC (08:00 שעון תאילנד)
+This fetches one global query that exhausts at page 1 with 48 items.
 
-## לוגיקה
-- סינון: `out_of_stock = false`, `rating >= 4`, `tracking_link IS NOT NULL`
-- מניעת כפילויות: לא נשלח כדיל ב-30 יום אחרונים
-- רוטציה: `last_shown IS NULL` → `last_shown > 7 days` → עמלה + מכירות
-- פיזור קטגוריות: מקסימום 2 מכל קטגוריה
-- שליחה: Product Card עם תמונה + כפתור "✍️ צור דיל" (`deal_gen:ID`)
+## Root Cause
+The per-category iteration logic was never added to `sync-campaigns-manual`. The `aliexpress-api` and `sync-aliexpress-products` functions support `category_ids`, but the campaign sync doesn't use it.
 
----
+## Fix Plan
 
-# חוב טכני — ממתין לריפקטורינג
+**Modify `sync-campaigns-manual/index.ts`** — replace the single global Hot Products call with a per-category loop:
 
-## 🔴 קריטי
-- ~~איחוד `detectCategory` ל-`_shared/categories.ts`~~ ✅ (B1)
-- ~~תיקון `isProductRelevantForCategory` — סינון יתר~~ ✅ (originalName + fallback כללי)
-- ~~קיצור שמות מוצרים ארוכים (`shortenProductName`)~~ ✅
-- ~~fallback < 3 מוצרים אחרי סינון~~ ✅
-- הוצאת Telegram helpers ל-`_shared/telegram.ts`
-- פירוק `telegram-bot-handler` (2,100+ שורות) ל-modules
+1. **Define AliExpress category IDs** — the main ones that map to the Hebrew categories:
+   ```text
+   const ALIEXPRESS_CATEGORY_IDS = [
+     "44", "18", "21", "502", "2",    // Electronics, Sports, Toys, Phones, Cars
+     "1503", "6", "15", "200003655",  // Home, Jewelry, Shoes, Tools
+     "26", "200003498", "66", "7",    // Home Garden, Health, Bags, Computers
+     "100003109", "322",              // Lighting, Security
+   ]
+   ```
 
-## 🟠 גבוה
-- איחוד AI translate prompt ל-`_shared/translate.ts` (3 עותקים)
-- איחוד API signatures ל-`_shared/api-signatures.ts` (4 עותקים)
-- ~~עדכון `get_public_feed_products` DB function (חסר `product_name_hebrew`)~~ ✅ (B3)
-- ~~הוספת `last_shown` ל-`handleDealCategory` + מיגרציה ל-`israel_editor_products`~~ ✅ (B2)
+2. **Loop over categories** — for each category ID, call `fetchProductsDynamic` with `category_ids: catId`, max 5 pages each (250 products per category). This yields ~15 categories × ~100-250 quality products = 1,500-3,750 total.
 
-## 🟡 בינוני
-- `_shared/constants.ts` — exchange rates + excluded categories
-- איחוד product lookup (`findProductById`)
+3. **Keep Featured Promo** as-is (it returns 0 currently but no harm).
 
-## 🟢 נמוך
-- corsHeaders ל-`_shared/cors.ts`
-- פיצול `DailyDeals.tsx` ל-components
+4. **Merge & deduplicate** — same logic already exists.
+
+5. **Add a timeout safeguard** — track elapsed time, stop after 120 seconds to stay within Edge Function limits.
+
+### Code Changes (single file)
+
+**`supabase/functions/sync-campaigns-manual/index.ts`**:
+- Add `ALIEXPRESS_CATEGORY_IDS` array (~15 category IDs)
+- Replace lines 155-161 (single `fetchProductsDynamic` for Hot Products) with a loop:
+  ```
+  for each categoryId:
+    fetchProductsDynamic('hotproduct.query', { category_ids: categoryId, sort: 'LAST_VOLUME_DESC' }, maxPages: 5)
+    merge into hotRaw
+    break if elapsed > 120s
+  ```
+- Update summary to include per-category breakdown
+
+No other files need changes. Dino and Telegram bot already call `sync-campaigns-manual` correctly.
+
