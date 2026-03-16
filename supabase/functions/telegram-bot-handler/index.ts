@@ -2123,6 +2123,10 @@ serve(async (req) => {
     else if (text === "/events" || text === "/אירועים") await handleEvents(chatId);
     else if (text === "/coupons" || text === "/קופונים") await handleCoupons(chatId);
     else if (text.startsWith("/addcoupon")) await handleAddCoupon(chatId, text);
+    else if (text.startsWith("/sync")) {
+      const sub = text.replace("/sync", "").trim();
+      await handleSync(chatId, sub);
+    }
     else if (isSearchIntent(text)) await handleFreeTextSearch(chatId, text);
     else {
       await sendMessage(chatId, "לא הבנתי 🤔\nנסה /start לתפריט הפקודות");
