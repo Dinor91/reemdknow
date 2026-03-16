@@ -118,7 +118,6 @@ async function getThailandRecommendations(db: any): Promise<RecommendedProduct[]
     .select("*")
     .eq("out_of_stock", false)
     .not("tracking_link", "is", null)
-    .gte("rating", 4)
     .order("last_shown", { ascending: true, nullsFirst: true })
     .order("commission_rate", { ascending: false, nullsFirst: false })
     .order("sales_7d", { ascending: false, nullsFirst: false })
