@@ -2249,12 +2249,47 @@ serve(async (req) => {
     }
 
     // Check if waiting for search input
+    const updateId = typeof update.update_id === "number" ? update.update_id : null;
+    const messageAgeSeconds = typeof message.date === "number"
+      ? Math.floor(Date.now() / 1000) - message.date
+      : 0;
+
+    if (messageAgeSeconds > 5 * 60) {
+      console.log(`Ignoring stale update ${updateId} (${messageAgeSeconds}s old)`);
+      return new Response("OK");
+    }
+
     const svcClient = createServiceClient();
     const { data: session } = await svcClient
       .from("user_sessions")
-      .select("state")
+      .select("state, data")
       .eq("user_id", userId)
       .maybeSingle();
+
+    const sessionData = session?.data && typeof session.data === "object" && !Array.isArray(session.data)
+      ? session.data as Record<string, unknown>
+      : {};
+
+    if (updateId !== null && sessionData.last_update_id === updateId) {
+      console.log(`Ignoring duplicate update ${updateId}`);
+      return new Response("OK");
+    }
+
+    if (updateId !== null) {
+      const { error: persistUpdateError } = await svcClient.from("user_sessions").upsert({
+        user_id: userId,
+        state: session?.state || "idle",
+        data: {
+          ...sessionData,
+          last_update_id: updateId,
+        },
+        last_updated: new Date().toISOString(),
+      });
+
+      if (persistUpdateError) {
+        console.error("Failed to persist last_update_id:", persistUpdateError);
+      }
+    }
 
     if (session?.state === "waiting_search" && !text.startsWith("/")) {
       await svcClient.from("user_sessions").delete().eq("user_id", userId);
