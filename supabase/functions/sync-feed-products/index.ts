@@ -188,17 +188,46 @@ serve(async (req) => {
       )
     }
 
+    // Parse batch parameter from body
+    let batchIndex: number | null = null
+    const BATCH_SIZE = 2
+    try {
+      const body = await req.json()
+      if (body.batch !== undefined && body.batch !== null) {
+        batchIndex = parseInt(String(body.batch))
+      }
+    } catch { /* no body = run all (backward compat for cron) */ }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    // ── Step 0: "Before" snapshot ──
-    const before = await getSnapshot(supabase)
-    console.log(`📊 BEFORE: total=${before.total}`, JSON.stringify(before.byCategory))
+    // Determine which categories to process
+    const allCategoryEntries = Object.entries(LAZADA_CATEGORY_MAP)
+    const totalBatches = Math.ceil(allCategoryEntries.length / BATCH_SIZE)
+    const isLastBatch = batchIndex !== null ? batchIndex >= totalBatches - 1 : true
+    const isBatchMode = batchIndex !== null
+
+    let categoryEntries: [string, number[]][]
+    if (isBatchMode) {
+      const start = batchIndex! * BATCH_SIZE
+      categoryEntries = allCategoryEntries.slice(start, start + BATCH_SIZE)
+      console.log(`🔄 Batch ${batchIndex}/${totalBatches - 1}: processing ${categoryEntries.map(e => e[0]).join(', ')}`)
+    } else {
+      categoryEntries = allCategoryEntries
+      console.log(`Running all categories (no batch parameter)`)
+    }
+
+    // ── Step 0: "Before" snapshot (only for full run or last batch) ──
+    let before: { total: number, byCategory: Record<string, number> } | null = null
+    if (!isBatchMode || isLastBatch) {
+      before = await getSnapshot(supabase)
+      console.log(`📊 BEFORE: total=${before.total}`, JSON.stringify(before.byCategory))
+    }
 
     // ── Step 1: Fetch products by category ──
     const allProducts: RawProduct[] = []
     const perCategoryFetched: Record<string, number> = {}
 
-    for (const [categoryName, categoryIds] of Object.entries(LAZADA_CATEGORY_MAP)) {
+    for (const [categoryName, categoryIds] of categoryEntries) {
       let categoryTotal = 0
       for (const categoryId of categoryIds) {
         const products = await fetchLazadaByCategory(categoryId, categoryName)
