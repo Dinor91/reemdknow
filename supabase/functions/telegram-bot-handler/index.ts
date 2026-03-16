@@ -2003,52 +2003,112 @@ async function handleSync(chatId: number, subcommand: string) {
   const results: string[] = [];
 
   for (const target of targets) {
-    const funcName = target === 'lazada' ? 'sync-feed-products' : 'sync-campaigns-manual';
-    await sendMessage(chatId, `⏳ מתחיל סנכרון ${target}...`);
+    if (target === 'lazada') {
+      // Batched sync for Lazada
+      const TOTAL_BATCHES = 4;
+      const batchStart = Date.now();
+      await sendMessage(chatId, `⏳ מתחיל סנכרון Lazada (${TOTAL_BATCHES} באצ'ים)...`);
 
-    const start = Date.now();
-    try {
-      const resp = await fetch(`${SUPABASE_URL}/functions/v1/${funcName}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        },
-      });
+      const batchResults: { batch: number; success: boolean; error?: string; data?: any; elapsed: number }[] = [];
+      let totalUpserted = 0;
+      let totalFetched = 0;
+      let totalValid = 0;
+      const allCategoryFetched: Record<string, number> = {};
 
-      const elapsed = Math.round((Date.now() - start) / 1000);
+      for (let b = 0; b < TOTAL_BATCHES; b++) {
+        const bStart = Date.now();
+        try {
+          const resp = await fetch(`${SUPABASE_URL}/functions/v1/sync-feed-products`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+            },
+            body: JSON.stringify({ batch: b }),
+          });
 
-      if (!resp.ok) {
-        const errText = await resp.text();
-        results.push(`❌ ${target} נכשל (${elapsed}s): ${errText.substring(0, 200)}`);
-        continue;
+          const elapsed = Math.round((Date.now() - bStart) / 1000);
+
+          if (!resp.ok) {
+            const errText = await resp.text();
+            batchResults.push({ batch: b, success: false, error: errText.substring(0, 100), elapsed });
+            await sendMessage(chatId, `❌ באצ' ${b + 1}/${TOTAL_BATCHES} נכשל (${elapsed}s): ${errText.substring(0, 100)}`);
+            continue;
+          }
+
+          const data = await resp.json();
+          batchResults.push({ batch: b, success: true, data, elapsed });
+
+          totalUpserted += data.upserted || 0;
+          totalFetched += data.totalFetched || 0;
+          totalValid += data.validProducts || 0;
+          Object.entries(data.perCategoryFetched || {}).forEach(([cat, count]) => {
+            allCategoryFetched[cat] = (allCategoryFetched[cat] || 0) + (count as number);
+          });
+
+          const cats = Object.entries(data.perCategoryFetched || {})
+            .map(([cat, count]) => `${cat}: ${count}`)
+            .join(', ');
+          await sendMessage(chatId, `🔄 ${b + 1}/${TOTAL_BATCHES}: ${cats || 'ריק'} (${elapsed}s)`);
+
+        } catch (err: any) {
+          const elapsed = Math.round((Date.now() - bStart) / 1000);
+          batchResults.push({ batch: b, success: false, error: err.message, elapsed });
+          await sendMessage(chatId, `❌ באצ' ${b + 1}/${TOTAL_BATCHES} נכשל (${elapsed}s): ${err.message}`);
+        }
       }
 
-      const data = await resp.json();
+      const totalElapsed = Math.round((Date.now() - batchStart) / 1000);
+      const batchStatus = batchResults.map(r => r.success ? `✅${r.batch + 1}` : `❌${r.batch + 1}`).join(' ');
+      const lastBatchData = batchResults.filter(r => r.success).pop()?.data;
 
-      if (target === 'lazada') {
-        const catLines = Object.entries(data.perCategoryFetched || {})
-          .map(([cat, count]) => `  ${cat}: ${count}`)
-          .join('\n');
+      const catLines = Object.entries(allCategoryFetched)
+        .map(([cat, count]) => `  ${cat}: ${count}`)
+        .join('\n');
 
-        results.push(
-          `✅ <b>Lazada</b> (${elapsed}s)\n` +
-          `📦 נשלפו: ${data.totalFetched || 0} → תקינים: ${data.validProducts || 0}\n` +
-          `🔄 upserted: ${data.upserted || 0}\n` +
-          `📴 out_of_stock: ${data.markedOutOfStock || 0}\n` +
-          `🌐 תורגמו: ${data.translated || 0}\n` +
-          `⚠️ לא רצויים: ${(data.unwantedProducts || []).length}\n` +
-          (catLines ? `\n📊 לפי קטגוריה:\n${catLines}` : '')
-        );
-      } else {
+      const failedBatches = batchResults.filter(r => !r.success);
+      const failedLines = failedBatches.map(r => `  באצ' ${r.batch + 1}: ${r.error}`).join('\n');
+
+      results.push(
+        `${failedBatches.length === TOTAL_BATCHES ? '❌' : failedBatches.length > 0 ? '⚠️' : '✅'} <b>Lazada</b> (${totalElapsed}s)\n` +
+        `באצ'ים: ${batchStatus}\n` +
+        `📦 נשלפו: ${totalFetched} → תקינים: ${totalValid}\n` +
+        `🔄 upserted: ${totalUpserted}\n` +
+        (lastBatchData ? `📴 out_of_stock: ${lastBatchData.markedOutOfStock || 0}\n🌐 תורגמו: ${lastBatchData.translated || 0}\n⚠️ לא רצויים: ${(lastBatchData.unwantedProducts || []).length}\n` : '') +
+        (catLines ? `\n📊 לפי קטגוריה:\n${catLines}` : '') +
+        (failedLines ? `\n\n❌ שגיאות:\n${failedLines}` : '')
+      );
+
+    } else {
+      // AliExpress - single call (no batching needed)
+      await sendMessage(chatId, `⏳ מתחיל סנכרון ${target}...`);
+      const start = Date.now();
+      try {
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/sync-campaigns-manual`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          },
+        });
+
+        const elapsed = Math.round((Date.now() - start) / 1000);
+
+        if (!resp.ok) {
+          const errText = await resp.text();
+          results.push(`❌ ${target} נכשל (${elapsed}s): ${errText.substring(0, 200)}`);
+          continue;
+        }
+
+        const data = await resp.json();
         results.push(
           `✅ <b>AliExpress</b> (${elapsed}s)\n` +
           `${JSON.stringify(data).substring(0, 300)}`
         );
+      } catch (err: any) {
+        const elapsed = Math.round((Date.now() - start) / 1000);
+        results.push(`❌ ${target} שגיאה (${elapsed}s): ${err.message}`);
       }
-    } catch (err: any) {
-      const elapsed = Math.round((Date.now() - start) / 1000);
-      results.push(`❌ ${target} שגיאה (${elapsed}s): ${err.message}`);
     }
   }
 
