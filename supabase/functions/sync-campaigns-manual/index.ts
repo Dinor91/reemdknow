@@ -211,6 +211,11 @@ serve(async (req) => {
         5,
         label
       )
+      const hebrewCat = CATEGORY_ID_TO_HEBREW[catId] || 'כללי'
+      catProducts.forEach(p => {
+        p._campaign_name = hebrewCat
+        p._category_hebrew = hebrewCat
+      })
       hotRaw.push(...catProducts)
       categoryBreakdown[catId] = { raw: catProducts.length, pages: catPages }
     }
