@@ -14,28 +14,6 @@ const ALIEXPRESS_API_URL = 'https://api-sg.aliexpress.com/sync'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  "רכב": ["car", "auto", "vehicle", "tire", "wheel", "motor", "engine", "dashboard", "gps", "driving", "parking", "seat cover", "steering", "headlight", "brake", "motorcycle", "bike holder", "trunk", "windshield", "charger car", "obd", "fuel", "rearview", "mirror car", "bumper", "wiper", "car seat"],
-  "גאדג׳טים": ["gadget", "electronic", "usb", "bluetooth", "wireless", "speaker", "headphone", "earphone", "power bank", "cable", "charger", "adapter", "mouse", "keyboard", "webcam", "microphone", "led", "light strip", "drone", "camera", "tripod", "phone holder", "tablet", "smart watch", "fitness tracker", "vr", "gaming", "earbuds", "tws", "headset", "portable", "hub", "dock", "stand phone"],
-  "ילדים": ["kid", "child", "baby", "toy", "game", "puzzle", "doll", "lego", "educational", "stroller", "diaper", "bottle", "pacifier", "infant", "toddler", "children", "school", "backpack kid", "lunch box", "playmat", "breast pump", "breastfeeding", "nursing", "newborn", "balloon", "party kids", "birthday"],
-  "בית": ["home", "kitchen", "bathroom", "bedroom", "living room", "furniture", "decor", "storage", "organizer", "shelf", "hook", "hanger", "towel", "curtain", "rug", "mat", "pillow", "blanket", "bedding", "lamp", "vase", "plant", "garden", "cleaning", "trash", "laundry", "iron", "vacuum", "pot", "pan", "bowl", "container", "lid", "utensil", "knife", "cutting board", "spoon", "fork", "plate", "cup", "mug", "glass", "blender", "mixer", "oven", "microwave", "coffee", "tea", "bbq", "grill", "cover pot", "silicone", "opener", "beverage"],
-  "בית חכם": ["smart home", "wifi", "alexa", "google home", "automation", "sensor", "switch", "socket", "plug smart", "bulb smart", "camera security", "doorbell", "lock smart", "thermostat", "remote control", "zigbee", "tuya", "robot vacuum", "dreame", "xiaomi robot", "roborock", "roomba", "ecovacs"],
-  "אופנה": ["fashion", "clothing", "shirt", "dress", "pants", "jeans", "jacket", "coat", "shoes", "sneakers", "boots", "sandals", "bag", "handbag", "wallet", "belt", "watch", "jewelry", "necklace", "bracelet", "ring", "earring", "sunglasses", "hat", "scarf", "gloves", "underwear", "socks", "swimwear", "bikini", "shorts", "cotton", "t-shirt"],
-  "נסיעות": ["travel", "luggage", "suitcase", "backpack", "passport", "neck pillow", "travel adapter", "packing", "organizer bag", "camping", "hiking", "outdoor", "tent", "sleeping bag", "flashlight", "compass", "water bottle travel"],
-  "בריאות": ["health", "medical", "massage", "fitness", "exercise", "yoga", "gym", "weight", "scale", "blood pressure", "thermometer", "first aid", "vitamin", "supplement", "posture", "back support", "knee", "wrist", "ankle", "pain relief", "sleep", "trimmer", "clipper", "shaver", "beard", "hair cut", "barber", "razor", "essential oil", "aromatherapy", "diffuser"],
-  "כלי עבודה": ["tool", "drill", "screwdriver", "wrench", "hammer", "plier", "saw", "measure", "tape", "level", "multimeter", "soldering", "welding", "cutting", "grinding", "toolbox", "work light", "gloves work", "safety", "ladder", "pump inflat"],
-}
-
-function detectHebrewCategory(productName: string): string {
-  if (!productName) return "כללי"
-  const lowerName = productName.toLowerCase()
-  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    for (const keyword of keywords) {
-      if (lowerName.includes(keyword.toLowerCase())) return category
-    }
-  }
-  return "כללי"
-}
 
 function toHex(buffer: Uint8Array): string {
   return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase()
@@ -126,6 +104,24 @@ const ALIEXPRESS_CATEGORY_IDS = [
   "322",         // Security & Protection
 ]
 
+const CATEGORY_ID_TO_HEBREW: Record<string, string> = {
+  '21':        'ילדים ומשחקים',
+  '44':        'גאדג׳טים ובית חכם',
+  '502':       'גאדג׳טים ובית חכם',
+  '7':         'גאדג׳טים ובית חכם',
+  '26':        'בית ומטבח',
+  '1503':      'בית ומטבח',
+  '6':         'אופנה וסטייל',
+  '15':        'אופנה וסטייל',
+  '66':        'אופנה וסטייל',
+  '18':        'בריאות וספורט',
+  '200003498': 'בריאות וספורט',
+  '2':         'רכב ותחבורה',
+  '200003655': 'כלי עבודה וציוד',
+  '100003109': 'בית ומטבח',
+  '322':       'כלי עבודה וציוד',
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
@@ -193,6 +189,11 @@ serve(async (req) => {
         5,
         label
       )
+      const hebrewCat = CATEGORY_ID_TO_HEBREW[catId] || 'כללי'
+      catProducts.forEach(p => {
+        p._campaign_name = hebrewCat
+        p._category_hebrew = hebrewCat
+      })
       hotRaw.push(...catProducts)
       categoryBreakdown[catId] = { raw: catProducts.length, pages: catPages }
     }
@@ -243,8 +244,8 @@ serve(async (req) => {
       const totalRate = (baseRate + hotRate) / 100
       const commissionRate = totalRate > 0 ? totalRate : null
 
-      const hebrewCategory = detectHebrewCategory(product.product_title || '')
-      if (hebrewCategory === 'ילדים') totalKids++
+      const hebrewCategory = product._category_hebrew || 'כללי'
+      if (hebrewCategory === 'ילדים ומשחקים') totalKids++
 
       const { error } = await supabase.from('aliexpress_feed_products').upsert({
         aliexpress_product_id: productId,
@@ -258,7 +259,7 @@ serve(async (req) => {
         rating: product.evaluate_rate ? parseFloat(String(product.evaluate_rate).replace('%', '')) / 20 : null,
         reviews_count: product.product_reviews || 0,
         category_id: product.first_level_category_id ? String(product.first_level_category_id) : null,
-        category_name_hebrew: hebrewCategory,
+        category_name_hebrew: product._category_hebrew || 'כללי',
         tracking_link: trackingLink,
         out_of_stock: false,
         is_campaign_product: true,
@@ -295,8 +296,8 @@ serve(async (req) => {
     const expiredCount = expiredData?.length || 0
 
     // Category breakdown for kids count
-    const promoKids = promoQuality.filter(p => detectHebrewCategory(p.product_title || '') === 'ילדים').length
-    const hotKids = hotQuality.filter(p => detectHebrewCategory(p.product_title || '') === 'ילדים').length
+    const promoKids = promoQuality.filter(p => (p._category_hebrew || '') === 'ילדים ומשחקים').length
+    const hotKids = hotQuality.filter(p => (p._category_hebrew || '') === 'ילדים ומשחקים').length
 
     const elapsedSec = Math.round((Date.now() - startTime) / 1000)
 
