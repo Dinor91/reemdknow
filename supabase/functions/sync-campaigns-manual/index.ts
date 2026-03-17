@@ -266,8 +266,8 @@ serve(async (req) => {
       const totalRate = (baseRate + hotRate) / 100
       const commissionRate = totalRate > 0 ? totalRate : null
 
-      const hebrewCategory = detectHebrewCategory(product.product_title || '')
-      if (hebrewCategory === 'ילדים') totalKids++
+      const hebrewCategory = product._category_hebrew || 'כללי'
+      if (hebrewCategory === 'ילדים ומשחקים') totalKids++
 
       const { error } = await supabase.from('aliexpress_feed_products').upsert({
         aliexpress_product_id: productId,
