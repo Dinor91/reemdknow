@@ -281,7 +281,7 @@ serve(async (req) => {
         rating: product.evaluate_rate ? parseFloat(String(product.evaluate_rate).replace('%', '')) / 20 : null,
         reviews_count: product.product_reviews || 0,
         category_id: product.first_level_category_id ? String(product.first_level_category_id) : null,
-        category_name_hebrew: hebrewCategory,
+        category_name_hebrew: product._category_hebrew || 'כללי',
         tracking_link: trackingLink,
         out_of_stock: false,
         is_campaign_product: true,
