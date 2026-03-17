@@ -296,8 +296,8 @@ serve(async (req) => {
     const expiredCount = expiredData?.length || 0
 
     // Category breakdown for kids count
-    const promoKids = promoQuality.filter(p => detectHebrewCategory(p.product_title || '') === 'ילדים').length
-    const hotKids = hotQuality.filter(p => detectHebrewCategory(p.product_title || '') === 'ילדים').length
+    const promoKids = promoQuality.filter(p => (p._category_hebrew || '') === 'ילדים ומשחקים').length
+    const hotKids = hotQuality.filter(p => (p._category_hebrew || '') === 'ילדים ומשחקים').length
 
     const elapsedSec = Math.round((Date.now() - startTime) / 1000)
 
