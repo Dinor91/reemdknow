@@ -100,8 +100,10 @@ function scoreProduct(rating: number | null, sales: number | null, commissionRat
 
 function matchesKeywords(productName: string, includeKeywords: string[], excludeKeywords: string[]): boolean {
   const lower = productName.toLowerCase();
-  const hasInclude = includeKeywords.some((kw) => lower.includes(kw.toLowerCase()));
-  if (!hasInclude) return false;
+  if (includeKeywords.length > 0) {
+    const hasInclude = includeKeywords.some((kw) => lower.includes(kw.toLowerCase()));
+    if (!hasInclude) return false;
+  }
   const hasExclude = excludeKeywords.some((kw) => lower.includes(kw.toLowerCase()));
   if (hasExclude) return false;
   return true;
