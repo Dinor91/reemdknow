@@ -23,8 +23,8 @@ const DAILY_SLOTS: DailySlot[] = [
   {
     name: "ילדים ומשחקים",
     category: "ילדים ומשחקים",
-    includeKeywords: ["building blocks", "compatible lego", "puzzle", "jigsaw", "board game", "educational toy", "montessori", "stem kit", "science experiment", "robot kit", "plush toy", "stuffed animal", "action figure", "diecast car", "toy vehicle", "rc car", "musical instrument", "keyboard piano", "outdoor toy", "garden toy", "bubble machine", "dollhouse", "fashion doll", "doll set", "magnetic tiles"],
-    excludeKeywords: ["diaper", "nappy", "wet wipes", "pencils", "coloring book", "crayons", "sticker set", "notebook", "stationery", "marker pens", "school bag", "baby clothes", "onesie", "infant shoes"],
+    includeKeywords: ["building blocks", "compatible lego", "puzzle", "jigsaw", "board game", "educational toy", "montessori", "stem kit", "science experiment", "robot kit", "plush toy", "stuffed animal", "action figure", "diecast car", "toy vehicle", "rc car", "musical instrument", "keyboard piano", "outdoor toy", "garden toy", "bubble machine", "dollhouse", "fashion doll", "doll set", "magnetic tiles", "go-kart", "gaming console", "climbing", "swing", "drum set", "slide"],
+    excludeKeywords: ["diaper", "nappy", "wet wipes", "pencils", "coloring book", "crayons", "sticker set", "notebook", "stationery", "marker pens", "school bag", "baby clothes", "onesie", "infant shoes", "rc parts", "upgrade parts", "spare parts", "multivitamin", "display cabinet"],
   },
   {
     name: "גאדג׳ט טכנולוגי",
