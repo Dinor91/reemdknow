@@ -23,32 +23,32 @@ const DAILY_SLOTS: DailySlot[] = [
   {
     name: "ילדים ומשחקים",
     category: "ילדים ומשחקים",
-    includeKeywords: ["toy", "game", "puzzle", "lego", "doll", "car toy", "board game", "play", "kids"],
-    excludeKeywords: ["sticker", "stamp", "pencil", "eraser", "notebook", "pen", "label", "tag", "card"],
+    includeKeywords: ["building blocks", "compatible lego", "puzzle", "jigsaw", "board game", "educational toy", "montessori", "stem kit", "science experiment", "robot kit", "plush toy", "stuffed animal", "action figure", "diecast car", "toy vehicle", "rc car", "musical instrument", "keyboard piano", "outdoor toy", "garden toy", "bubble machine", "dollhouse", "fashion doll", "doll set", "magnetic tiles"],
+    excludeKeywords: ["diaper", "nappy", "wet wipes", "pencils", "coloring book", "crayons", "sticker set", "notebook", "stationery", "marker pens", "school bag", "baby clothes", "onesie", "infant shoes"],
   },
   {
     name: "גאדג׳ט טכנולוגי",
     category: "גאדג׳טים ובית חכם",
-    includeKeywords: ["charger", "cable", "mouse", "earphone", "usb", "stand", "speaker", "wireless", "bluetooth"],
-    excludeKeywords: ["jewelry", "bracelet", "stone", "crystal", "supplement", "herb"],
+    includeKeywords: ["gan charger", "usb c cable", "fast charging", "wireless headphones", "tws earbuds", "gaming mouse", "mechanical keyboard", "gimbal", "stabilizer", "smart switch", "zigbee switch", "tuya smart", "matter hub", "smart plug", "security camera", "ip camera", "drone", "quadcopter", "fpv", "led strip", "rgb light", "video projector", "usb hub", "docking station", "power bank", "phone stand", "tablet holder", "monitor arm"],
+    excludeKeywords: ["crystal", "gemstone", "necklace", "ring", "jewelry", "pendant", "supplement", "vitamins", "lipstick", "skincare", "makeup", "face cream", "essential oil", "earrings"],
   },
   {
     name: "כלי עבודה",
     category: "כלי עבודה וציוד",
-    includeKeywords: ["drill", "bit", "screwdriver", "tool", "wrench", "measure", "level", "clamp"],
-    excludeKeywords: ["toy", "sticker", "decoration"],
+    includeKeywords: ["screwdriver bits", "impact driver", "electric drill", "wrench set", "spanner", "ratchet socket", "pliers", "wire stripper", "measuring tape", "laser level", "angle grinder", "hand saw", "multitool", "wall hooks", "screws nut", "bolts", "hardware kit", "toolbox", "soldering iron", "digital multimeter", "clamping tool", "hex key", "allen wrench", "step drill bit", "s2 steel"],
+    excludeKeywords: ["clothing", "t-shirt", "shoes", "sneakers", "jewelry", "bracelet", "cosmetics", "perfume", "underwear", "socks", "fashion", "watch band"],
   },
   {
     name: "פתרון לבית",
     category: "בית ומטבח",
-    includeKeywords: ["magnet", "hook", "organizer", "storage", "silicone", "holder", "rack", "wall"],
-    excludeKeywords: ["supplement", "herb", "medicine", "crystal", "stone"],
+    includeKeywords: ["kitchen organizer", "spice rack", "storage box", "storage bin", "shelf divider", "magnetic hook", "adhesive hook", "wall mount holder", "silicone feet", "anti vibration pad", "drawer organizer", "mop bucket", "cleaning brush", "vacuum sealer", "sink rack", "cup holder", "dish drainer", "cable clips", "broom holder", "sealing machine", "shoe rack", "vacuum bag", "rotating turntable", "lazy susan"],
+    excludeKeywords: ["anime", "poster", "wall art", "canvas painting", "sculpture", "dollhouse miniature", "display model", "vitamin", "supplements", "cosmetic bag", "jewelry box", "perfume bottle"],
   },
   {
     name: "מוצר לחוץ לבית",
     category: "בריאות וספורט",
-    includeKeywords: ["bottle", "thermos", "lunch box", "backpack", "outdoor", "sport", "travel", "bag"],
-    excludeKeywords: ["supplement", "herb", "medicine", "energy", "male", "sexual"],
+    includeKeywords: ["thermal bottle", "vacuum flask", "insulated cup", "lunch box", "bento box", "cooler bag", "backpack", "tactical bag", "hiking gear", "camping tent", "sleeping bag", "camping stove", "picnic mat", "folding chair", "cycling gloves", "bike light", "sports belt", "running waist pack", "fitness tracker", "yoga mat", "resistance bands", "swim goggles", "microfiber towel", "outdoor power station"],
+    excludeKeywords: ["collagen", "vitamin", "protein powder", "sunscreen", "lotion", "cream", "serum", "body wash", "shampoo", "medicine", "face mask", "bandage"],
   },
 ];
 
