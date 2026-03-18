@@ -1,53 +1,43 @@
 
-# עקרונות קוד — חובה בכל כתיבה
 
-| עיקרון | כלל |
-|---|---|
-| **DRY** | לוגיקה כפולה → `_shared/`. אין copy-paste בין קבצים |
-| **Single Responsibility** | פונקציה = פעולה אחת. שליפה ≠ שליחה ≠ תרגום |
-| **Single Source of Truth** | קטגוריות ב-`_shared/categories.ts`, שערים ב-`_shared/constants.ts`, prompts ב-`_shared/translate.ts` |
-| **Separation of Concerns** | business logic / DB / UI / Telegram API — נפרדים |
-| **ורסטיליות** | `fetchProducts({ table, filters })` במקום פונקציה לכל מקרה |
-| **פנים קדימה** | חלק משתנה = פרמטר, לא hardcoded |
+## Plan: Refactor daily-recommendations to slot-based selection
 
----
+### Single file change: `supabase/functions/daily-recommendations/index.ts`
 
-# שלב 9 — רוטציה חכמה + המלצות יומיות ✅
+### 1. Add `DAILY_SLOTS` constant (after imports)
+5 fixed slots as specified by user, each with `name`, `category`, `includeKeywords`, `excludeKeywords`.
 
-## מה הושלם
-1. **DB**: הוספת `last_shown` (timestamptz) ל-`feed_products` ול-`aliexpress_feed_products`
-2. **Edge Function**: `daily-recommendations/index.ts` — בוחר 3-5 מוצרים לכל פלטפורמה עם רוטציה חכמה
-3. **Cron Job**: `daily-recommendations` רץ כל יום ב-01:00 UTC (08:00 שעון תאילנד)
+### 2. Add `selectProductForSlot` function
+Shared function accepting `db`, `table`, `slot`, `salesColumn`, `recentDealIds`.
 
-## לוגיקה
-- סינון: `out_of_stock = false`, `rating >= 4`, `tracking_link IS NOT NULL`
-- מניעת כפילויות: לא נשלח כדיל ב-30 יום אחרונים
-- רוטציה: `last_shown IS NULL` → `last_shown > 7 days` → עמלה + מכירות
-- פיזור קטגוריות: מקסימום 2 מכל קטגוריה
-- שליחה: Product Card עם תמונה + כפתור "✍️ צור דיל" (`deal_gen:ID`)
+**3-step selection logic:**
 
----
+- **Step 1**: Query 200 products from category with `commission_rate >= 0.15`, `out_of_stock = false`, `tracking_link IS NOT NULL`, ordered by `last_shown ASC NULLS FIRST`. Client-side filter: exclude recent deals (30d), exclude recently shown (7d), must match ≥1 includeKeyword, must not match any excludeKeyword. Score survivors: `(rating * 0.4) + (Math.log(sales+1) * 0.35) + (commission_rate * 0.25)`. Pick highest.
 
-# חוב טכני — ממתין לריפקטורינג
+- **Step 2** (if step 1 empty): Same query but WITHOUT `last_shown` freshness filter — allows recently shown products. Same keyword filters and scoring.
 
-## 🔴 קריטי
-- ~~איחוד `detectCategory` ל-`_shared/categories.ts`~~ ✅ (B1)
-- ~~תיקון `isProductRelevantForCategory` — סינון יתר~~ ✅ (originalName + fallback כללי)
-- ~~קיצור שמות מוצרים ארוכים (`shortenProductName`)~~ ✅
-- ~~fallback < 3 מוצרים אחרי סינון~~ ✅
-- הוצאת Telegram helpers ל-`_shared/telegram.ts`
-- פירוק `telegram-bot-handler` (2,100+ שורות) ל-modules
+- **Step 3 / Fallback** (if step 2 empty): Best product from category, no keyword filters at all. Just highest scored.
 
-## 🟠 גבוה
-- איחוד AI translate prompt ל-`_shared/translate.ts` (3 עותקים)
-- איחוד API signatures ל-`_shared/api-signatures.ts` (4 עותקים)
-- ~~עדכון `get_public_feed_products` DB function (חסר `product_name_hebrew`)~~ ✅ (B3)
-- ~~הוספת `last_shown` ל-`handleDealCategory` + מיגרציה ל-`israel_editor_products`~~ ✅ (B2)
+Each step logs: slot name, candidates count, which step triggered, selected product name.
 
-## 🟡 בינוני
-- `_shared/constants.ts` — exchange rates + excluded categories
-- איחוד product lookup (`findProductById`)
+Update `last_shown = now()` for the chosen product.
 
-## 🟢 נמוך
-- corsHeaders ל-`_shared/cors.ts`
-- פיצול `DailyDeals.tsx` ל-components
+### 3. Rewrite `getIsraelRecommendations`
+- Loop `DAILY_SLOTS`, call `selectProductForSlot` with table `aliexpress_feed_products`, salesColumn `sales_30d`
+- Map results with Israel formatting (USD price, Hebrew name)
+
+### 4. Rewrite `getThailandRecommendations`
+- Same loop with table `feed_products`, salesColumn `sales_7d`
+- Thailand formatting (THB price)
+
+### 5. Update `sendRecommendations`
+- Remove the bulk `last_shown` update at the end (now handled per-slot inside `selectProductForSlot`)
+
+### What stays unchanged
+- `sendMessage`, `sendPhoto` helpers
+- `sendRecommendations` display/Telegram logic (minus the removed bulk update)
+- `resetCategoryIfExhausted` helper
+- `RecommendedProduct` interface
+- `serve()` handler
+- All other files
+
