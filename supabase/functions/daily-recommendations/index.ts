@@ -47,8 +47,8 @@ const DAILY_SLOTS: DailySlot[] = [
   {
     name: "מוצר לחוץ לבית",
     category: "בריאות וספורט",
-    includeKeywords: ["thermal bottle", "vacuum flask", "insulated cup", "lunch box", "bento box", "cooler bag", "backpack", "tactical bag", "hiking gear", "camping tent", "sleeping bag", "camping stove", "picnic mat", "folding chair", "cycling gloves", "bike light", "sports belt", "running waist pack", "fitness tracker", "yoga mat", "resistance bands", "swim goggles", "microfiber towel", "outdoor power station"],
-    excludeKeywords: ["collagen", "vitamin", "protein powder", "sunscreen", "lotion", "cream", "serum", "body wash", "shampoo", "medicine", "face mask", "bandage"],
+    includeKeywords: [],
+    excludeKeywords: ["collagen", "vitamin", "protein powder", "sunscreen", "lotion", "cream", "serum", "body wash", "shampoo", "medicine", "face mask", "bandage", "patient bed", "oxygen concentrator", "cpap", "hospital", "medical", "supplement", "inhaler"],
   },
 ];
 
