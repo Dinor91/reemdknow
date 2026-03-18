@@ -36,7 +36,7 @@ const DAILY_SLOTS: DailySlot[] = [
     name: "כלי עבודה",
     category: "כלי עבודה וציוד",
     includeKeywords: ["screwdriver bits", "impact driver", "electric drill", "wrench set", "spanner", "ratchet socket", "pliers", "wire stripper", "measuring tape", "laser level", "angle grinder", "hand saw", "multitool", "wall hooks", "screws nut", "bolts", "hardware kit", "toolbox", "soldering iron", "digital multimeter", "clamping tool", "hex key", "allen wrench", "step drill bit", "s2 steel", "rotary hammer", "lawn mower", "circular saw", "impact wrench", "ultrasonic cleaner", "desoldering", "air pump", "grinding wheel", "drill press", "cordless drill", "power tool", "electric drill", "saw blade", "air tank", "heat gun", "jigsaw", "orbital sander", "router tool", "teflon", "ptfe", "cutting disc", "sanding disc", "extension cord", "workbench", "vise", "pipe wrench", "torque wrench", "socket set", "bit set", "nail gun", "staple gun", "caulking gun", "wire brush", "paint roller", "putty knife", "utility knife", "box cutter"],
-    excludeKeywords: ["clothing", "t-shirt", "shoes", "sneakers", "jewelry", "bracelet", "cosmetics", "perfume", "underwear", "socks", "fashion", "watch band"],
+    excludeKeywords: ["clothing", "t-shirt", "shoes", "sneakers", "jewelry", "bracelet", "cosmetics", "perfume", "underwear", "socks", "fashion", "watch band", "shirt", "sweater", "hoodie", "uniform", "shorts", "blazer"],
   },
   {
     name: "פתרון לבית",
