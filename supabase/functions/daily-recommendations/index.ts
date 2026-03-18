@@ -41,7 +41,7 @@ const DAILY_SLOTS: DailySlot[] = [
   {
     name: "פתרון לבית",
     category: "בית ומטבח",
-    includeKeywords: ["kitchen organizer", "spice rack", "storage box", "storage bin", "shelf divider", "magnetic hook", "adhesive hook", "wall mount holder", "silicone feet", "anti vibration pad", "drawer organizer", "mop bucket", "cleaning brush", "vacuum sealer", "sink rack", "cup holder", "dish drainer", "cable clips", "broom holder", "sealing machine", "shoe rack", "vacuum bag", "rotating turntable", "lazy susan"],
+    includeKeywords: ["kitchen organizer", "spice rack", "storage box", "storage bin", "shelf divider", "magnetic hook", "adhesive hook", "wall mount holder", "silicone feet", "anti vibration pad", "drawer organizer", "mop bucket", "cleaning brush", "vacuum sealer", "sink rack", "cup holder", "dish drainer", "cable clips", "broom holder", "sealing machine", "shoe rack", "vacuum bag", "rotating turntable", "lazy susan", "vacuum cleaner", "robot vacuum", "mattress", "ceiling fan", "microwave", "gas stove", "air fryer", "coffee machine", "water dispenser", "knife block", "range hood", "air purifier", "noodle machine", "washing machine", "refrigerator", "blender", "rice cooker", "electric kettle", "toaster", "dishwasher", "steam mop", "floor cleaner"],
     excludeKeywords: ["anime", "poster", "wall art", "canvas painting", "sculpture", "dollhouse miniature", "display model", "vitamin", "supplements", "cosmetic bag", "jewelry box", "perfume bottle"],
   },
   {
