@@ -23,8 +23,8 @@ const DAILY_SLOTS: DailySlot[] = [
   {
     name: "ילדים ומשחקים",
     category: "ילדים ומשחקים",
-    includeKeywords: ["building blocks", "compatible lego", "puzzle", "jigsaw", "board game", "educational toy", "montessori", "stem kit", "science experiment", "robot kit", "plush toy", "stuffed animal", "action figure", "diecast car", "toy vehicle", "rc car", "musical instrument", "keyboard piano", "outdoor toy", "garden toy", "bubble machine", "dollhouse", "fashion doll", "doll set", "magnetic tiles"],
-    excludeKeywords: ["diaper", "nappy", "wet wipes", "pencils", "coloring book", "crayons", "sticker set", "notebook", "stationery", "marker pens", "school bag", "baby clothes", "onesie", "infant shoes"],
+    includeKeywords: ["building blocks", "compatible lego", "puzzle", "jigsaw", "board game", "educational toy", "montessori", "stem kit", "science experiment", "robot kit", "plush toy", "stuffed animal", "action figure", "diecast car", "toy vehicle", "rc car", "musical instrument", "keyboard piano", "outdoor toy", "garden toy", "bubble machine", "dollhouse", "fashion doll", "doll set", "magnetic tiles", "go-kart", "gaming console", "climbing", "swing", "drum set", "slide"],
+    excludeKeywords: ["diaper", "nappy", "wet wipes", "pencils", "coloring book", "crayons", "sticker set", "notebook", "stationery", "marker pens", "school bag", "baby clothes", "onesie", "infant shoes", "rc parts", "upgrade parts", "spare parts", "multivitamin", "display cabinet"],
   },
   {
     name: "גאדג׳ט טכנולוגי",
@@ -36,7 +36,7 @@ const DAILY_SLOTS: DailySlot[] = [
     name: "כלי עבודה",
     category: "כלי עבודה וציוד",
     includeKeywords: ["screwdriver bits", "impact driver", "electric drill", "wrench set", "spanner", "ratchet socket", "pliers", "wire stripper", "measuring tape", "laser level", "angle grinder", "hand saw", "multitool", "wall hooks", "screws nut", "bolts", "hardware kit", "toolbox", "soldering iron", "digital multimeter", "clamping tool", "hex key", "allen wrench", "step drill bit", "s2 steel", "rotary hammer", "lawn mower", "circular saw", "impact wrench", "ultrasonic cleaner", "desoldering", "air pump", "grinding wheel", "drill press", "cordless drill", "power tool", "electric drill", "saw blade", "air tank", "heat gun", "jigsaw", "orbital sander", "router tool", "teflon", "ptfe", "cutting disc", "sanding disc", "extension cord", "workbench", "vise", "pipe wrench", "torque wrench", "socket set", "bit set", "nail gun", "staple gun", "caulking gun", "wire brush", "paint roller", "putty knife", "utility knife", "box cutter"],
-    excludeKeywords: ["clothing", "t-shirt", "shoes", "sneakers", "jewelry", "bracelet", "cosmetics", "perfume", "underwear", "socks", "fashion", "watch band"],
+    excludeKeywords: ["clothing", "t-shirt", "shoes", "sneakers", "jewelry", "bracelet", "cosmetics", "perfume", "underwear", "socks", "fashion", "watch band", "shirt", "sweater", "hoodie", "uniform", "shorts", "blazer"],
   },
   {
     name: "פתרון לבית",
@@ -47,8 +47,8 @@ const DAILY_SLOTS: DailySlot[] = [
   {
     name: "מוצר לחוץ לבית",
     category: "בריאות וספורט",
-    includeKeywords: ["thermal bottle", "vacuum flask", "insulated cup", "lunch box", "bento box", "cooler bag", "backpack", "tactical bag", "hiking gear", "camping tent", "sleeping bag", "camping stove", "picnic mat", "folding chair", "cycling gloves", "bike light", "sports belt", "running waist pack", "fitness tracker", "yoga mat", "resistance bands", "swim goggles", "microfiber towel", "outdoor power station"],
-    excludeKeywords: ["collagen", "vitamin", "protein powder", "sunscreen", "lotion", "cream", "serum", "body wash", "shampoo", "medicine", "face mask", "bandage"],
+    includeKeywords: [],
+    excludeKeywords: ["collagen", "vitamin", "protein powder", "sunscreen", "lotion", "cream", "serum", "body wash", "shampoo", "medicine", "face mask", "bandage", "patient bed", "oxygen concentrator", "cpap", "hospital", "medical", "supplement", "inhaler"],
   },
 ];
 
@@ -100,8 +100,10 @@ function scoreProduct(rating: number | null, sales: number | null, commissionRat
 
 function matchesKeywords(productName: string, includeKeywords: string[], excludeKeywords: string[]): boolean {
   const lower = productName.toLowerCase();
-  const hasInclude = includeKeywords.some((kw) => lower.includes(kw.toLowerCase()));
-  if (!hasInclude) return false;
+  if (includeKeywords.length > 0) {
+    const hasInclude = includeKeywords.some((kw) => lower.includes(kw.toLowerCase()));
+    if (!hasInclude) return false;
+  }
   const hasExclude = excludeKeywords.some((kw) => lower.includes(kw.toLowerCase()));
   if (hasExclude) return false;
   return true;
