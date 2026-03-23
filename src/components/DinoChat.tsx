@@ -1472,8 +1472,22 @@ const DinoChat = () => {
     addAssistant("🚀 מתחיל ייבוא קמפיינים מ-AliExpress...");
 
     try {
-      const { data, error } = await supabase.functions.invoke("sync-campaigns-manual");
-      if (error) throw error;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 150000);
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-campaigns-manual`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          signal: controller.signal,
+        }
+      );
+      clearTimeout(timeoutId);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || 'Unknown error');
 
       if (data?.success) {
         addAssistant(
