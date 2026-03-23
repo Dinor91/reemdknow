@@ -223,7 +223,7 @@ serve(async (req) => {
     // === Step 4: Upsert products ===
     let upserted = 0, errors = 0, totalKids = 0
 
-    for (const product of uniqueProducts) {
+    const buildProductPayload = async (product: any) => {
       const productId = String(product.product_id)
 
       let discountPercentage: number | null = null
@@ -244,10 +244,7 @@ serve(async (req) => {
       const totalRate = (baseRate + hotRate) / 100
       const commissionRate = totalRate > 0 ? totalRate : null
 
-      const hebrewCategory = product._category_hebrew || 'כללי'
-      if (hebrewCategory === 'ילדים ומשחקים') totalKids++
-
-      const { error } = await supabase.from('aliexpress_feed_products').upsert({
+      return {
         aliexpress_product_id: productId,
         product_name: product.product_title || 'Unknown Product',
         image_url: product.product_main_image_url,
@@ -265,10 +262,44 @@ serve(async (req) => {
         is_campaign_product: true,
         campaign_name: product._campaign_name,
         updated_at: now,
-      }, { onConflict: 'aliexpress_product_id' })
+      }
+    }
 
-      if (error) { errors++; console.error(`Upsert error ${productId}:`, error) }
-      else upserted++
+    const productPayloads: any[] = []
+    const LINK_BATCH_SIZE = 8
+    for (let i = 0; i < uniqueProducts.length; i += LINK_BATCH_SIZE) {
+      const batch = uniqueProducts.slice(i, i + LINK_BATCH_SIZE)
+      const resolvedBatch = await Promise.all(batch.map(buildProductPayload))
+      productPayloads.push(...resolvedBatch)
+    }
+
+    totalKids = productPayloads.filter(product => product.category_name_hebrew === 'ילדים ומשחקים').length
+
+    const UPSERT_BATCH_SIZE = 100
+    for (let i = 0; i < productPayloads.length; i += UPSERT_BATCH_SIZE) {
+      const batch = productPayloads.slice(i, i + UPSERT_BATCH_SIZE)
+      const { error } = await supabase
+        .from('aliexpress_feed_products')
+        .upsert(batch, { onConflict: 'aliexpress_product_id' })
+
+      if (error) {
+        console.error(`Batch upsert error ${i}-${i + batch.length - 1}:`, error)
+
+        for (const product of batch) {
+          const { error: rowError } = await supabase
+            .from('aliexpress_feed_products')
+            .upsert(product, { onConflict: 'aliexpress_product_id' })
+
+          if (rowError) {
+            errors++
+            console.error(`Upsert error ${product.aliexpress_product_id}:`, rowError)
+          } else {
+            upserted++
+          }
+        }
+      } else {
+        upserted += batch.length
+      }
     }
 
     // === Step 5: Translate ===

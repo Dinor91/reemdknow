@@ -188,7 +188,7 @@ function isBackCommand(text: string): boolean {
 // ────────────────── Component ──────────────────
 
 const DinoChat = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, session } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -1480,7 +1480,8 @@ const DinoChat = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
           },
           signal: controller.signal,
         }
