@@ -1473,12 +1473,21 @@ const DinoChat = () => {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 150000); // 150s timeout
-      const { data, error } = await supabase.functions.invoke("sync-campaigns-manual", {
-        body: {},
-      });
+      const timeoutId = setTimeout(() => controller.abort(), 150000);
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-campaigns-manual`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          signal: controller.signal,
+        }
+      );
       clearTimeout(timeoutId);
-      if (error) throw error;
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || 'Unknown error');
 
       if (data?.success) {
         addAssistant(
