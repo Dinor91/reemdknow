@@ -188,7 +188,7 @@ function isBackCommand(text: string): boolean {
 // ────────────────── Component ──────────────────
 
 const DinoChat = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, session } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
