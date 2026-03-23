@@ -1472,7 +1472,12 @@ const DinoChat = () => {
     addAssistant("🚀 מתחיל ייבוא קמפיינים מ-AliExpress...");
 
     try {
-      const { data, error } = await supabase.functions.invoke("sync-campaigns-manual");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 150000); // 150s timeout
+      const { data, error } = await supabase.functions.invoke("sync-campaigns-manual", {
+        body: {},
+      });
+      clearTimeout(timeoutId);
       if (error) throw error;
 
       if (data?.success) {
