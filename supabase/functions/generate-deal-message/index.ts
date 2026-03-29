@@ -44,14 +44,11 @@ Write the message using EXACTLY this structure:
 
 [Product name and brand with a relevant emoji]
 
-⭐ למה אני ממליץ?
+✨ למה זאת הבחירה שלי?
 • [benefit 1 – practical/functional]
 • [benefit 2 – quality/reliability]
 • [benefit 3 – value for money]
 • [benefit 4 – unique advantage]
-
-🔥 ממליץ מניסיון אישי
-[One short personal-tone sentence about why this product stands out]
 
 💰 [price in ₪] [+ a short value-for-money comment]
 ${product.discount_percent ? `🏷️ ${product.discount_percent}% הנחה! (מחיר מקורי: ${product.original_price})` : ""}
