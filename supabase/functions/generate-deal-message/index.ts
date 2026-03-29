@@ -9,7 +9,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { product, coupon } = await req.json();
+    const { product, coupon, source } = await req.json();
+    const isKsp = source === "ksp";
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -17,22 +18,68 @@ serve(async (req) => {
     const TRACKING_ID = Deno.env.get("ALIEXPRESS_TRACKING_ID");
     let productUrl = product.url || "";
     console.log("[1] productUrl RAW from product.url:", productUrl);
-    console.log("[1] TRACKING_ID value:", TRACKING_ID ? `${TRACKING_ID.substring(0, 10)}...` : "NOT SET");
+    console.log("[1] source:", source || "default");
 
-    const isAlreadyTracked = productUrl.includes("s.click.aliexpress.com") || 
-                             productUrl.includes("a.aliexpress.com") || 
-                             productUrl.includes("aff_fcid");
-    console.log("[2] isAlreadyTracked:", isAlreadyTracked);
+    if (!isKsp) {
+      const isAlreadyTracked = productUrl.includes("s.click.aliexpress.com") || 
+                                productUrl.includes("a.aliexpress.com") || 
+                                productUrl.includes("aff_fcid");
 
-    if (productUrl.includes("aliexpress.com") && TRACKING_ID && !isAlreadyTracked) {
-      const separator = productUrl.includes("?") ? "&" : "?";
-      productUrl = `${productUrl}${separator}aff_fcid=${TRACKING_ID}&aff_platform=portals-tool`;
-      console.log("[3] productUrl AFTER adding tracking:", productUrl);
-    } else {
-      console.log("[3] productUrl UNCHANGED (skipped tracking):", productUrl);
+      if (productUrl.includes("aliexpress.com") && TRACKING_ID && !isAlreadyTracked) {
+        const separator = productUrl.includes("?") ? "&" : "?";
+        productUrl = `${productUrl}${separator}aff_fcid=${TRACKING_ID}&aff_platform=portals-tool`;
+      }
     }
 
-    const systemPrompt = `You are writing a WhatsApp message in Hebrew for a deals community of 1,200 members.
+    let systemPrompt: string;
+    let userPrompt: string;
+
+    if (isKsp) {
+      systemPrompt = `You are writing a WhatsApp message in Hebrew for a deals community of 1,200 members.
+The product is from KSP, an Israeli electronics store.
+
+Write the message using EXACTLY this structure:
+
+[Opening line — one catchy question related to the product category with a relevant emoji]
+
+[Product name and brand with a relevant emoji]
+
+⭐ למה אני ממליץ?
+• [benefit 1 – practical/functional]
+• [benefit 2 – quality/reliability]
+• [benefit 3 – value for money]
+• [benefit 4 – unique advantage]
+
+🔥 ממליץ מניסיון אישי
+[One short personal-tone sentence about why this product stands out]
+
+💰 [price in ₪] [+ a short value-for-money comment]
+${product.discount_percent ? `🏷️ ${product.discount_percent}% הנחה! (מחיר מקורי: ${product.original_price})` : ""}
+📦 המחיר באתר עשוי להשתנות
+${product.note ? `💡 ${product.note}` : ""}
+
+🔗 לינק למוצר
+[product_url]
+
+RULES:
+- Natural Hebrew, warm personal tone, NOT salesy
+- All 4 benefit bullets are required
+- CRITICAL: Copy the URL EXACTLY as provided. Do not modify any character.
+- Total message under 200 words`;
+
+      userPrompt = `Generate a WhatsApp deal message for this KSP product:
+
+Name: ${product.name}
+Brand: ${product.brand}
+Category: ${product.category || "כללי"}
+Price: ${product.price}
+${product.original_price ? `Original Price: ${product.original_price}` : ""}
+${product.discount_percent ? `Discount: ${product.discount_percent}%` : ""}
+${product.note ? `Note: ${product.note}` : ""}
+URL: ${productUrl}
+CRITICAL: The URL above must appear EXACTLY as-is in your output. Do not change any character.`;
+    } else {
+      systemPrompt = `You are writing a WhatsApp message in Hebrew for a deals community of 1,200 members.
 
 Write the message using EXACTLY this structure:
 
@@ -83,10 +130,10 @@ RULES:
 - CRITICAL: Copy the URL EXACTLY as provided. Do not modify, shorten, or change ANY character in the URL. The URL must appear in the output 100% identical to the input.
 - Total message under 200 words`;
 
-    const ratingValue = product.rating && product.rating !== "חדש" && Number(product.rating) > 0 ? product.rating : null;
-    const salesValue = product.sales_7d && Number(product.sales_7d) > 0 ? product.sales_7d : null;
+      const ratingValue = product.rating && product.rating !== "חדש" && Number(product.rating) > 0 ? product.rating : null;
+      const salesValue = product.sales_7d && Number(product.sales_7d) > 0 ? product.sales_7d : null;
 
-    const userPrompt = `Generate a WhatsApp deal message for this product:
+      userPrompt = `Generate a WhatsApp deal message for this product:
 
 Name: ${product.name}
 Price: ${product.price}
@@ -97,7 +144,7 @@ Category: ${product.category || "כללי"}
 URL: ${productUrl}
 CRITICAL: The URL above must appear EXACTLY as-is in your output. Do not change any character.
 Coupon: ${coupon || "NONE - do NOT include any coupon line"}`;
-
+    }
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {

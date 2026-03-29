@@ -25,7 +25,7 @@ export const ExternalLinkDealTab = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [platform, setPlatform] = useState<"aliexpress" | "lazada" | null>(null);
+  const [platform, setPlatform] = useState<"aliexpress" | "lazada" | "ksp" | null>(null);
   const [product, setProduct] = useState<DecodedProduct | null>(null);
   const [affiliateUrl, setAffiliateUrl] = useState("");
   const [productId, setProductId] = useState<string | null>(null);
@@ -46,12 +46,45 @@ export const ExternalLinkDealTab = () => {
   const [editCategory, setEditCategory] = useState("כללי");
   const [editBrand, setEditBrand] = useState("");
 
+  // KSP-specific fields
+  const [editOriginalPrice, setEditOriginalPrice] = useState("");
+  const [editNote, setEditNote] = useState("");
+
   // Track which fields were empty from API (need manual entry)
   const [manualFields, setManualFields] = useState<Set<string>>(new Set());
+
+  const isKspUrl = (u: string) => u.toLowerCase().includes("ksp.co.il");
+
+  const kspDiscountPercent = (): number | null => {
+    const price = parseFloat(editPrice);
+    const original = parseFloat(editOriginalPrice);
+    if (!price || !original || original <= price) return null;
+    return Math.round(((original - price) / original) * 100);
+  };
 
   const handleDecode = async () => {
     if (!url.trim()) {
       toast.error("הזן קישור");
+      return;
+    }
+
+    // KSP: skip decode, go straight to manual form
+    if (isKspUrl(url.trim())) {
+      setPlatform("ksp");
+      setAffiliateUrl(url.trim());
+      setCurrencySymbol("₪");
+      setDecodeSuccess(false);
+      setProduct(null);
+      setEditName("");
+      setEditPrice("");
+      setEditRating("");
+      setEditSales("");
+      setEditBrand("");
+      setEditCategory("כללי");
+      setEditOriginalPrice("");
+      setEditNote("");
+      setManualFields(new Set());
+      toast.info("🛒 קישור KSP — מלא את הפרטים ידנית");
       return;
     }
 
@@ -82,12 +115,10 @@ export const ExternalLinkDealTab = () => {
       setEditSales(p.sales_7d || "");
       setEditBrand(p.brand || "");
 
-      // Map category to unified list, default to "כללי"
       const apiCategory = p.category || "";
       const matchedCategory = (DEAL_CATEGORIES as readonly string[]).includes(apiCategory) ? apiCategory : "כללי";
       setEditCategory(matchedCategory);
 
-      // Track which fields need manual entry
       const manual = new Set<string>();
       if (!p.price) manual.add("price");
       if (!p.rating) manual.add("rating");
@@ -115,21 +146,31 @@ export const ExternalLinkDealTab = () => {
 
     setIsGenerating(true);
     try {
-      const priceStr = `${editPrice} ${currencySymbol}`;
-      const { data, error } = await supabase.functions.invoke("generate-deal-message", {
-        body: {
-          product: {
-            name: editName,
-            price: priceStr,
-            rating: editRating || null,
-            sales_7d: editSales ? parseInt(editSales) : null,
-            brand: editBrand,
-            category: editCategory,
-            url: affiliateUrl,
-          },
-          coupon: coupon || undefined,
+      const isKsp = platform === "ksp";
+      const priceStr = isKsp ? `${editPrice} ₪` : `${editPrice} ${currencySymbol}`;
+      const discount = kspDiscountPercent();
+
+      const body: any = {
+        product: {
+          name: editName,
+          price: priceStr,
+          rating: isKsp ? null : (editRating || null),
+          sales_7d: isKsp ? null : (editSales ? parseInt(editSales) : null),
+          brand: editBrand,
+          category: editCategory,
+          url: affiliateUrl,
         },
-      });
+        coupon: coupon || undefined,
+      };
+
+      if (isKsp) {
+        body.source = "ksp";
+        body.product.original_price = editOriginalPrice ? `${editOriginalPrice} ₪` : null;
+        body.product.discount_percent = discount;
+        body.product.note = editNote || null;
+      }
+
+      const { data, error } = await supabase.functions.invoke("generate-deal-message", { body });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -159,57 +200,62 @@ export const ExternalLinkDealTab = () => {
     setIsSaving(true);
 
     try {
+      const isKsp = platform === "ksp";
+
       const { error: dealError } = await supabase.from("deals_sent" as any).insert({
         product_name: editName,
         product_name_hebrew: editName,
-        platform: platform === "aliexpress" ? "israel" : "thailand",
+        platform: isKsp ? "israel" : (platform === "aliexpress" ? "israel" : "thailand"),
         category: editCategory,
         affiliate_url: affiliateUrl,
-        product_id: productId,
+        product_id: isKsp ? null : productId,
       } as any);
 
       if (dealError) console.error("deals_sent save error:", dealError);
 
-      if (platform === "aliexpress") {
-        const { error } = await supabase.from("israel_editor_products" as any).insert({
-          aliexpress_product_id: productId,
-          product_name_hebrew: editName,
-          tracking_link: affiliateUrl,
-          category_name_hebrew: editCategory,
-          price_usd: editPrice ? parseFloat(editPrice) : null,
-          rating: editRating ? parseFloat(editRating) : null,
-          sales_count: editSales ? parseInt(editSales) : null,
-          image_url: imageUrl || null,
-          is_active: true,
-          out_of_stock: false,
-          source: "external_link",
-        } as any);
-        if (error) {
-          if (error.code === "23505") {
-            toast.info("המוצר כבר קיים במאגר ישראל");
-          } else {
-            throw error;
+      // KSP: save to deals_sent only, not to israel_editor_products
+      if (!isKsp) {
+        if (platform === "aliexpress") {
+          const { error } = await supabase.from("israel_editor_products" as any).insert({
+            aliexpress_product_id: productId,
+            product_name_hebrew: editName,
+            tracking_link: affiliateUrl,
+            category_name_hebrew: editCategory,
+            price_usd: editPrice ? parseFloat(editPrice) : null,
+            rating: editRating ? parseFloat(editRating) : null,
+            sales_count: editSales ? parseInt(editSales) : null,
+            image_url: imageUrl || null,
+            is_active: true,
+            out_of_stock: false,
+            source: "external_link",
+          } as any);
+          if (error) {
+            if (error.code === "23505") {
+              toast.info("המוצר כבר קיים במאגר ישראל");
+            } else {
+              throw error;
+            }
           }
+        } else {
+          const { error } = await supabase.from("category_products" as any).insert({
+            lazada_product_id: productId,
+            name_hebrew: editName,
+            affiliate_link: affiliateUrl,
+            category: editCategory,
+            price_thb: editPrice ? parseFloat(editPrice) : null,
+            rating: editRating ? parseFloat(editRating) : null,
+            sales_count: editSales ? parseInt(editSales) : null,
+            image_url: imageUrl || null,
+            is_active: true,
+            out_of_stock: false,
+            source: "external_link",
+          } as any);
+          if (error) throw error;
         }
-      } else {
-        const { error } = await supabase.from("category_products" as any).insert({
-          lazada_product_id: productId,
-          name_hebrew: editName,
-          affiliate_link: affiliateUrl,
-          category: editCategory,
-          price_thb: editPrice ? parseFloat(editPrice) : null,
-          rating: editRating ? parseFloat(editRating) : null,
-          sales_count: editSales ? parseInt(editSales) : null,
-          image_url: imageUrl || null,
-          is_active: true,
-          out_of_stock: false,
-          source: "external_link",
-        } as any);
-        if (error) throw error;
       }
 
       setSaved(true);
-      toast.success(`✅ נשמר ל-${platform === "aliexpress" ? "israel_editor_products" : "category_products"} + deals_sent`);
+      toast.success(isKsp ? "✅ נשמר ל-deals_sent" : `✅ נשמר ל-${platform === "aliexpress" ? "israel_editor_products" : "category_products"} + deals_sent`);
     } catch (e: any) {
       console.error("Save error:", e);
       toast.error(e.message || "שגיאה בשמירה");
@@ -234,11 +280,14 @@ export const ExternalLinkDealTab = () => {
     setEditSales("");
     setEditCategory("כללי");
     setEditBrand("");
+    setEditOriginalPrice("");
+    setEditNote("");
     setManualFields(new Set());
     setImageUrl(null);
   };
 
   const manualInputClass = "border-orange-400 border-2";
+  const isKsp = platform === "ksp";
 
   return (
     <div className="space-y-4" dir="rtl">
@@ -253,7 +302,7 @@ export const ExternalLinkDealTab = () => {
         <CardContent className="space-y-3">
           <div className="flex gap-2">
             <Input
-              placeholder="הדבק קישור AliExpress / Lazada..."
+              placeholder="הדבק קישור AliExpress / Lazada / KSP..."
               value={url}
               onChange={e => setUrl(e.target.value)}
               className="flex-1"
@@ -266,12 +315,13 @@ export const ExternalLinkDealTab = () => {
           </div>
           {platform && (
             <div className="flex items-center gap-2">
-              <Badge variant={platform === "aliexpress" ? "default" : "secondary"}>
-                {platform === "aliexpress" ? "🇮🇱 AliExpress" : "🇹🇭 Lazada"}
+              <Badge variant={isKsp ? "secondary" : platform === "aliexpress" ? "default" : "secondary"}>
+                {isKsp ? "🛒 KSP" : platform === "aliexpress" ? "🇮🇱 AliExpress" : "🇹🇭 Lazada"}
               </Badge>
               <span className="text-xs text-muted-foreground">מטבע: {currencySymbol}</span>
-              {decodeSuccess && <Badge variant="outline" className="text-green-600">✅ פענוח הצליח</Badge>}
-              {platform && !decodeSuccess && product && <Badge variant="outline" className="text-yellow-600">⚠️ ערוך ידנית</Badge>}
+              {!isKsp && decodeSuccess && <Badge variant="outline" className="text-green-600">✅ פענוח הצליח</Badge>}
+              {!isKsp && !decodeSuccess && product && <Badge variant="outline" className="text-yellow-600">⚠️ ערוך ידנית</Badge>}
+              {isKsp && <Badge variant="outline" className="text-blue-600">📝 מילוי ידני</Badge>}
             </div>
           )}
         </CardContent>
@@ -284,7 +334,7 @@ export const ExternalLinkDealTab = () => {
             <CardTitle className="text-base">פרטי מוצר</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {imageUrl && (
+            {!isKsp && imageUrl && (
               <div className="flex items-center gap-3">
                 <img src={imageUrl} alt={editName} className="w-20 h-20 object-cover rounded-lg border border-border" />
                 <span className="text-sm text-muted-foreground">תמונת מוצר</span>
@@ -292,8 +342,25 @@ export const ExternalLinkDealTab = () => {
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-muted-foreground">שם מוצר</label>
+                <label className="text-sm text-muted-foreground">שם מוצר <span className="text-red-500">*</span></label>
                 <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="שם המוצר בעברית" />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground">מותג {isKsp && <span className="text-red-500">*</span>}</label>
+                <Input value={editBrand} onChange={e => setEditBrand(e.target.value)} placeholder="מותג" />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground">קטגוריה <span className="text-red-500">*</span></label>
+                <Select value={editCategory} onValueChange={setEditCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="בחר קטגוריה" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEAL_CATEGORIES.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-sm text-muted-foreground">
@@ -307,49 +374,84 @@ export const ExternalLinkDealTab = () => {
                   className={manualFields.has("price") && !editPrice ? manualInputClass : ""}
                 />
               </div>
-              <div>
-                <label className="text-sm text-muted-foreground">דירוג</label>
-                <Input
-                  value={editRating}
-                  onChange={e => setEditRating(e.target.value)}
-                  placeholder={manualFields.has("rating") ? "הכנס ידנית" : "4.8"}
-                  dir="ltr"
-                  className={manualFields.has("rating") && !editRating ? manualInputClass : ""}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground">מכירות שבועיות</label>
-                <Input
-                  value={editSales}
-                  onChange={e => setEditSales(e.target.value)}
-                  placeholder={manualFields.has("sales") ? "הכנס ידנית" : "0"}
-                  dir="ltr"
-                  className={manualFields.has("sales") && !editSales ? manualInputClass : ""}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground">קטגוריה</label>
-                <Select value={editCategory} onValueChange={setEditCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="בחר קטגוריה" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DEAL_CATEGORIES.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground">מותג</label>
-                <Input value={editBrand} onChange={e => setEditBrand(e.target.value)} placeholder="מותג" />
-              </div>
+
+              {/* KSP-specific: original price + note */}
+              {isKsp && (
+                <>
+                  <div>
+                    <label className="text-sm text-muted-foreground">
+                      מחיר מקורי (₪)
+                      {kspDiscountPercent() && (
+                        <span className="text-green-600 font-medium mr-2">
+                          {kspDiscountPercent()}% הנחה
+                        </span>
+                      )}
+                    </label>
+                    <Input
+                      value={editOriginalPrice}
+                      onChange={e => setEditOriginalPrice(e.target.value)}
+                      placeholder="אופציונלי"
+                      dir="ltr"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-sm text-muted-foreground">הערה חופשית</label>
+                    <Input
+                      value={editNote}
+                      onChange={e => setEditNote(e.target.value)}
+                      placeholder='לדוגמה: "קניית 4 חבילות = 10% הנחה"'
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Non-KSP: rating + sales */}
+              {!isKsp && (
+                <>
+                  <div>
+                    <label className="text-sm text-muted-foreground">דירוג</label>
+                    <Input
+                      value={editRating}
+                      onChange={e => setEditRating(e.target.value)}
+                      placeholder={manualFields.has("rating") ? "הכנס ידנית" : "4.8"}
+                      dir="ltr"
+                      className={manualFields.has("rating") && !editRating ? manualInputClass : ""}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-muted-foreground">מכירות שבועיות</label>
+                    <Input
+                      value={editSales}
+                      onChange={e => setEditSales(e.target.value)}
+                      placeholder={manualFields.has("sales") ? "הכנס ידנית" : "0"}
+                      dir="ltr"
+                      className={manualFields.has("sales") && !editSales ? manualInputClass : ""}
+                    />
+                  </div>
+                </>
+              )}
             </div>
-            <div>
-              <label className="text-sm text-muted-foreground">קופון (אופציונלי)</label>
-              <Input value={coupon} onChange={e => setCoupon(e.target.value)} placeholder="קוד קופון" dir="ltr" />
-            </div>
-            <Button onClick={handleGenerateMessage} disabled={isGenerating || !editName || !editPrice} className="w-full">
+
+            {/* Affiliate URL for KSP (read-only display) */}
+            {isKsp && (
+              <div>
+                <label className="text-sm text-muted-foreground">קישור אפיליאציה</label>
+                <Input value={affiliateUrl} onChange={e => setAffiliateUrl(e.target.value)} dir="ltr" />
+              </div>
+            )}
+
+            {!isKsp && (
+              <div>
+                <label className="text-sm text-muted-foreground">קופון (אופציונלי)</label>
+                <Input value={coupon} onChange={e => setCoupon(e.target.value)} placeholder="קוד קופון" dir="ltr" />
+              </div>
+            )}
+
+            <Button
+              onClick={handleGenerateMessage}
+              disabled={isGenerating || !editName || !editPrice || (isKsp && !editBrand)}
+              className="w-full"
+            >
               {isGenerating ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : "📝"} צור הודעה
             </Button>
           </CardContent>
