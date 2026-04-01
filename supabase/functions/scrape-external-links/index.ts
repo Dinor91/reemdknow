@@ -109,7 +109,7 @@ serve(async (req) => {
       )
     }
 
-    const { url } = await req.json()
+    const { url, platform } = await req.json()
 
     if (!url) {
       return new Response(
@@ -117,6 +117,11 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Determine which platform to scan for
+    const scanPlatform = platform || 'aliexpress' // 'aliexpress' or 'lazada'
+    const isLazada = scanPlatform === 'lazada' || scanPlatform === 'thailand'
+    console.log(`Scanning for ${isLazada ? 'Lazada' : 'AliExpress'} links`)
 
     console.log('Scraping URL for AliExpress links:', url)
 
