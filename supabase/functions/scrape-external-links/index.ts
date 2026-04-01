@@ -49,6 +49,9 @@ function isShortLink(url: string): boolean {
   const shortLinkDomains = [
     'beacons.ai',
     's.click.aliexpress.com',
+    'a.aliexpress.com',
+    's.lazada.co.th',
+    'c.lazada.co.th',
     'bit.ly',
     'tinyurl.com',
     'linktr.ee',
