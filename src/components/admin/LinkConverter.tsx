@@ -428,19 +428,22 @@ export const LinkConverter = () => {
     }
   };
 
-  // Scrape external website for AliExpress links
+  // Scrape external website for product links (AliExpress or Lazada based on platform)
   const handleScrapeWebsite = async () => {
     if (!websiteUrl.trim()) {
       toast.error("הכנס כתובת אתר");
       return;
     }
 
+    const isThailand = selectedPlatform === 'thailand';
+    const platformName = isThailand ? 'Lazada' : 'AliExpress';
+
     setIsScraping(true);
     setScrapeProgress("מתחבר לאתר...");
     try {
-      setScrapeProgress("סורק דף וחילוץ קישורים...");
+      setScrapeProgress(`סורק דף וחילוץ קישורי ${platformName}...`);
       const { data, error } = await supabase.functions.invoke('scrape-external-links', {
-        body: { url: websiteUrl.trim() }
+        body: { url: websiteUrl.trim(), platform: isThailand ? 'lazada' : 'aliexpress' }
       });
 
       if (error) throw error;
@@ -455,9 +458,9 @@ export const LinkConverter = () => {
         // Add scraped links to the input textarea
         const linkUrls = data.links.map((l: any) => l.originalUrl).join('\n');
         setInputLinks(prev => prev ? prev + '\n' + linkUrls : linkUrls);
-        toast.success(`נמצאו ${data.validProductLinks} קישורי AliExpress!`);
+        toast.success(`נמצאו ${data.validProductLinks} קישורי ${platformName}!`);
       } else {
-        toast.warning("לא נמצאו קישורי AliExpress באתר");
+        toast.warning(`לא נמצאו קישורי ${platformName} באתר`);
       }
     } catch (err: any) {
       console.error('Scrape error:', err);
