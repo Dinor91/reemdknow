@@ -232,20 +232,33 @@ serve(async (req) => {
       }
     }
 
-    // Combine all found AliExpress links
-    const allAliExpressLinks = [...new Set([...directAliExpressLinks, ...resolvedLinks])]
+    // Combine all found product links
+    const allProductLinks = [...new Set([...directProductLinks, ...resolvedLinks])]
     
-    // Extract product IDs
-    const results = allAliExpressLinks.map(link => ({
+    // Extract product IDs using appropriate extractor
+    const extractFn = isLazada ? extractLazadaProductId : extractAliExpressProductId
+    
+    // For Lazada short links that resolved but don't have extractable IDs, keep the URL itself
+    const results = allProductLinks.map(link => ({
       originalUrl: link,
-      productId: extractProductId(link),
+      productId: extractFn(link),
     })).filter(r => r.productId !== null)
 
-    console.log(`Found ${results.length} valid AliExpress product links`)
+    // For Lazada, also include short links that we couldn't extract IDs from
+    // (they are valid affiliate links that can be used directly)
+    if (isLazada) {
+      const shortLinksWithoutId = allProductLinks.filter(link => !extractFn(link))
+      for (const link of shortLinksWithoutId) {
+        results.push({ originalUrl: link, productId: null })
+      }
+    }
+
+    console.log(`Found ${results.length} valid ${platformName} product links`)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
+        platform: scanPlatform,
         totalLinksFound: allLinks.size,
         shortLinksFollowed: shortLinksToFollow.length,
         validProductLinks: results.length,
