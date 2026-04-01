@@ -175,23 +175,39 @@ serve(async (req) => {
     console.log(`Found ${allLinks.size} total links on page`)
 
     // Categorize links
-    const directAliExpressLinks: string[] = []
+    const directProductLinks: string[] = []
     const shortLinksToFollow: string[] = []
 
+    // Platform-specific short link domains
+    const lazadaShortDomains = ['s.lazada.co.th', 'c.lazada.co.th']
+    const aliexpressShortDomains = ['s.click.aliexpress.com', 'a.aliexpress.com']
+
     for (const link of allLinks) {
-      if (link.includes('aliexpress.com') && extractProductId(link)) {
-        directAliExpressLinks.push(link)
-      } else if (link.includes('s.click.aliexpress.com')) {
-        shortLinksToFollow.push(link)
-      } else if (link.includes('beacons.ai/link/')) {
-        shortLinksToFollow.push(link)
+      if (isLazada) {
+        // Check for direct Lazada product links
+        if (link.includes('lazada.co.th/products/') && extractLazadaProductId(link)) {
+          directProductLinks.push(link)
+        } else if (lazadaShortDomains.some(d => link.includes(d))) {
+          shortLinksToFollow.push(link)
+        }
+      } else {
+        // Check for direct AliExpress product links
+        if (link.includes('aliexpress.com') && extractAliExpressProductId(link)) {
+          directProductLinks.push(link)
+        } else if (aliexpressShortDomains.some(d => link.includes(d))) {
+          shortLinksToFollow.push(link)
+        } else if (link.includes('beacons.ai/link/')) {
+          shortLinksToFollow.push(link)
+        }
       }
     }
 
-    console.log(`Direct AliExpress: ${directAliExpressLinks.length}, Short links to follow: ${shortLinksToFollow.length}`)
+    const platformName = isLazada ? 'Lazada' : 'AliExpress'
+    console.log(`Direct ${platformName}: ${directProductLinks.length}, Short links to follow: ${shortLinksToFollow.length}`)
 
-    // Follow short links to get AliExpress URLs
+    // Follow short links to get product URLs
     const resolvedLinks: string[] = []
+    const targetDomain = isLazada ? 'lazada' : 'aliexpress'
     
     // Process short links in batches
     const batchSize = 5
@@ -199,7 +215,7 @@ serve(async (req) => {
       const batch = shortLinksToFollow.slice(i, i + batchSize)
       const results = await Promise.all(batch.map(async (shortLink) => {
         const resolved = await followRedirect(shortLink)
-        if (resolved && resolved.includes('aliexpress')) {
+        if (resolved && resolved.includes(targetDomain)) {
           console.log(`Resolved: ${shortLink} -> ${resolved}`)
           return resolved
         }
