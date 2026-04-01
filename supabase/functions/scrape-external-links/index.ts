@@ -6,7 +6,7 @@ const corsHeaders = {
 }
 
 // Extract AliExpress product IDs from various URL formats
-function extractProductId(url: string): string | null {
+function extractAliExpressProductId(url: string): string | null {
   const pattern1 = /\/item\/(\d+)\.html/i;
   const pattern2 = /\/i\/(\d+)\.html/i;
   const pattern3 = /productId[=:](\d+)/i;
@@ -18,6 +18,21 @@ function extractProductId(url: string): string | null {
               url.match(pattern3) || 
               url.match(pattern4) ||
               url.match(pattern5);
+  
+  return match ? match[1] : null;
+}
+
+// Extract Lazada product IDs from various URL formats
+function extractLazadaProductId(url: string): string | null {
+  const pattern1 = /-i(\d+)-s/i;
+  const pattern2 = /-i(\d+)\.html/i;
+  const pattern3 = /itemId[=:](\d+)/i;
+  const pattern4 = /-i(\d+)(?:\?|$|\.)/i;
+  
+  let match = url.match(pattern1) || 
+              url.match(pattern2) || 
+              url.match(pattern3) ||
+              url.match(pattern4);
   
   return match ? match[1] : null;
 }
@@ -34,6 +49,9 @@ function isShortLink(url: string): boolean {
   const shortLinkDomains = [
     'beacons.ai',
     's.click.aliexpress.com',
+    'a.aliexpress.com',
+    's.lazada.co.th',
+    'c.lazada.co.th',
     'bit.ly',
     'tinyurl.com',
     'linktr.ee',
@@ -91,7 +109,7 @@ serve(async (req) => {
       )
     }
 
-    const { url } = await req.json()
+    const { url, platform } = await req.json()
 
     if (!url) {
       return new Response(
@@ -99,6 +117,11 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Determine which platform to scan for
+    const scanPlatform = platform || 'aliexpress' // 'aliexpress' or 'lazada'
+    const isLazada = scanPlatform === 'lazada' || scanPlatform === 'thailand'
+    console.log(`Scanning for ${isLazada ? 'Lazada' : 'AliExpress'} links`)
 
     console.log('Scraping URL for AliExpress links:', url)
 
@@ -152,23 +175,39 @@ serve(async (req) => {
     console.log(`Found ${allLinks.size} total links on page`)
 
     // Categorize links
-    const directAliExpressLinks: string[] = []
+    const directProductLinks: string[] = []
     const shortLinksToFollow: string[] = []
 
+    // Platform-specific short link domains
+    const lazadaShortDomains = ['s.lazada.co.th', 'c.lazada.co.th']
+    const aliexpressShortDomains = ['s.click.aliexpress.com', 'a.aliexpress.com']
+
     for (const link of allLinks) {
-      if (link.includes('aliexpress.com') && extractProductId(link)) {
-        directAliExpressLinks.push(link)
-      } else if (link.includes('s.click.aliexpress.com')) {
-        shortLinksToFollow.push(link)
-      } else if (link.includes('beacons.ai/link/')) {
-        shortLinksToFollow.push(link)
+      if (isLazada) {
+        // Check for direct Lazada product links
+        if (link.includes('lazada.co.th/products/') && extractLazadaProductId(link)) {
+          directProductLinks.push(link)
+        } else if (lazadaShortDomains.some(d => link.includes(d))) {
+          shortLinksToFollow.push(link)
+        }
+      } else {
+        // Check for direct AliExpress product links
+        if (link.includes('aliexpress.com') && extractAliExpressProductId(link)) {
+          directProductLinks.push(link)
+        } else if (aliexpressShortDomains.some(d => link.includes(d))) {
+          shortLinksToFollow.push(link)
+        } else if (link.includes('beacons.ai/link/')) {
+          shortLinksToFollow.push(link)
+        }
       }
     }
 
-    console.log(`Direct AliExpress: ${directAliExpressLinks.length}, Short links to follow: ${shortLinksToFollow.length}`)
+    const platformName = isLazada ? 'Lazada' : 'AliExpress'
+    console.log(`Direct ${platformName}: ${directProductLinks.length}, Short links to follow: ${shortLinksToFollow.length}`)
 
-    // Follow short links to get AliExpress URLs
+    // Follow short links to get product URLs
     const resolvedLinks: string[] = []
+    const targetDomain = isLazada ? 'lazada' : 'aliexpress'
     
     // Process short links in batches
     const batchSize = 5
@@ -176,7 +215,7 @@ serve(async (req) => {
       const batch = shortLinksToFollow.slice(i, i + batchSize)
       const results = await Promise.all(batch.map(async (shortLink) => {
         const resolved = await followRedirect(shortLink)
-        if (resolved && resolved.includes('aliexpress')) {
+        if (resolved && resolved.includes(targetDomain)) {
           console.log(`Resolved: ${shortLink} -> ${resolved}`)
           return resolved
         }
@@ -193,20 +232,33 @@ serve(async (req) => {
       }
     }
 
-    // Combine all found AliExpress links
-    const allAliExpressLinks = [...new Set([...directAliExpressLinks, ...resolvedLinks])]
+    // Combine all found product links
+    const allProductLinks = [...new Set([...directProductLinks, ...resolvedLinks])]
     
-    // Extract product IDs
-    const results = allAliExpressLinks.map(link => ({
+    // Extract product IDs using appropriate extractor
+    const extractFn = isLazada ? extractLazadaProductId : extractAliExpressProductId
+    
+    // For Lazada short links that resolved but don't have extractable IDs, keep the URL itself
+    const results = allProductLinks.map(link => ({
       originalUrl: link,
-      productId: extractProductId(link),
+      productId: extractFn(link),
     })).filter(r => r.productId !== null)
 
-    console.log(`Found ${results.length} valid AliExpress product links`)
+    // For Lazada, also include short links that we couldn't extract IDs from
+    // (they are valid affiliate links that can be used directly)
+    if (isLazada) {
+      const shortLinksWithoutId = allProductLinks.filter(link => !extractFn(link))
+      for (const link of shortLinksWithoutId) {
+        results.push({ originalUrl: link, productId: null })
+      }
+    }
+
+    console.log(`Found ${results.length} valid ${platformName} product links`)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
+        platform: scanPlatform,
         totalLinksFound: allLinks.size,
         shortLinksFollowed: shortLinksToFollow.length,
         validProductLinks: results.length,
