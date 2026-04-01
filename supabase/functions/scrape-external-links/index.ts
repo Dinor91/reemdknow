@@ -6,7 +6,7 @@ const corsHeaders = {
 }
 
 // Extract AliExpress product IDs from various URL formats
-function extractProductId(url: string): string | null {
+function extractAliExpressProductId(url: string): string | null {
   const pattern1 = /\/item\/(\d+)\.html/i;
   const pattern2 = /\/i\/(\d+)\.html/i;
   const pattern3 = /productId[=:](\d+)/i;
@@ -18,6 +18,21 @@ function extractProductId(url: string): string | null {
               url.match(pattern3) || 
               url.match(pattern4) ||
               url.match(pattern5);
+  
+  return match ? match[1] : null;
+}
+
+// Extract Lazada product IDs from various URL formats
+function extractLazadaProductId(url: string): string | null {
+  const pattern1 = /-i(\d+)-s/i;
+  const pattern2 = /-i(\d+)\.html/i;
+  const pattern3 = /itemId[=:](\d+)/i;
+  const pattern4 = /-i(\d+)(?:\?|$|\.)/i;
+  
+  let match = url.match(pattern1) || 
+              url.match(pattern2) || 
+              url.match(pattern3) ||
+              url.match(pattern4);
   
   return match ? match[1] : null;
 }
