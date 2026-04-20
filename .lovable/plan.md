@@ -1,53 +1,49 @@
 
-# עקרונות קוד — חובה בכל כתיבה
+The user wants to manually trigger the `daily-recommendations` edge function and see the full log output, including which fallback step (1/2/3) was activated for each slot for both Israel and Thailand.
 
-| עיקרון | כלל |
-|---|---|
-| **DRY** | לוגיקה כפולה → `_shared/`. אין copy-paste בין קבצים |
-| **Single Responsibility** | פונקציה = פעולה אחת. שליפה ≠ שליחה ≠ תרגום |
-| **Single Source of Truth** | קטגוריות ב-`_shared/categories.ts`, שערים ב-`_shared/constants.ts`, prompts ב-`_shared/translate.ts` |
-| **Separation of Concerns** | business logic / DB / UI / Telegram API — נפרדים |
-| **ורסטיליות** | `fetchProducts({ table, filters })` במקום פונקציה לכל מקרה |
-| **פנים קדימה** | חלק משתנה = פרמטר, לא hardcoded |
+This is a runtime/operational task that requires:
+1. Invoking the edge function via curl
+2. Reading the edge function logs
+3. Parsing and presenting which step (1=fresh+keywords, 2=no freshness, 3=fallback no keywords) was activated for each of the 5 slots × 2 platforms
 
----
+Both tools (`supabase--curl_edge_functions` and `supabase--edge_function_logs`) are unavailable in plan mode — they are deferred tools that require default mode execution.
 
-# שלב 9 — רוטציה חכמה + המלצות יומיות ✅
+The plan is simple and focused.
 
-## מה הושלם
-1. **DB**: הוספת `last_shown` (timestamptz) ל-`feed_products` ול-`aliexpress_feed_products`
-2. **Edge Function**: `daily-recommendations/index.ts` — בוחר 3-5 מוצרים לכל פלטפורמה עם רוטציה חכמה
-3. **Cron Job**: `daily-recommendations` רץ כל יום ב-01:00 UTC (08:00 שעון תאילנד)
+## Plan
 
-## לוגיקה
-- סינון: `out_of_stock = false`, `rating >= 4`, `tracking_link IS NOT NULL`
-- מניעת כפילויות: לא נשלח כדיל ב-30 יום אחרונים
-- רוטציה: `last_shown IS NULL` → `last_shown > 7 days` → עמלה + מכירות
-- פיזור קטגוריות: מקסימום 2 מכל קטגוריה
-- שליחה: Product Card עם תמונה + כפתור "✍️ צור דיל" (`deal_gen:ID`)
+### Step 1: Invoke the function manually
+Call `daily-recommendations` via `supabase--curl_edge_functions` (POST `/daily-recommendations`).
 
----
+### Step 2: Pull the logs
+Fetch logs with `supabase--edge_function_logs` for `daily-recommendations`, filtering by the slot emoji marker `🎰` to capture every selection decision.
 
-# חוב טכני — ממתין לריפקטורינג
+### Step 3: Parse and present per-slot results
+Build a clean summary table per platform:
 
-## 🔴 קריטי
-- ~~איחוד `detectCategory` ל-`_shared/categories.ts`~~ ✅ (B1)
-- ~~תיקון `isProductRelevantForCategory` — סינון יתר~~ ✅ (originalName + fallback כללי)
-- ~~קיצור שמות מוצרים ארוכים (`shortenProductName`)~~ ✅
-- ~~fallback < 3 מוצרים אחרי סינון~~ ✅
-- הוצאת Telegram helpers ל-`_shared/telegram.ts`
-- פירוק `telegram-bot-handler` (2,100+ שורות) ל-modules
+```text
+ישראל 🇮🇱
+| סלוט              | שלב | מוצר נבחר          |
+| ילדים ומשחקים     | 1/2/3 | ...               |
+| גאדג׳ט טכנולוגי   | 1/2/3 | ...               |
+| כלי עבודה         | 1/2/3 | ...               |
+| פתרון לבית        | 1/2/3 | ...               |
+| מוצר לחוץ לבית     | 1/2/3 | ...               |
 
-## 🟠 גבוה
-- איחוד AI translate prompt ל-`_shared/translate.ts` (3 עותקים)
-- איחוד API signatures ל-`_shared/api-signatures.ts` (4 עותקים)
-- ~~עדכון `get_public_feed_products` DB function (חסר `product_name_hebrew`)~~ ✅ (B3)
-- ~~הוספת `last_shown` ל-`handleDealCategory` + מיגרציה ל-`israel_editor_products`~~ ✅ (B2)
+תאילנד 🇹🇭
+(אותו מבנה)
+```
 
-## 🟡 בינוני
-- `_shared/constants.ts` — exchange rates + excluded categories
-- איחוד product lookup (`findProductById`)
+Plus totals returned from the function response: `israel: N, thailand: N`.
 
-## 🟢 נמוך
-- corsHeaders ל-`_shared/cors.ts`
-- פיצול `DailyDeals.tsx` ל-components
+### Step 4: Highlight problems
+- סלוטים שהגיעו לשלב 3 (fallback ללא מילות מפתח) → סימן שצריך להרחיב את ה-feed או לרכך מילות מפתח
+- סלוטים שלא החזירו מוצר כלל → דורש בדיקת קטגוריה/`commission_rate >= 0.15`
+- שים לב במיוחד ל"מוצר לחוץ לבית" שמתבסס רק על excludeKeywords (אין includeKeywords), ולכן צפוי לעבור שלב 1 בקלות
+
+### Notes
+- אין שינויי קוד ואין כתיבה ל-DB מעבר למה שהפונקציה עושה ממילא (`last_shown` מתעדכן ל-now)
+- ההפעלה תשלח הודעות טלגרם בפועל ל-`ADMIN_CHAT_ID`. אם לא רוצים את זה — צריך להגיד מראש ואני אבדוק אם אפשר להוסיף flag `dryRun=true` במקום זה (שינוי קוד נפרד)
+
+### Approve to run
+לחץ אישור ואני מריץ את הפונקציה ומחזיר את הסיכום המלא.
