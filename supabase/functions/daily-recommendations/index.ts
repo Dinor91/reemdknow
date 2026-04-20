@@ -28,7 +28,7 @@ const DAILY_SLOTS: DailySlot[] = [
   {
     name: "גאדג׳ט טכנולוגי",
     category: "גאדג׳טים ובית חכם",
-    includeKeywords: ["gan charger", "usb c cable", "fast charging", "wireless headphones", "tws earbuds", "gaming mouse", "mechanical keyboard", "gimbal", "stabilizer", "smart switch", "zigbee switch", "tuya smart", "matter hub", "smart plug", "security camera", "ip camera", "drone", "quadcopter", "fpv", "led strip", "rgb light", "video projector", "usb hub", "docking station", "power bank", "phone stand", "tablet holder", "monitor arm"],
+    includeKeywords: ["gan charger", "usb c cable", "fast charging", "wireless headphones", "tws earbuds", "gaming mouse", "mechanical keyboard", "gimbal", "stabilizer", "smart switch", "zigbee switch", "tuya smart", "matter hub", "smart plug", "security camera", "ip camera", "drone", "quadcopter", "fpv", "led strip", "rgb light", "video projector", "usb hub", "docking station", "power bank", "phone stand", "tablet holder", "monitor arm", "hair dryer", "tablet", "smartwatch", "smart watch", "water flosser", "cordless phone", "money counter", "portable fan", "electric fan", "stand fan", "hair straightener", "hair curler", "electric shaver", "electric toothbrush", "air conditioner", "dehumidifier", "humidifier", "dash cam", "action camera"],
     excludeKeywords: ["crystal", "gemstone", "necklace", "ring", "jewelry", "pendant", "supplement", "vitamins", "lipstick", "skincare", "makeup", "face cream", "essential oil", "earrings"],
   },
   {
@@ -47,7 +47,7 @@ const DAILY_SLOTS: DailySlot[] = [
     name: "מוצר לחוץ לבית",
     category: "בריאות וספורט",
     includeKeywords: [],
-    excludeKeywords: ["collagen", "vitamin", "protein powder", "sunscreen", "lotion", "cream", "serum", "body wash", "shampoo", "medicine", "face mask", "bandage", "patient bed", "oxygen concentrator", "cpap", "hospital", "medical", "supplement", "inhaler"],
+    excludeKeywords: ["supplement", "vitamin", "collagen", "protein powder", "capsule", "tablet pill", "weight loss", "fat burner", "testosterone", "herb extract", "traditional medicine", "remedy", "detox", "probiotic", "omega", "zinc", "magnesium pill", "serum", "whitening", "anti aging", "skin care", "face cream", "body lotion", "shampoo", "conditioner", "hair mask", "nail", "perfume", "cpap", "oxygen", "patient bed", "wheelchair", "nebulizer", "medical device", "hospital"],
   },
 ];
 
