@@ -111,26 +111,43 @@ function matchesKeywords(productName: string, includeKeywords: string[], exclude
 
 // ─── SLOT-BASED SELECTION ──────────────────────────────────────
 
+interface QualityFilter {
+  salesColumn: string;
+  minSales: number;
+  priceColumn: string;
+  maxPrice: number;
+}
+
 async function selectProductForSlot(
   db: any,
   table: string,
   slot: DailySlot,
   salesColumn: string,
   recentDealIds: Set<string>,
+  qualityFilter?: QualityFilter,
 ): Promise<{ product: any; step: number } | null> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Base query builder
-  const baseQuery = () =>
-    db
+  // Base query builder (with optional quality filters for steps 1 & 2)
+  const baseQuery = (applyQuality: boolean) => {
+    let q = db
       .from(table)
       .select("*")
       .eq("category_name_hebrew", slot.category)
       .eq("out_of_stock", false)
       .not("tracking_link", "is", null)
-      .gte("commission_rate", 0.15)
+      .gte("commission_rate", 0.15);
+
+    if (applyQuality && qualityFilter) {
+      q = q
+        .gte(qualityFilter.salesColumn, qualityFilter.minSales)
+        .lte(qualityFilter.priceColumn, qualityFilter.maxPrice);
+    }
+
+    return q
       .order("last_shown", { ascending: true, nullsFirst: true })
       .limit(200);
+  };
 
   // ── Step 1: fresh + keywords ──
   const { data: step1Data } = await baseQuery();
