@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const TELEGRAM_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 const ADMIN_CHAT_ID = parseInt(Deno.env.get("TELEGRAM_USER_ID") || "0");
@@ -312,7 +311,7 @@ async function sendRecommendations(
 
 // ─── SERVE ─────────────────────────────────────────────────────
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   try {
     console.log("🌅 Daily recommendations starting (slot-based)...");
     const db = createServiceClient();
