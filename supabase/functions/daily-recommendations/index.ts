@@ -93,7 +93,7 @@ function scoreProduct(rating: number | null, sales: number | null, commissionRat
   const r = rating ?? 0;
   const s = sales ?? 0;
   const c = commissionRate ?? 0;
-  return (r * 0.4) + (Math.log(s + 1) * 0.35) + (c * 0.25);
+  return (r * 0.4) + (Math.log((s ?? 0) + 1) * 0.35) + (c * 0.25);
 }
 
 // ─── KEYWORD FILTERING ────────────────────────────────────────
@@ -111,29 +111,46 @@ function matchesKeywords(productName: string, includeKeywords: string[], exclude
 
 // ─── SLOT-BASED SELECTION ──────────────────────────────────────
 
+interface QualityFilter {
+  salesColumn: string;
+  minSales: number;
+  priceColumn: string;
+  maxPrice: number;
+}
+
 async function selectProductForSlot(
   db: any,
   table: string,
   slot: DailySlot,
   salesColumn: string,
   recentDealIds: Set<string>,
+  qualityFilter?: QualityFilter,
 ): Promise<{ product: any; step: number } | null> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Base query builder
-  const baseQuery = () =>
-    db
+  // Base query builder (with optional quality filters for steps 1 & 2)
+  const baseQuery = (applyQuality: boolean) => {
+    let q = db
       .from(table)
       .select("*")
       .eq("category_name_hebrew", slot.category)
       .eq("out_of_stock", false)
       .not("tracking_link", "is", null)
-      .gte("commission_rate", 0.15)
+      .gte("commission_rate", 0.15);
+
+    if (applyQuality && qualityFilter) {
+      q = q
+        .gte(qualityFilter.salesColumn, qualityFilter.minSales)
+        .lte(qualityFilter.priceColumn, qualityFilter.maxPrice);
+    }
+
+    return q
       .order("last_shown", { ascending: true, nullsFirst: true })
       .limit(200);
+  };
 
-  // ── Step 1: fresh + keywords ──
-  const { data: step1Data } = await baseQuery();
+  // ── Step 1: fresh + keywords + quality filters ──
+  const { data: step1Data } = await baseQuery(true);
   if (step1Data) {
     const candidates = (step1Data as any[]).filter((p) => {
       if (recentDealIds.has(p.id)) return false;
@@ -148,8 +165,8 @@ async function selectProductForSlot(
     }
   }
 
-  // ── Step 2: no freshness filter + keywords ──
-  const { data: step2Data } = await baseQuery();
+  // ── Step 2: no freshness filter + keywords + quality filters ──
+  const { data: step2Data } = await baseQuery(true);
   if (step2Data) {
     const candidates = (step2Data as any[]).filter((p) => {
       if (recentDealIds.has(p.id)) return false;
@@ -163,8 +180,8 @@ async function selectProductForSlot(
     }
   }
 
-  // ── Step 3: fallback — no keyword filter ──
-  const { data: step3Data } = await baseQuery();
+  // ── Step 3: fallback — no keyword filter, no quality filter ──
+  const { data: step3Data } = await baseQuery(false);
   if (step3Data && step3Data.length > 0) {
     const candidates = (step3Data as any[]).filter((p) => !recentDealIds.has(p.id));
     const pool = candidates.length > 0 ? candidates : step3Data as any[];
@@ -193,7 +210,12 @@ async function getIsraelRecommendations(db: any): Promise<RecommendedProduct[]> 
   const results: RecommendedProduct[] = [];
 
   for (const slot of DAILY_SLOTS) {
-    const result = await selectProductForSlot(db, "aliexpress_feed_products", slot, "sales_30d", recentDealIds);
+    const result = await selectProductForSlot(db, "aliexpress_feed_products", slot, "sales_30d", recentDealIds, {
+      salesColumn: "sales_30d",
+      minSales: 30,
+      priceColumn: "price_usd",
+      maxPrice: 40,
+    });
     if (result) {
       const p = result.product;
       // Update last_shown
@@ -220,7 +242,12 @@ async function getThailandRecommendations(db: any): Promise<RecommendedProduct[]
   const results: RecommendedProduct[] = [];
 
   for (const slot of DAILY_SLOTS) {
-    const result = await selectProductForSlot(db, "feed_products", slot, "sales_7d", recentDealIds);
+    const result = await selectProductForSlot(db, "feed_products", slot, "sales_7d", recentDealIds, {
+      salesColumn: "sales_7d",
+      minSales: 3,
+      priceColumn: "price_thb",
+      maxPrice: 2500,
+    });
     if (result) {
       const p = result.product;
       // Update last_shown
