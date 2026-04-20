@@ -149,8 +149,8 @@ async function selectProductForSlot(
       .limit(200);
   };
 
-  // ── Step 1: fresh + keywords ──
-  const { data: step1Data } = await baseQuery();
+  // ── Step 1: fresh + keywords + quality filters ──
+  const { data: step1Data } = await baseQuery(true);
   if (step1Data) {
     const candidates = (step1Data as any[]).filter((p) => {
       if (recentDealIds.has(p.id)) return false;
@@ -165,8 +165,8 @@ async function selectProductForSlot(
     }
   }
 
-  // ── Step 2: no freshness filter + keywords ──
-  const { data: step2Data } = await baseQuery();
+  // ── Step 2: no freshness filter + keywords + quality filters ──
+  const { data: step2Data } = await baseQuery(true);
   if (step2Data) {
     const candidates = (step2Data as any[]).filter((p) => {
       if (recentDealIds.has(p.id)) return false;
@@ -180,8 +180,8 @@ async function selectProductForSlot(
     }
   }
 
-  // ── Step 3: fallback — no keyword filter ──
-  const { data: step3Data } = await baseQuery();
+  // ── Step 3: fallback — no keyword filter, no quality filter ──
+  const { data: step3Data } = await baseQuery(false);
   if (step3Data && step3Data.length > 0) {
     const candidates = (step3Data as any[]).filter((p) => !recentDealIds.has(p.id));
     const pool = candidates.length > 0 ? candidates : step3Data as any[];
