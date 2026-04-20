@@ -311,7 +311,7 @@ async function sendRecommendations(
 
 // ─── SERVE ─────────────────────────────────────────────────────
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   try {
     console.log("🌅 Daily recommendations starting (slot-based)...");
     const db = createServiceClient();
