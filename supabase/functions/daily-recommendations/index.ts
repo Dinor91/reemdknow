@@ -93,7 +93,7 @@ function scoreProduct(rating: number | null, sales: number | null, commissionRat
   const r = rating ?? 0;
   const s = sales ?? 0;
   const c = commissionRate ?? 0;
-  return (r * 0.4) + (Math.log(s + 1) * 0.35) + (c * 0.25);
+  return (r * 0.4) + (Math.log((s ?? 0) + 1) * 0.35) + (c * 0.25);
 }
 
 // ─── KEYWORD FILTERING ────────────────────────────────────────
