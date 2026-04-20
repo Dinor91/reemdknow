@@ -349,12 +349,25 @@ EXAMPLES:
     const productIds = validProducts.map((p: any) => String(p.productId))
     const trackingLinks = await getTrackingLinks(productIds)
 
+    // Build reverse map: categoryL1 → Hebrew category name (priority over regex)
+    const categoryIdToHebrew = new Map<number, string>()
+    for (const [hebrewName, ids] of Object.entries(LAZADA_CATEGORY_MAP)) {
+      for (const id of ids) categoryIdToHebrew.set(id, hebrewName)
+    }
+
     // ── Step 5: Upsert ──
     let upserted = 0
     for (const product of validProducts) {
       const productId = String(product.productId)
 
-      const hebrewCategory = detectHebrewCategory(product.productName);
+      // Priority 1: use category_l1 if mapped
+      let hebrewCategory: string | null = null
+      if (product.categoryL1 != null && categoryIdToHebrew.has(product.categoryL1)) {
+        hebrewCategory = categoryIdToHebrew.get(product.categoryL1)!
+      } else {
+        // Priority 2: fallback to name-based regex detection
+        hebrewCategory = detectHebrewCategory(product.productName)
+      }
       if (!hebrewCategory) {
         console.log(`Skipping unrecognized product: ${product.productName}`);
         continue;
