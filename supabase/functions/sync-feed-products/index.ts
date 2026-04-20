@@ -18,6 +18,44 @@ const LAZADA_API_URL = 'https://api.lazada.co.th/rest'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
+// ── Strict category detection (skip unrecognized products) ──────
+function detectHebrewCategory(productName: string): string | null {
+  const name = productName.toLowerCase();
+
+  // מוצרים שצריך לדלג עליהם לחלוטין
+  const hardExclusions = [
+    'cpap', 'oxygen concentrat', 'patient bed', 'hospital bed', 'medical device',
+    'wheelchair', 'nebulizer', 'dialysis', 'stethoscope',
+    'soldering station', 'reflow', 'motherboard', 'pcb board', 'desoldering',
+    'collagen supplement', 'weight loss pill', 'fat burner', 'testosterone',
+    'protein powder', 'pre-workout', 'amino acid supplement',
+    'lingerie', 'bikini top', 'underwear set', 'bra set',
+    'replacement blade for', 'spare part for', 'compatible with model',
+  ];
+  if (hardExclusions.some(ex => name.includes(ex))) return null;
+
+  // זיהוי קטגוריה
+  if (/\b(toy|lego|puzzle|plush|doll|rc car|action figure|board game|educational|montessori|stem kit|building block|magnetic tile|robot kit|drum set|go-kart|swing set|slide|dollhouse|bubble machine)\b/.test(name))
+    return 'ילדים ומשחקים';
+
+  if (/\b(charger|charging cable|usb-c|usb c|power bank|wireless earbuds|tws|bluetooth speaker|smart plug|smart switch|zigbee|tuya|led strip|rgb|drone|gimbal|stabilizer|webcam|mechanical keyboard|gaming mouse|usb hub|docking station|phone stand|monitor arm|projector|security camera|ip camera)\b/.test(name))
+    return 'גאדג׳טים ובית חכם';
+
+  if (/\b(screwdriver|drill bit|wrench|plier|socket set|measuring tape|laser level|angle grinder|jigsaw|circular saw|hand saw|toolbox|soldering iron|multimeter|clamp|hex key|rotary hammer|impact driver|step drill|nail|screw|bolt|nut|hardware kit|air pump|grinding wheel|cordless drill|power tool)\b/.test(name))
+    return 'כלי עבודה וציוד';
+
+  if (/\b(organizer|storage box|shelf|drawer|magnetic hook|adhesive hook|silicone mat|cable clip|spice rack|cup holder|dish rack|vacuum sealer|cleaning brush|broom|mop|lazy susan|sink rack|shoe rack|air fryer|rice cooker|blender|kettle|toaster|microwave|coffee maker|robot vacuum|vacuum cleaner|ceiling fan|mattress|air purifier)\b/.test(name))
+    return 'בית ומטבח';
+
+  if (/\b(thermal bottle|vacuum flask|lunch box|bento|cooler bag|backpack|hiking|camping|sleeping bag|tent|picnic|folding chair|cycling glove|bike light|sports belt|waist pack|fitness tracker|yoga mat|resistance band|swim goggle|microfiber towel|sport watch|snorkel|running shoe|gym bag)\b/.test(name))
+    return 'בריאות וספורט';
+
+  if (/\b(car mount|car charger|dash cam|seat cover|steering wheel|car organizer|windshield|wiper|tyre|tire inflator|jump starter|car vacuum|parking sensor)\b/.test(name))
+    return 'רכב ותחבורה';
+
+  return null;
+}
+
 // ── Lazada API helpers (unchanged) ──────────────────────────────
 
 async function generateSignatureAsync(apiPath: string, params: Record<string, string>): Promise<string> {
