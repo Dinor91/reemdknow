@@ -355,6 +355,12 @@ EXAMPLES:
     for (const product of validProducts) {
       const productId = String(product.productId)
 
+      const hebrewCategory = detectHebrewCategory(product.productName);
+      if (!hebrewCategory) {
+        console.log(`Skipping unrecognized product: ${product.productName}`);
+        continue;
+      }
+
       let discountPercentage = null
       if (product.originalPrice && product.discountPrice) {
         const original = parseFloat(String(product.originalPrice))
@@ -379,7 +385,7 @@ EXAMPLES:
           sales_7d: product.sales7d || 0,
           commission_rate: product.totalCommissionRate,
           category_l1: product.categoryL1,
-          category_name_hebrew: product._categoryNameHebrew || null,
+          category_name_hebrew: hebrewCategory,
           brand_name: product.brandName,
           tracking_link: trackingLinks.get(productId) || `https://www.lazada.co.th/products/-i${productId}.html`,
           product_name_hebrew: hebrewNames.get(productId) || null,
