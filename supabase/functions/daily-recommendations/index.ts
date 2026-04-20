@@ -243,7 +243,7 @@ async function getThailandRecommendations(db: any): Promise<RecommendedProduct[]
   for (const slot of DAILY_SLOTS) {
     const result = await selectProductForSlot(db, "feed_products", slot, "sales_7d", recentDealIds, {
       salesColumn: "sales_7d",
-      minSales: 3,
+      minSales: 1,
       priceColumn: "price_thb",
       maxPrice: 2500,
     });
