@@ -210,7 +210,12 @@ async function getIsraelRecommendations(db: any): Promise<RecommendedProduct[]> 
   const results: RecommendedProduct[] = [];
 
   for (const slot of DAILY_SLOTS) {
-    const result = await selectProductForSlot(db, "aliexpress_feed_products", slot, "sales_30d", recentDealIds);
+    const result = await selectProductForSlot(db, "aliexpress_feed_products", slot, "sales_30d", recentDealIds, {
+      salesColumn: "sales_30d",
+      minSales: 30,
+      priceColumn: "price_usd",
+      maxPrice: 40,
+    });
     if (result) {
       const p = result.product;
       // Update last_shown
