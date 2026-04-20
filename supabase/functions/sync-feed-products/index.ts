@@ -195,7 +195,7 @@ async function getSnapshot(supabase: any): Promise<{ total: number, byCategory: 
 
 // ── Main handler ────────────────────────────────────────────────
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
