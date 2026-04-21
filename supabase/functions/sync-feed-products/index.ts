@@ -528,6 +528,7 @@ EXAMPLES:
         perCategoryFetched,
         totalFetched: allProducts.length,
         validProducts: validProducts.length,
+        globalExcluded,
         upserted,
         markedOutOfStock,
         translated: translatedCount,
