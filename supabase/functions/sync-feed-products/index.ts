@@ -356,9 +356,36 @@ EXAMPLES:
     }
 
     // ── Step 5: Upsert ──
+    const GLOBAL_EXCLUDE = [
+      // ביגוד והנעלה
+      'sneaker', 'running shoe', 't-shirt', 'shorts', 'jacket', 'hoodie',
+      'leggings', 'pants', 'jeans', 'dress', 'blouse', 'sweater', 'cardigan',
+      'underwear', 'socks', 'bra', 'swimsuit', 'swimwear', 'bikini',
+      'new balance', 'adidas', 'nike', 'converse', 'crocs', 'north face',
+      // קוסמטיקה ושיער
+      'shampoo', 'conditioner', 'hair mask', 'hair serum', 'tsubaki',
+      'perfume', 'cologne', 'foundation', 'lipstick', 'mascara', 'eyeshadow',
+      // אוכל ותינוקות
+      'formula milk', 'baby formula', 'infant formula', 'meiji',
+      'coffee bean', 'instant coffee', 'green tea', 'protein shake',
+      // ציוד תפירה וסריגה
+      'knitting needle', 'crochet hook', 'sewing thread', 'embroidery',
+      // ציוד 3D printing
+      'z-axis', 'heat insert', 'filament', '3d printer part',
+    ]
+
     let upserted = 0
+    let globalExcluded = 0
     for (const product of validProducts) {
       const productId = String(product.productId)
+
+      // Global exclude check (before category detection)
+      const productNameLower = (product.productName || '').toLowerCase()
+      if (GLOBAL_EXCLUDE.some(word => productNameLower.includes(word))) {
+        console.log(`Global exclude: ${product.productName}`)
+        globalExcluded++
+        continue
+      }
 
       // Priority 1: use category_l1 if mapped
       let hebrewCategory: string | null = null
