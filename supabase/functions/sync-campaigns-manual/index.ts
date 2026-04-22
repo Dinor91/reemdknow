@@ -94,10 +94,12 @@ const ALIEXPRESS_CATEGORY_IDS = [
   "26",         // Home Decor
   "18",         // Sports & Outdoors
   "200003655",  // Tools
-  "15",         // Automobiles
+  "15",         // Shoes
   "2",          // Auto Parts
   "200000783",  // Toys
   "200003498",  // Baby & Kids
+  "6",          // Jewelry
+  "66",         // Bags
 ]
 
 const CATEGORY_ID_TO_HEBREW: Record<string, string | null> = {
@@ -108,14 +110,14 @@ const CATEGORY_ID_TO_HEBREW: Record<string, string | null> = {
   '26':         'בית ומטבח',
   '18':         'בריאות וספורט',
   '200003655':  'כלי עבודה וציוד',
-  '15':         'רכב ותחבורה',
+  '15':         'אופנה וסטייל',
   '2':          'רכב ותחבורה',
   '200000783':  'ילדים ומשחקים',
   '200003498':  'ילדים ומשחקים',
+  '6':          'אופנה וסטייל',
+  '66':         'אופנה וסטייל',
   '21':         null,
   '322':        null,
-  '6':          null,
-  '66':         null,
 }
 
 serve(async (req) => {
