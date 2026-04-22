@@ -4,10 +4,11 @@ import { useTheme } from "@/hooks/useTheme";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter, Link2, Search, Moon, Sun } from "lucide-react";
+import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter, Link2, Search, Moon, Sun, FileSpreadsheet } from "lucide-react";
 import { LinkConverter } from "@/components/admin/LinkConverter";
 import { ExternalLinkDealTab } from "@/components/admin/ExternalLinkDealTab";
 import { ProductSearchTab } from "@/components/admin/ProductSearchTab";
+import { CsvImportTab } from "@/components/admin/CsvImportTab";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import dknowLogo from "@/assets/dknow-logo.png";
@@ -2637,12 +2638,12 @@ const Admin = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="stats" className="w-full" dir="rtl">
+        <Tabs defaultValue="products" className="w-full" dir="rtl">
           <TabsList className="flex w-full overflow-x-auto mb-6 gap-1 h-auto flex-wrap md:flex-nowrap">
-            <TabsTrigger value="stats" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">סטטיסטיקות</span>
-              <span className="sm:hidden">סטטס</span>
+            <TabsTrigger value="csv-import" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <FileSpreadsheet className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">ייבוא CSV</span>
+              <span className="sm:hidden">CSV</span>
             </TabsTrigger>
             <TabsTrigger value="products" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
               <Package className="h-3 w-3 md:h-4 md:w-4" />
@@ -2674,8 +2675,8 @@ const Admin = () => {
               <span className="sm:hidden">דיל🔗</span>
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="stats">
-            <StatsTab />
+          <TabsContent value="csv-import">
+            <CsvImportTab />
           </TabsContent>
           <TabsContent value="products">
             <ProductsTab />
