@@ -118,6 +118,7 @@ const CATEGORY_ID_TO_HEBREW: Record<string, string | null> = {
   '66':         'אופנה וסטייל',
   '21':         null,
   '322':        null,
+  '200000343':  null,
 }
 
 serve(async (req) => {
@@ -223,12 +224,17 @@ serve(async (req) => {
 
     const buildProductPayload = async (product: any) => {
       const productId = String(product.product_id)
-      const catId = product.first_level_category_id ? String(product.first_level_category_id) : null
-
-      // Skip products whose category_id is explicitly mapped to null (excluded categories)
-      if (catId && catId in CATEGORY_ID_TO_HEBREW && CATEGORY_ID_TO_HEBREW[catId] === null) {
+      const categoryId = product.first_level_category_id
+        ? String(product.first_level_category_id)
+        : null
+      const hebrewCategory = categoryId !== null
+        ? CATEGORY_ID_TO_HEBREW[categoryId]
+        : undefined
+      if (hebrewCategory === null || hebrewCategory === undefined) {
+        console.log(`Skipping category ${categoryId}: ${product.product_title}`)
         return null
       }
+      const catId = categoryId
 
       let discountPercentage: number | null = null
       if (product.target_original_price && product.target_sale_price) {
