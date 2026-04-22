@@ -87,39 +87,35 @@ function filterQuality(raw: any[]): any[] {
 
 // AliExpress top-level category IDs for per-category fetching
 const ALIEXPRESS_CATEGORY_IDS = [
-  "44",          // Electronics
-  "18",          // Sports & Outdoors
-  "21",          // Toys & Games
-  "502",         // Phones & Telecom
-  "2",           // Automobiles & Motorcycles
-  "1503",        // Home Improvement
-  "6",           // Jewelry & Accessories
-  "15",          // Shoes
-  "200003655",   // Tools
-  "26",          // Home & Garden
-  "200003498",   // Health & Beauty
-  "66",          // Bags & Luggage
-  "7",           // Computer & Office
-  "100003109",   // Lighting
-  "322",         // Security & Protection
+  "502",        // Consumer Electronics
+  "44",         // Phones & Telecom
+  "7",          // Home Appliances
+  "1503",       // Home & Garden
+  "26",         // Home Decor
+  "18",         // Sports & Outdoors
+  "200003655",  // Tools
+  "15",         // Automobiles
+  "2",          // Auto Parts
+  "200000783",  // Toys
+  "200003498",  // Baby & Kids
 ]
 
-const CATEGORY_ID_TO_HEBREW: Record<string, string> = {
-  '21':        'ילדים ומשחקים',
-  '44':        'גאדג׳טים ובית חכם',
-  '502':       'גאדג׳טים ובית חכם',
-  '7':         'גאדג׳טים ובית חכם',
-  '26':        'בית ומטבח',
-  '1503':      'בית ומטבח',
-  '6':         'אופנה וסטייל',
-  '15':        'אופנה וסטייל',
-  '66':        'אופנה וסטייל',
-  '18':        'בריאות וספורט',
-  '200003498': 'בריאות וספורט',
-  '2':         'רכב ותחבורה',
-  '200003655': 'כלי עבודה וציוד',
-  '100003109': 'בית ומטבח',
-  '322':       'כלי עבודה וציוד',
+const CATEGORY_ID_TO_HEBREW: Record<string, string | null> = {
+  '502':        'גאדג׳טים ובית חכם',
+  '44':         'גאדג׳טים ובית חכם',
+  '7':          'גאדג׳טים ובית חכם',
+  '1503':       'בית ומטבח',
+  '26':         'בית ומטבח',
+  '18':         'בריאות וספורט',
+  '200003655':  'כלי עבודה וציוד',
+  '15':         'רכב ותחבורה',
+  '2':          'רכב ותחבורה',
+  '200000783':  'ילדים ומשחקים',
+  '200003498':  'ילדים ומשחקים',
+  '21':         null,
+  '322':        null,
+  '6':          null,
+  '66':         null,
 }
 
 serve(async (req) => {
@@ -225,6 +221,12 @@ serve(async (req) => {
 
     const buildProductPayload = async (product: any) => {
       const productId = String(product.product_id)
+      const catId = product.first_level_category_id ? String(product.first_level_category_id) : null
+
+      // Skip products whose category_id is explicitly mapped to null (excluded categories)
+      if (catId && catId in CATEGORY_ID_TO_HEBREW && CATEGORY_ID_TO_HEBREW[catId] === null) {
+        return null
+      }
 
       let discountPercentage: number | null = null
       if (product.target_original_price && product.target_sale_price) {
@@ -244,6 +246,8 @@ serve(async (req) => {
       const totalRate = (baseRate + hotRate) / 100
       const commissionRate = totalRate > 0 ? totalRate : null
 
+      const hebrewFromMap = catId ? CATEGORY_ID_TO_HEBREW[catId] : undefined
+
       return {
         aliexpress_product_id: productId,
         product_name: product.product_title || 'Unknown Product',
@@ -255,8 +259,8 @@ serve(async (req) => {
         sales_30d: product.lastest_volume || 0,
         rating: product.evaluate_rate ? parseFloat(String(product.evaluate_rate).replace('%', '')) / 20 : null,
         reviews_count: product.product_reviews || 0,
-        category_id: product.first_level_category_id ? String(product.first_level_category_id) : null,
-        category_name_hebrew: product._category_hebrew || 'כללי',
+        category_id: catId,
+        category_name_hebrew: hebrewFromMap || product._category_hebrew || 'כללי',
         tracking_link: trackingLink,
         out_of_stock: false,
         is_campaign_product: true,
@@ -270,7 +274,9 @@ serve(async (req) => {
     for (let i = 0; i < uniqueProducts.length; i += LINK_BATCH_SIZE) {
       const batch = uniqueProducts.slice(i, i + LINK_BATCH_SIZE)
       const resolvedBatch = await Promise.all(batch.map(buildProductPayload))
-      productPayloads.push(...resolvedBatch)
+      for (const p of resolvedBatch) {
+        if (p !== null) productPayloads.push(p)
+      }
     }
 
     totalKids = productPayloads.filter(product => product.category_name_hebrew === 'ילדים ומשחקים').length
