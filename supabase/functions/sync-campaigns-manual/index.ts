@@ -118,6 +118,7 @@ const CATEGORY_ID_TO_HEBREW: Record<string, string | null> = {
   '66':         'אופנה וסטייל',
   '21':         null,
   '322':        null,
+  '200000343':  null,
 }
 
 serve(async (req) => {
@@ -223,12 +224,17 @@ serve(async (req) => {
 
     const buildProductPayload = async (product: any) => {
       const productId = String(product.product_id)
-      const catId = product.first_level_category_id ? String(product.first_level_category_id) : null
-
-      // Skip products whose category_id is explicitly mapped to null (excluded categories)
-      if (catId && catId in CATEGORY_ID_TO_HEBREW && CATEGORY_ID_TO_HEBREW[catId] === null) {
+      const categoryId = product.first_level_category_id
+        ? String(product.first_level_category_id)
+        : null
+      const hebrewCategory = categoryId !== null
+        ? CATEGORY_ID_TO_HEBREW[categoryId]
+        : undefined
+      if (hebrewCategory === null || hebrewCategory === undefined) {
+        console.log(`Skipping category ${categoryId}: ${product.product_title}`)
         return null
       }
+      const catId = categoryId
 
       let discountPercentage: number | null = null
       if (product.target_original_price && product.target_sale_price) {
@@ -248,8 +254,6 @@ serve(async (req) => {
       const totalRate = (baseRate + hotRate) / 100
       const commissionRate = totalRate > 0 ? totalRate : null
 
-      const hebrewFromMap = catId ? CATEGORY_ID_TO_HEBREW[catId] : undefined
-
       return {
         aliexpress_product_id: productId,
         product_name: product.product_title || 'Unknown Product',
@@ -262,7 +266,7 @@ serve(async (req) => {
         rating: product.evaluate_rate ? parseFloat(String(product.evaluate_rate).replace('%', '')) / 20 : null,
         reviews_count: product.product_reviews || 0,
         category_id: catId,
-        category_name_hebrew: hebrewFromMap || product._category_hebrew || 'כללי',
+        category_name_hebrew: hebrewCategory,
         tracking_link: trackingLink,
         out_of_stock: false,
         is_campaign_product: true,
