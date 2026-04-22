@@ -221,6 +221,12 @@ serve(async (req) => {
 
     const buildProductPayload = async (product: any) => {
       const productId = String(product.product_id)
+      const catId = product.first_level_category_id ? String(product.first_level_category_id) : null
+
+      // Skip products whose category_id is explicitly mapped to null (excluded categories)
+      if (catId && catId in CATEGORY_ID_TO_HEBREW && CATEGORY_ID_TO_HEBREW[catId] === null) {
+        return null
+      }
 
       let discountPercentage: number | null = null
       if (product.target_original_price && product.target_sale_price) {
@@ -240,6 +246,8 @@ serve(async (req) => {
       const totalRate = (baseRate + hotRate) / 100
       const commissionRate = totalRate > 0 ? totalRate : null
 
+      const hebrewFromMap = catId ? CATEGORY_ID_TO_HEBREW[catId] : undefined
+
       return {
         aliexpress_product_id: productId,
         product_name: product.product_title || 'Unknown Product',
@@ -251,8 +259,8 @@ serve(async (req) => {
         sales_30d: product.lastest_volume || 0,
         rating: product.evaluate_rate ? parseFloat(String(product.evaluate_rate).replace('%', '')) / 20 : null,
         reviews_count: product.product_reviews || 0,
-        category_id: product.first_level_category_id ? String(product.first_level_category_id) : null,
-        category_name_hebrew: product._category_hebrew || 'כללי',
+        category_id: catId,
+        category_name_hebrew: hebrewFromMap || product._category_hebrew || 'כללי',
         tracking_link: trackingLink,
         out_of_stock: false,
         is_campaign_product: true,
@@ -266,7 +274,9 @@ serve(async (req) => {
     for (let i = 0; i < uniqueProducts.length; i += LINK_BATCH_SIZE) {
       const batch = uniqueProducts.slice(i, i + LINK_BATCH_SIZE)
       const resolvedBatch = await Promise.all(batch.map(buildProductPayload))
-      productPayloads.push(...resolvedBatch)
+      for (const p of resolvedBatch) {
+        if (p !== null) productPayloads.push(p)
+      }
     }
 
     totalKids = productPayloads.filter(product => product.category_name_hebrew === 'ילדים ומשחקים').length
