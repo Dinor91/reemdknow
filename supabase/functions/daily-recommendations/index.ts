@@ -20,34 +20,34 @@ interface DailySlot {
 
 const DAILY_SLOTS: DailySlot[] = [
   {
+    name: "גאדג'טים חכמים",
+    category: "גאדג׳טים ובית חכם",
+    includeKeywords: ["smart switch", "zigbee", "tuya", "matter", "smart plug", "ir remote", "wifi remote", "smart bulb", "smart home", "wireless headphones", "tws earbuds", "bluetooth earbuds", "gaming mouse", "mechanical keyboard", "drone", "fpv", "gimbal", "ip camera", "security camera", "smart watch", "smartwatch", "tablet", "power bank", "usb hub", "docking station", "gan charger", "fast charging"],
+    excludeKeywords: ["supplement", "vitamin", "cream", "serum", "makeup", "jewelry", "necklace", "ring", "clothing", "shoes", "sneakers", "t-shirt", "shorts"],
+  },
+  {
+    name: "חשמל קטן לבית",
+    category: "גאדג׳טים ובית חכם",
+    includeKeywords: ["led strip", "led light", "desk lamp", "floor lamp", "table lamp", "smart bulb", "yeelight", "rgb light", "night light", "ceiling light", "wall light", "portable fan", "electric fan", "air purifier", "humidifier", "dehumidifier", "electric kettle", "coffee machine", "toaster", "hair dryer", "hair straightener", "electric shaver", "electric toothbrush", "vacuum cleaner", "robot vacuum", "steam mop", "air fryer", "blender", "rice cooker"],
+    excludeKeywords: ["supplement", "vitamin", "cream", "serum", "makeup", "jewelry", "clothing", "shoes", "t-shirt"],
+  },
+  {
     name: "ילדים ומשחקים",
     category: "ילדים ומשחקים",
-    includeKeywords: ["building blocks", "compatible lego", "puzzle", "jigsaw", "board game", "educational toy", "montessori", "stem kit", "science experiment", "robot kit", "plush toy", "stuffed animal", "action figure", "diecast car", "toy vehicle", "rc car", "musical instrument", "keyboard piano", "outdoor toy", "garden toy", "bubble machine", "dollhouse", "fashion doll", "doll set", "magnetic tiles", "go-kart", "gaming console", "climbing", "swing", "drum set", "slide"],
-    excludeKeywords: ["diaper", "nappy", "wet wipes", "pencils", "coloring book", "crayons", "sticker set", "notebook", "stationery", "marker pens", "school bag", "baby clothes", "onesie", "infant shoes", "rc parts", "upgrade parts", "spare parts", "multivitamin", "display cabinet"],
+    includeKeywords: ["lego", "building blocks", "rc car", "remote control car", "drone toy", "puzzle", "board game", "action figure", "doll", "plush toy", "stuffed animal", "magnetic tiles", "montessori", "educational toy", "kids keyboard", "toy piano", "bubble machine", "outdoor toy", "swing", "slide", "scooter", "ride on", "toy vehicle", "diecast", "transformer toy"],
+    excludeKeywords: ["pencil", "stationery", "notebook", "sticker", "crayon", "marker", "school bag", "diaper", "baby formula", "adult", "supplement", "vitamin"],
   },
   {
-    name: "גאדג׳ט טכנולוגי",
-    category: "גאדג׳טים ובית חכם",
-    includeKeywords: ["gan charger", "usb c cable", "fast charging", "wireless headphones", "tws earbuds", "gaming mouse", "mechanical keyboard", "gimbal", "stabilizer", "smart switch", "zigbee switch", "tuya smart", "matter hub", "smart plug", "security camera", "ip camera", "drone", "quadcopter", "fpv", "led strip", "rgb light", "video projector", "usb hub", "docking station", "power bank", "phone stand", "tablet holder", "monitor arm", "hair dryer", "tablet", "smartwatch", "smart watch", "water flosser", "cordless phone", "money counter", "portable fan", "electric fan", "stand fan", "hair straightener", "hair curler", "electric shaver", "electric toothbrush", "air conditioner", "dehumidifier", "humidifier", "dash cam", "action camera"],
-    excludeKeywords: ["crystal", "gemstone", "necklace", "ring", "jewelry", "pendant", "supplement", "vitamins", "lipstick", "skincare", "makeup", "face cream", "essential oil", "earrings"],
-  },
-  {
-    name: "כלי עבודה",
-    category: "כלי עבודה וציוד",
-    includeKeywords: ["screwdriver bits", "impact driver", "electric drill", "wrench set", "spanner", "ratchet socket", "pliers", "wire stripper", "measuring tape", "laser level", "angle grinder", "hand saw", "multitool", "wall hooks", "screws nut", "bolts", "hardware kit", "toolbox", "soldering iron", "digital multimeter", "clamping tool", "hex key", "allen wrench", "step drill bit", "s2 steel", "rotary hammer", "lawn mower", "circular saw", "impact wrench", "ultrasonic cleaner", "desoldering", "air pump", "grinding wheel", "drill press", "cordless drill", "power tool", "electric drill", "saw blade", "air tank", "heat gun", "jigsaw", "orbital sander", "router tool", "teflon", "ptfe", "cutting disc", "sanding disc", "extension cord", "workbench", "vise", "pipe wrench", "torque wrench", "socket set", "bit set", "nail gun", "staple gun", "caulking gun", "wire brush", "paint roller", "putty knife", "utility knife", "box cutter"],
-    excludeKeywords: ["clothing", "t-shirt", "shoes", "sneakers", "jewelry", "bracelet", "cosmetics", "perfume", "underwear", "socks", "fashion", "watch band", "shirt", "sweater", "hoodie", "uniform", "shorts", "blazer"],
-  },
-  {
-    name: "פתרון לבית",
-    category: "בית ומטבח",
-    includeKeywords: ["kitchen organizer", "spice rack", "storage box", "storage bin", "shelf divider", "magnetic hook", "adhesive hook", "wall mount holder", "silicone feet", "anti vibration pad", "drawer organizer", "mop bucket", "cleaning brush", "vacuum sealer", "sink rack", "cup holder", "dish drainer", "cable clips", "broom holder", "sealing machine", "shoe rack", "vacuum bag", "rotating turntable", "lazy susan", "vacuum cleaner", "robot vacuum", "mattress", "ceiling fan", "microwave", "gas stove", "air fryer", "coffee machine", "water dispenser", "knife block", "range hood", "air purifier", "noodle machine", "washing machine", "refrigerator", "blender", "rice cooker", "electric kettle", "toaster", "dishwasher", "steam mop", "floor cleaner"],
-    excludeKeywords: ["anime", "poster", "wall art", "canvas painting", "sculpture", "dollhouse miniature", "display model", "vitamin", "supplements", "cosmetic bag", "jewelry box", "perfume bottle"],
-  },
-  {
-    name: "מוצר לחוץ לבית",
+    name: "ציוד טיולים וקמפינג",
     category: "בריאות וספורט",
-    includeKeywords: [],
-    excludeKeywords: ["supplement", "vitamin", "collagen", "protein powder", "capsule", "tablet pill", "weight loss", "fat burner", "testosterone", "herb extract", "traditional medicine", "remedy", "detox", "probiotic", "omega", "zinc", "magnesium pill", "serum", "whitening", "anti aging", "skin care", "face cream", "body lotion", "shampoo", "conditioner", "hair mask", "nail", "perfume", "cpap", "oxygen", "patient bed", "wheelchair", "nebulizer", "medical device", "hospital"],
+    includeKeywords: ["camping chair", "folding chair", "camping table", "emergency light", "camping lamp", "headlamp", "flashlight", "camping cookware", "camping pot", "camping stove", "travel mug", "insulated cup", "thermal cup", "water bottle", "hydration", "sleeping bag", "tent", "trekking pole", "hiking backpack", "camping mat", "survival kit", "multi tool", "pocket knife", "compass", "carabiner", "hammock"],
+    excludeKeywords: ["supplement", "vitamin", "protein", "collagen", "face cream", "serum", "makeup", "clothing", "shoes", "jewelry"],
+  },
+  {
+    name: "אביזרי רכב",
+    category: "רכב ותחבורה",
+    includeKeywords: ["car vacuum", "car cleaner", "chamois cloth", "car wash brush", "seat cover brush", "carpet brush", "phone mount car", "car phone holder", "tablet mount car", "car compressor", "jump starter", "booster", "car air freshener", "car organizer", "dash cam", "car camera", "parking sensor", "car charger", "seat organizer", "steering wheel cover", "car mat", "windshield wiper", "car light", "led car light"],
+    excludeKeywords: ["supplement", "vitamin", "clothing", "shoes", "jewelry", "makeup", "furniture"],
   },
 ];
 
