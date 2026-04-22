@@ -87,39 +87,35 @@ function filterQuality(raw: any[]): any[] {
 
 // AliExpress top-level category IDs for per-category fetching
 const ALIEXPRESS_CATEGORY_IDS = [
-  "44",          // Electronics
-  "18",          // Sports & Outdoors
-  "21",          // Toys & Games
-  "502",         // Phones & Telecom
-  "2",           // Automobiles & Motorcycles
-  "1503",        // Home Improvement
-  "6",           // Jewelry & Accessories
-  "15",          // Shoes
-  "200003655",   // Tools
-  "26",          // Home & Garden
-  "200003498",   // Health & Beauty
-  "66",          // Bags & Luggage
-  "7",           // Computer & Office
-  "100003109",   // Lighting
-  "322",         // Security & Protection
+  "502",        // Consumer Electronics
+  "44",         // Phones & Telecom
+  "7",          // Home Appliances
+  "1503",       // Home & Garden
+  "26",         // Home Decor
+  "18",         // Sports & Outdoors
+  "200003655",  // Tools
+  "15",         // Automobiles
+  "2",          // Auto Parts
+  "200000783",  // Toys
+  "200003498",  // Baby & Kids
 ]
 
-const CATEGORY_ID_TO_HEBREW: Record<string, string> = {
-  '21':        'ילדים ומשחקים',
-  '44':        'גאדג׳טים ובית חכם',
-  '502':       'גאדג׳טים ובית חכם',
-  '7':         'גאדג׳טים ובית חכם',
-  '26':        'בית ומטבח',
-  '1503':      'בית ומטבח',
-  '6':         'אופנה וסטייל',
-  '15':        'אופנה וסטייל',
-  '66':        'אופנה וסטייל',
-  '18':        'בריאות וספורט',
-  '200003498': 'בריאות וספורט',
-  '2':         'רכב ותחבורה',
-  '200003655': 'כלי עבודה וציוד',
-  '100003109': 'בית ומטבח',
-  '322':       'כלי עבודה וציוד',
+const CATEGORY_ID_TO_HEBREW: Record<string, string | null> = {
+  '502':        'גאדג׳טים ובית חכם',
+  '44':         'גאדג׳טים ובית חכם',
+  '7':          'גאדג׳טים ובית חכם',
+  '1503':       'בית ומטבח',
+  '26':         'בית ומטבח',
+  '18':         'בריאות וספורט',
+  '200003655':  'כלי עבודה וציוד',
+  '15':         'רכב ותחבורה',
+  '2':          'רכב ותחבורה',
+  '200000783':  'ילדים ומשחקים',
+  '200003498':  'ילדים ומשחקים',
+  '21':         null,
+  '322':        null,
+  '6':          null,
+  '66':         null,
 }
 
 serve(async (req) => {
