@@ -254,8 +254,6 @@ serve(async (req) => {
       const totalRate = (baseRate + hotRate) / 100
       const commissionRate = totalRate > 0 ? totalRate : null
 
-      const hebrewFromMap = catId ? CATEGORY_ID_TO_HEBREW[catId] : undefined
-
       return {
         aliexpress_product_id: productId,
         product_name: product.product_title || 'Unknown Product',
@@ -268,7 +266,7 @@ serve(async (req) => {
         rating: product.evaluate_rate ? parseFloat(String(product.evaluate_rate).replace('%', '')) / 20 : null,
         reviews_count: product.product_reviews || 0,
         category_id: catId,
-        category_name_hebrew: hebrewFromMap || product._category_hebrew || 'כללי',
+        category_name_hebrew: hebrewCategory,
         tracking_link: trackingLink,
         out_of_stock: false,
         is_campaign_product: true,
