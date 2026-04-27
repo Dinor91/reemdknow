@@ -137,10 +137,13 @@ async function selectProductForSlot(
       .not("tracking_link", "is", null)
       .gte("commission_rate", 0.15);
 
-    if (applyQuality && qualityFilter) {
-      q = q
-        .gte(qualityFilter.salesColumn, qualityFilter.minSales)
-        .lte(qualityFilter.priceColumn, qualityFilter.maxPrice);
+    if (qualityFilter) {
+      // תקרת מחיר תמיד נאכפת (כולל fallback)
+      q = q.lte(qualityFilter.priceColumn, qualityFilter.maxPrice);
+      if (applyQuality) {
+        // סף מכירות רק בשלבים 1+2
+        q = q.gte(qualityFilter.salesColumn, qualityFilter.minSales);
+      }
     }
 
     return q
@@ -243,7 +246,7 @@ async function getThailandRecommendations(db: any): Promise<RecommendedProduct[]
   for (const slot of DAILY_SLOTS) {
     const result = await selectProductForSlot(db, "feed_products", slot, "sales_7d", recentDealIds, {
       salesColumn: "sales_7d",
-      minSales: 1,
+      minSales: 5,
       priceColumn: "price_thb",
       maxPrice: 2500,
     });
