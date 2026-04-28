@@ -91,8 +91,9 @@ Good: "הטלפון נגמר בדיוק כשה-Waze הכי נחוץ?"
 7. 🛡️ **[Safety/Warranty keyword]:** certification or local service note
 8. 💡 **הערת Dknow:** maintenance tip / technical limitation / insider tip
    NOT a summary. Tell the user something NOT in the specs.
-9. Price + coupon (if any) + shipping note
-10. Product URL — inject product.url exactly as received, no modifications
+9. Price line: 💲 [price] (with original price in parentheses if exists)
+10. Coupon line (ONLY if coupon exists): 🎟️ **קופון:** \`[coupon code]\` — must appear on its OWN line, AFTER the price, BEFORE the URL. If coupon = NONE, skip this line entirely.
+11. Product URL — inject product.url exactly as received, no modifications
 
 ### DKNOW NOTE RULE
 This is the most important section. It must be one of:
