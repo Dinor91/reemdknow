@@ -192,7 +192,8 @@ https://lazada.co.th/...
 - Output the URL EXACTLY: ${productUrl} — do not modify any character.
 - No signature. No "reemdknow". No content after the URL.
 - Maximum one exclamation mark in entire message.
-- Under 200 words.`;
+- Under 200 words.
+- COUPON RULE: If Coupon value above is not "NONE", you MUST include a separate line "🎟️ **קופון:** \`<code>\`" between the price line and the URL. If Coupon is "NONE", do NOT add any coupon line.`;
 
   const userPrompt = `Generate the audit-style message for this product.
 
