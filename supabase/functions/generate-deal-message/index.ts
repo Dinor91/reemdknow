@@ -34,9 +34,9 @@ function getCategoryFallbackNote(category: string): string {
   if (c.includes("tools") || c.includes("כלים")) return "בדקו סוג התקע והמתח (V) שמתאים לבית.";
   if (c.includes("kids") || c.includes("ילד")) return "בדקו את הגיל המומלץ ואת תקני הבטיחות.";
   if (c.includes("health") || c.includes("בריאות")) return "לא תחליף לייעוץ רפואי — להתייעץ עם איש מקצוע במקרה ספק.";
-  if (c.includes("home") || c.includes("בית")) return "בדקו מידות מול המקום שבו תתקינו או תניחו את המוצר.";
+  if (c.includes("gadget") || c.includes("גאדג") || c.includes("חכם")) return "בדקו תאימות עם המכשיר שלכם (אנדרואיד/iOS, סוג חיבור).";
   if (c.includes("fashion") || c.includes("אופנה")) return "מידות אסיאתיות נוטות להיות קטנות — לבדוק טבלת מידות.";
-  if (c.includes("gadget") || c.includes("גאדג")) return "בדקו תאימות עם המכשיר שלכם (אנדרואיד/iOS, סוג חיבור).";
+  if (c.includes("home") || c.includes("בית") || c.includes("מטבח")) return "בדקו מידות מול המקום שבו תתקינו או תניחו את המוצר.";
   return "כדאי לקרוא ביקורות אחרונות ולבדוק התאמה לצורך הספציפי שלכם.";
 }
 
