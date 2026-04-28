@@ -1,53 +1,43 @@
-# תיקון לוגיקת בחירת מוצרי תאילנד
+## תזמון sync-feed-products — אפשרות B (4 batches מדורגים)
 
-קובץ יחיד: `supabase/functions/daily-recommendations/index.ts`
+### מה ייעשה
+הוספת 4 cron jobs דרך `pg_cron`, באותו פורמט בדיוק של ה-cron jobs הקיימים בפרויקט (קריאת `net.http_post` עם ה-anon key ב-Authorization). כל job מפעיל את `sync-feed-products` עם `batch` שונה (0..3).
 
-## שינוי 1 — העלאת סף מכירות לתאילנד
-ב-`getThailandRecommendations`, בקריאה ל-`selectProductForSlot`, לשנות את `minSales` מ-`1` ל-`5`.
+הפונקציה כבר תומכת בזה: `BATCH_SIZE=2` קטגוריות לכל ריצה, 7 קטגוריות סה"כ → 4 batches. הסנפשוט "After", סימון out_of_stock לסטוק ישן (>30 יום), והפעלת `translate-products` קורים אוטומטית רק ב-batch האחרון (`isLastBatch`).
 
-```ts
-const result = await selectProductForSlot(db, "feed_products", slot, "sales_7d", recentDealIds, {
-  salesColumn: "sales_7d",
-  minSales: 5,           // היה 1
-  priceColumn: "price_thb",
-  maxPrice: 2500,
-});
+### לוח הזמנים
+| Job | Schedule (UTC) | Body |
+|---|---|---|
+| `daily-feed-sync-batch-0` | `0 3 * * *`  | `{"batch": 0}` |
+| `daily-feed-sync-batch-1` | `10 3 * * *` | `{"batch": 1}` |
+| `daily-feed-sync-batch-2` | `20 3 * * *` | `{"batch": 2}` |
+| `daily-feed-sync-batch-3` | `30 3 * * *` | `{"batch": 3}` |
+
+10 דקות בין batches — מספיק כדי לסיים batch של 2 קטגוריות (עד 3 עמודים בכל אחת ב-batch mode) בלי לחפוף.
+
+### SQL שירוץ (בקרוב, לא כעת — אני ב-plan mode)
+```sql
+SELECT cron.schedule(
+  'daily-feed-sync-batch-0',
+  '0 3 * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://cdubskcrxkqtzpnismle.supabase.co/functions/v1/sync-feed-products',
+    headers := '{"Content-Type": "application/json", "Authorization": "Bearer <ANON_KEY>"}'::jsonb,
+    body := '{"batch": 0}'::jsonb
+  ) AS request_id;
+  $$
+);
+-- אותו דבר עבור batch 1/2/3 ב-10/20/30 3 * * *
 ```
 
-זה יחיל את `sales_7d >= 5` באופן אוטומטי בשלבים 1 ו-2 (שכבר משתמשים ב-`qualityFilter`).
+### אימות אחרי הביצוע
+- `SELECT jobname, schedule FROM cron.job WHERE jobname LIKE 'daily-feed-sync-batch-%';` — ארבע שורות.
+- מחר אחרי 03:35 UTC: `SELECT MAX(updated_at), COUNT(*) FROM feed_products WHERE updated_at > NOW() - INTERVAL '1 hour';` — צריך להיות > 0.
 
-## שינוי 2 — אכיפת תקרת מחיר בכל השלבים
-כיום `baseQuery(false)` (שלב 3 fallback) ו-`baseQuery(true)` בשלב 2 — שלב 2 בסדר, אבל שלב 3 לא מחיל את `maxPrice`. צריך לפצל את ה-quality filter לשני חלקים: סף מכירות (גמיש ב-fallback) וסף מחיר (קשיח תמיד).
+### לא נכלל בתוכנית הזו
+- שינויים בלוגיקת בחירת המוצרים ב-`daily-recommendations` (נחזור לזה אחרי שנראה איך נראה הפיד הטרי).
+- הרחבת `LAZADA_CATEGORY_MAP` (חסרה "כללי", "רכב" צרה מאוד).
+- הפעלה ידנית מיידית של הסנכרון. אם תרצה לזרז את הריצה הראשונה, נריץ ידנית את 4 ה-batches אחרי שיוצרו ה-cron jobs.
 
-עדכון `baseQuery` כך שתקרת המחיר תוחל תמיד אם קיים `qualityFilter`, וסף המכירות יוחל רק כש-`applyQuality=true`:
-
-```ts
-const baseQuery = (applyQuality: boolean) => {
-  let q = db
-    .from(table)
-    .select("*")
-    .eq("category_name_hebrew", slot.category)
-    .eq("out_of_stock", false)
-    .not("tracking_link", "is", null)
-    .gte("commission_rate", 0.15);
-
-  if (qualityFilter) {
-    // תקרת מחיר תמיד נאכפת
-    q = q.lte(qualityFilter.priceColumn, qualityFilter.maxPrice);
-    if (applyQuality) {
-      // סף מכירות רק בשלבים 1+2
-      q = q.gte(qualityFilter.salesColumn, qualityFilter.minSales);
-    }
-  }
-
-  return q
-    .order("last_shown", { ascending: true, nullsFirst: true })
-    .limit(200);
-};
-```
-
-## השפעה
-- **תאילנד**: רק מוצרים עם ≥5 מכירות ב-7 ימים ומחיר ≤2500 ฿ ייבחרו, גם ב-fallback.
-- **ישראל**: ללא שינוי בפועל — `minSales=30` ו-`maxPrice=$40` ימשיכו לפעול כרגיל; תקרת המחיר תיאכף גם בשלב 3 (זה למעשה שיפור עקביות גם לישראל, בהתאם להיגיון של "תקרת מחיר היא קשיחה").
-
-אין שינויים נוספים בקובץ ואין שינויים במקומות אחרים.
+עלות: 1 קרדיט ליצירת ה-cron.
