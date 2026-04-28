@@ -5,39 +5,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Platform-specific strategic focus injected into the prompt
+// Platform-specific strategic focus injected into the prompt (Dynamic Context v2)
 function getPlatformContext(source: string): string {
   switch ((source || "").toLowerCase()) {
     case "ksp":
-      return `Platform: KSP (חנות אלקטרוניקה ישראלית).
-דגש בטיחות/תחזוקה: אחריות יבואן רשמי בארץ, שירות בעברית, מדיניות החזרות. אין צורך לדבר על תקני CE או תקעים — זה מוצר ישראלי.`;
+      return `Platform: KSP (קמעונאי אלקטרוניקה ישראלי).
+דגש בטיחות/אחריות: שירות מקומי בעברית, אחריות יבואן רשמי בארץ, איסוף מסניפים בישראל, מדיניות החזרות ישראלית. אין צורך לדבר על תקני CE או תקעים — המוצר מותאם לשוק הישראלי.`;
     case "aliexpress":
       return `Platform: AliExpress (יבוא ישיר מסין).
-דגש בטיחות/תחזוקה: לציין במידת הצורך תקני בטיחות (CE/RoHS) למוצרי חשמל, סוג תקע (לרוב צריך מתאם), זמני משלוח של 2-4 שבועות, ואחריות מוגבלת מהמוכר.`;
+דגש בטיחות/אחריות: סינון זיופים — לבחור מוכרים מדורגים, לחפש תקני בטיחות (CE / RoHS / BPA-Free) למוצרי חשמל ומגע עם מזון, לוודא תקע מתאים (לרוב נדרש מתאם), זמני משלוח 2-4 שבועות, אחריות מוגבלת מהמוכר.`;
     case "lazada":
       return `Platform: Lazada Thailand (שוק תאילנדי).
-דגש בטיחות/תחזוקה: תקן TIS למוצרי חשמל בתאילנד, תקע Type A/B/C, אחריות מקומית בתאילנד.`;
+דגש בטיחות/אחריות: עדיפות למוכרי LazMall (אותנטיות מובטחת), תקן TIS למוצרי חשמל בתאילנד, תקע Type A/B/C, אחריות מקומית בתאילנד.`;
     case "amazon":
-      // Infrastructure only — not yet active. Falls back to generic if invoked.
+      // Infrastructure ready — will activate when Amazon API connects.
       return `Platform: Amazon.
-דגש בטיחות/תחזוקה: לציין יתרונות Prime/BestSeller אם קיימים, מדיניות החזרות נדיבה.`;
+דגש בטיחות/אחריות: ${product_is_best_seller_hint()} משלוח Prime כשרלוונטי, מדיניות החזרות נדיבה, סימון Best Seller / Amazon's Choice אם מופיע.`;
     default:
       return `Platform: כללי.
-דגש בטיחות/תחזוקה: לציין מה שרלוונטי למוצר הספציפי (אחריות, התאמה, תחזוקה).`;
+דגש בטיחות/אחריות: לציין מה שרלוונטי למוצר הספציפי (אחריות, התאמה, תחזוקה).`;
   }
 }
 
-// Safe, generic per-category fallback note (used when no manual product.note is provided)
-function getCategoryFallbackNote(category: string): string {
-  const c = (category || "").toLowerCase();
-  if (c.includes("auto") || c.includes("רכב")) return "בדקו תאימות לדגם הרכב שלכם לפני הזמנה.";
-  if (c.includes("tools") || c.includes("כלים")) return "בדקו סוג התקע והמתח (V) שמתאים לבית.";
-  if (c.includes("kids") || c.includes("ילד")) return "בדקו את הגיל המומלץ ואת תקני הבטיחות.";
-  if (c.includes("health") || c.includes("בריאות")) return "לא תחליף לייעוץ רפואי — להתייעץ עם איש מקצוע במקרה ספק.";
-  if (c.includes("gadget") || c.includes("גאדג") || c.includes("חכם")) return "בדקו תאימות עם המכשיר שלכם (אנדרואיד/iOS, סוג חיבור).";
-  if (c.includes("fashion") || c.includes("אופנה")) return "מידות אסיאתיות נוטות להיות קטנות — לבדוק טבלת מידות.";
-  if (c.includes("home") || c.includes("בית") || c.includes("מטבח")) return "בדקו מידות מול המקום שבו תתקינו או תניחו את המוצר.";
-  return "כדאי לקרוא ביקורות אחרונות ולבדוק התאמה לצורך הספציפי שלכם.";
+// Reserved hint placeholder for future Amazon fields (is_best_seller, shipping_info)
+function product_is_best_seller_hint(): string {
+  return "";
 }
 
 function buildAuditorPrompt({
@@ -58,55 +50,67 @@ function buildAuditorPrompt({
     product.rating && product.rating !== "חדש" && Number(product.rating) > 0 ? product.rating : null;
   const salesValue = product.sales_7d && Number(product.sales_7d) > 0 ? product.sales_7d : null;
 
-  // Hybrid Dknow Note: manual note wins, otherwise category fallback
-  const dknowNote =
-    product.note && String(product.note).trim().length > 0
-      ? String(product.note).trim()
-      : getCategoryFallbackNote(product.category || "");
+  // Hybrid Dknow Note logic:
+  // - If manual product.note exists → use verbatim
+  // - Otherwise → Gemini generates a contextual note based on product NAME + CATEGORY together
+  const hasManualNote = product.note && String(product.note).trim().length > 0;
+  const manualNote = hasManualNote ? String(product.note).trim() : null;
 
-  const systemPrompt = `אתה כותב הודעת WhatsApp בעברית בשם reemdknow — בודק מוצרים מקצועי, לא מוכר.
+  // Future-ready optional fields (no breaking change if missing)
+  const isBestSeller = product.is_best_seller === true;
+  const shippingInfo = product.shipping_info ? String(product.shipping_info).trim() : null;
+
+  const systemPrompt = `אתה כותב הודעת WhatsApp בעברית עבור reemdknow — בודק מוצרים מקצועי, לא מוכר.
 הקהל: 1,200 חברים בקהילת דילים.
 
-הטון:
-- מקצועי, אנליטי, כן. כמו חבר שבדק את המוצר ומספר עליו.
-- אסור להשתמש במילים: "מדהים", "מטורף", "חובה", "הכי", "פצצה", "WOW", "סופר", "אש".
-- אסור סופרלטיבים שיווקיים. אסור סימני קריאה מוגזמים.
-- בלי אימוג'ים בכותרות. אימוג'ים רק בתחילת בולט אחד או בשורת מחיר/קופון/לינק.
+זהות וטון (חוקים מוחלטים):
+- מקצועי, אנליטי, עובדתי. כמו חבר טכני שבדק את המוצר ומספר עליו.
+- אסור בהחלט במילים: "מטורף", "מדהים", "הזוי", "חובה", "הכי טוב", "פצצה", "WOW", "סופר", "אש", "מושלם", "בלעדי".
+- אסור סופרלטיבים שיווקיים. אסור סימני קריאה כפולים. מקסימום סימן קריאה אחד בכל ההודעה.
+- בלי אימוג'ים בכותרות. אימוג'ים רק בתחילת בולט / שורת מחיר / קופון / לינק.
+
+Hook (שורה ראשונה) — חייב להתחיל בבעיה יומיומית, לא בשאלה מכירתית:
+- דוגמאות מותרות: "נמאס לכם ש...", "מחפשים פתרון ל...?", "אם אתם מתמודדים עם...", "מי שעובד עם... יודע ש...".
+- אסור: "רוצים את הדיל הכי טוב?", "תקשיבו טוב!", "פצצה אמיתית!".
 
 ${platformContext}
 
-מבנה ההודעה — חובה לשמור עליו בדיוק:
+מבנה ההודעה — חובה לשמור עליו בדיוק לפי הסדר הזה:
 
-[שורה 1 — Hook: שאלה קצרה שמציגה בעיה יומיומית שהמוצר פותר. ללא סופרלטיבים. מותאמת לקטגוריה.]
+[Hook — בעיה יומיומית, שורה אחת]
 
-[שם המוצר בעברית אם אפשר, אחרת אנגלית]
-[1-2 שורות תיאור עניני — מה המוצר עושה ולמי הוא מתאים]
+[שם המוצר בעברית אם אפשר, אחרת אנגלית] — [מותג אם ידוע]
+[1-2 שורות תיאור עניני: מה המוצר עושה ולמי הוא מתאים]
 
 ${
   isKsp
-    ? `[אם יש discount_percent > 0: 🏷️ ${product.discount_percent ?? ""}% הנחה (מחיר מקורי: ${product.original_price ?? ""})]`
-    : `[אם דירוג קיים ו-> 0: ⭐ ${ratingValue ?? ""}]   [אם sales_7d > 0: 🔥 נמכר ${salesValue ?? ""} פעמים השבוע]
-[אם אין דירוג ואין מכירות — לדלג על השורה כולה]`
+    ? `[שורת סטטוס — אם יש discount_percent > 0: 🏷️ ${product.discount_percent ?? ""}% הנחה (מחיר מקורי: ${product.original_price ?? ""})]`
+    : `[שורת סטטוס — אם דירוג > 0: ⭐ ${ratingValue ?? ""}    אם sales_7d > 0: 🔥 נמכר ${salesValue ?? ""} פעמים השבוע${isBestSeller ? "    🏆 Best Seller" : ""}]
+[אם אין דירוג ואין מכירות ואין Best Seller — לדלג על השורה כולה]`
 }
 
-🔧 טכני: [מפרט אמיתי מתוך הנתונים — חומר/הספק/קיבולת/מידות/תאימות. בלי להמציא מספרים שלא קיימים.]
-💰 ערך: [למה המחיר משתלם ביחס לחלופות בשוק. עניני, בלי סופרלטיבים.]
-🛡️ בטיחות/תחזוקה: [נקודה אחת ספציפית לפי הקונטקסט הפלטפורמתי שלמעלה.]
-💡 הערת Dknow: ${dknowNote}
+🔧 טכני: [מפרט אמיתי מהנתונים — חומר/הספק/קיבולת/מידות/תאימות. אסור להמציא מספרים שלא קיימים. אם אין מפרט — תיאור פונקציונלי כללי.]
+💰 ערך: [למה המחיר משתלם ביחס לחלופות בשוק. עובדתי, בלי סופרלטיבים.]
+🛡️ בטיחות/אחריות: [נקודה אחת ספציפית לפי הקונטקסט הפלטפורמתי שלמעלה — שירות/תקן/אחריות.]
+💡 הערת Dknow: ${
+    hasManualNote
+      ? `"${manualNote}" — חובה להשתמש בטקסט הזה בדיוק, אות באות.`
+      : `[ייצר הערה אישית של 1-2 משפטים שמשלבת את שם המוצר הספציפי "${product.name}" עם הקטגוריה "${product.category || "כללי"}" ועם הפלטפורמה. דוגמה: עבור "Xiaomi Mi Band" בקטגוריית גאדג׳טים — לדבר על תאימות iOS/Android וסנכרון אפליקציה, לא על מידות. ההערה חייבת להיות רלוונטית למוצר הזה דווקא, לא טקסט גנרי.]`
+  }
 
 💰 [המחיר עם סימן מטבע]
-📦 המחיר באתר עשוי להשתנות
+${product.original_price && Number(product.discount_percent) > 0 ? `🏷️ במבצע מ-${product.original_price}` : ""}
+${shippingInfo ? `🚚 ${shippingInfo}` : "📦 המחיר באתר עשוי להשתנות"}
 ${coupon ? `🎟️ קופון: ${coupon}` : "[אם אין קופון — לדלג על השורה הזו לחלוטין]"}
 
 🔗 לינק למוצר
 [product_url]
 
 כללים קריטיים:
-- 4 בולטים בדיוק: טכני, ערך, בטיחות/תחזוקה, הערת Dknow. לא יותר ולא פחות.
-- "הערת Dknow" חייבת להיות בדיוק הטקסט הבא: "${dknowNote}". לא לשנות, לא להוסיף, לא לקצר.
-- אסור להמציא מפרטים. אם אין נתון — לכתוב משהו כללי-בטוח לפי הקטגוריה.
-- העתק את ה-URL אות באות כפי שניתן. אל תשנה שום תו.
-- אסור להוסיף חתימה, אסור להוסיף "reemdknow", אסור להוסיף שורה אחרי הלינק.
+- 4 בולטים בדיוק ובסדר הזה: טכני, ערך, בטיחות/אחריות, הערת Dknow.
+- אסור להמציא מפרטים. אם אין נתון — להישאר ברמה הפונקציונלית.
+- העתק את ה-URL אות באות. אל תשנה שום תו, אל תקצר, אל תוסיף פרמטרים.
+- אסור חתימה. אסור להוסיף "reemdknow". אסור שורה אחרי הלינק.
 - ההודעה כולה מתחת ל-200 מילים.`;
 
   const userPrompt = `Generate the audit-style message for this product.
@@ -120,8 +124,9 @@ ${product.original_price ? `Original Price: ${product.original_price}` : ""}
 ${product.discount_percent ? `Discount: ${product.discount_percent}%` : ""}
 Rating: ${ratingValue ?? "NONE"}
 Sales_7d: ${salesValue ?? "NONE"}
-Manual Note (if any): ${product.note || "NONE"}
-Resolved Dknow Note to use verbatim: ${dknowNote}
+Is Best Seller: ${isBestSeller ? "YES" : "NO"}
+Shipping Info: ${shippingInfo ?? "NONE"}
+Manual Dknow Note: ${manualNote ?? "NONE — generate contextual note from name+category+platform"}
 URL: ${productUrl}
 Coupon: ${coupon || "NONE"}
 
@@ -198,13 +203,20 @@ serve(async (req) => {
     const data = await response.json();
     let message = data.choices?.[0]?.message?.content || "";
 
-    // Post-process: replace any URL the AI may have modified with the original productUrl
+    // URL Post-processing: ensure Gemini didn't tamper with affiliate link
     const urlRegex = /https?:\/\/[^\s\n)]+/g;
     const urls = message.match(urlRegex);
     if (urls && urls.length > 0) {
       for (const url of urls) {
-        if (url.includes("aliexpress.com") || url.includes("lazada.co") || url.includes("s.click.")) {
-          message = message.replace(url, productUrl);
+        if (
+          url.includes("aliexpress.com") ||
+          url.includes("lazada.co") ||
+          url.includes("s.click.") ||
+          url.includes("ksp.co.il")
+        ) {
+          if (url !== productUrl) {
+            message = message.replace(url, productUrl);
+          }
         }
       }
     }
