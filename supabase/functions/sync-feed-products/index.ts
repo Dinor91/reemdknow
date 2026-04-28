@@ -201,12 +201,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth: cron bypass or admin check
+    // Auth: allow service-role (cron), anon (cron via pg_net), or admin user
     const authHeader = req.headers.get('Authorization')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const isCronCall = authHeader === `Bearer ${serviceRoleKey}`
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    const isServiceRole = authHeader === `Bearer ${serviceRoleKey}`
+    const isAnonCron = authHeader === `Bearer ${anonKey}`
 
-    if (!isCronCall) {
+    if (!isServiceRole && !isAnonCron) {
       const authResult = await verifyAdminAuth(authHeader)
       if (authResult.error === 'Missing authorization header' || authResult.error === 'Invalid auth token') {
         return createUnauthorizedResponse(authResult.error, corsHeaders)
@@ -216,7 +218,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Auth: ${isCronCall ? 'cron/service-role' : 'admin user'}`)
+    console.log(`Auth: ${isServiceRole ? 'service-role' : isAnonCron ? 'anon/cron' : 'admin user'}`)
 
     if (!LAZADA_APP_KEY || !LAZADA_APP_SECRET || !LAZADA_USER_TOKEN) {
       return new Response(
