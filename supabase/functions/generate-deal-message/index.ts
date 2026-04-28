@@ -91,8 +91,9 @@ Good: "הטלפון נגמר בדיוק כשה-Waze הכי נחוץ?"
 7. 🛡️ **[Safety/Warranty keyword]:** certification or local service note
 8. 💡 **הערת Dknow:** maintenance tip / technical limitation / insider tip
    NOT a summary. Tell the user something NOT in the specs.
-9. Price + coupon (if any) + shipping note
-10. Product URL — inject product.url exactly as received, no modifications
+9. Price line: 💲 [price] (with original price in parentheses if exists)
+10. Coupon line (ONLY if coupon exists): 🎟️ **קופון:** \`[coupon code]\` — must appear on its OWN line, AFTER the price, BEFORE the URL. If coupon = NONE, skip this line entirely.
+11. Product URL — inject product.url exactly as received, no modifications
 
 ### DKNOW NOTE RULE
 This is the most important section. It must be one of:
@@ -162,6 +163,7 @@ https://ksp.co.il/...
 💡 **הערת Dknow:** מטענים אלחוטיים מייצרים חום — אם הטלפון בתוך כיסוי עבה, מהירות הטעינה תרד משמעותית.
 
 💲 $12.99
+🎟️ **קופון:** \`SAVE5\`
 
 https://aliexpress.com/...
 
@@ -190,7 +192,8 @@ https://lazada.co.th/...
 - Output the URL EXACTLY: ${productUrl} — do not modify any character.
 - No signature. No "reemdknow". No content after the URL.
 - Maximum one exclamation mark in entire message.
-- Under 200 words.`;
+- Under 200 words.
+- COUPON RULE: If Coupon value above is not "NONE", you MUST include a separate line "🎟️ **קופון:** \`<code>\`" between the price line and the URL. If Coupon is "NONE", do NOT add any coupon line.`;
 
   const userPrompt = `Generate the audit-style message for this product.
 
