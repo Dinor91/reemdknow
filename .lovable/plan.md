@@ -1,43 +1,67 @@
-## תזמון sync-feed-products — אפשרות B (4 batches מדורגים)
+## שדרוג generate-deal-message ל-"Dknow Auditor"
 
-### מה ייעשה
-הוספת 4 cron jobs דרך `pg_cron`, באותו פורמט בדיוק של ה-cron jobs הקיימים בפרויקט (קריאת `net.http_post` עם ה-anon key ב-Authorization). כל job מפעיל את `sync-feed-products` עם `batch` שונה (0..3).
+### מה משתנה
+שכתוב של `supabase/functions/generate-deal-message/index.ts` — מחליף את שני ה-system prompts הנפרדים (KSP / AliExpress+Lazada) בפרומפט מאוחד עם הזרקת קונטקסט פלטפורמה דינמי.
 
-הפונקציה כבר תומכת בזה: `BATCH_SIZE=2` קטגוריות לכל ריצה, 7 קטגוריות סה"כ → 4 batches. הסנפשוט "After", סימון out_of_stock לסטוק ישן (>30 יום), והפעלת `translate-products` קורים אוטומטית רק ב-batch האחרון (`isLastBatch`).
+### מה נשמר (ללא שינוי)
+- CORS headers
+- לוגיקת `aff_fcid` ל-AliExpress
+- Post-processing regex להחלפת URLs
+- Error handling (429, 402, 500)
+- מודל: `google/gemini-2.5-flash`
+- חתימת ה-API של הפונקציה (אותו `{ product, coupon, source }`)
 
-### לוח הזמנים
-| Job | Schedule (UTC) | Body |
-|---|---|---|
-| `daily-feed-sync-batch-0` | `0 3 * * *`  | `{"batch": 0}` |
-| `daily-feed-sync-batch-1` | `10 3 * * *` | `{"batch": 1}` |
-| `daily-feed-sync-batch-2` | `20 3 * * *` | `{"batch": 2}` |
-| `daily-feed-sync-batch-3` | `30 3 * * *` | `{"batch": 3}` |
+### מה חדש
 
-10 דקות בין batches — מספיק כדי לסיים batch של 2 קטגוריות (עד 3 עמודים בכל אחת ב-batch mode) בלי לחפוף.
+**1. `getPlatformContext(source)`** — מחזיר דגש אסטרטגי לפי פלטפורמה:
+- `ksp` → אחריות מקומית, שירות בעברית, החזרות
+- `aliexpress` → תקני בטיחות (CE/RoHS), בדיקת תקע, זמני משלוח
+- `lazada` → תקן TIS, אחריות מקומית בתאילנד
+- `amazon` → **תשתית בלבד** (case ריק, מוכן ל-Prime/BestSeller בעתיד)
+- default → fallback גנרי
 
-### SQL שירוץ (בקרוב, לא כעת — אני ב-plan mode)
-```sql
-SELECT cron.schedule(
-  'daily-feed-sync-batch-0',
-  '0 3 * * *',
-  $$
-  SELECT net.http_post(
-    url := 'https://cdubskcrxkqtzpnismle.supabase.co/functions/v1/sync-feed-products',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer <ANON_KEY>"}'::jsonb,
-    body := '{"batch": 0}'::jsonb
-  ) AS request_id;
-  $$
-);
--- אותו דבר עבור batch 1/2/3 ב-10/20/30 3 * * *
+**2. `getCategoryFallbackNote(category)`** — תובנה גנרית-בטוחה לפי 8 הקטגוריות הקבועות (Auto → "בדקו תאימות לרכב", Tools → "בדקו סוג תקע", Kids → "בדקו גיל מומלץ", וכו').
+
+**3. `buildAuditorPrompt({ product, coupon, source, productUrl })`** — פרומפט מאוחד שמחייב:
+- **Hook**: שאלה שמציגה בעיה יומיומית (בלי סופרלטיבים — איסור מפורש על "מדהים", "חובה", "מטורף", "הכי")
+- **שורת סטטוס**: ⭐ דירוג + 🔥 sales_7d (רק אם > 0; ב-KSP במקום זה: % הנחה אם קיים)
+- **4 בולטים בדיוק**:
+  - 🔧 **טכני** — מפרט אמיתי מהנתונים
+  - 💰 **ערך** — למה המחיר משתלם
+  - 🛡️ **בטיחות/תחזוקה** — לפי הקונטקסט הפלטפורמתי
+  - 💡 **הערת Dknow** — Hybrid: `product.note` ידני אם קיים, אחרת `getCategoryFallbackNote(category)`
+- **קופון** (רק אם קיים)
+- **לינק** (URL מדויק)
+
+**ללא חתימה** — לא מתווספת בשום פלטפורמה.
+
+### מבנה פלט לדוגמה
+```
+[Hook — שאלה על בעיה יומיומית]
+
+[שם מוצר בעברית]
+[1-2 שורות תיאור]
+
+⭐ 4.7  🔥 נמכר 230 פעמים השבוע
+
+🔧 טכני: [מפרט]
+💰 ערך: [הצדקת מחיר]
+🛡️ בטיחות: [לפי פלטפורמה]
+💡 הערת Dknow: [ידני או fallback קטגוריה]
+
+💰 [מחיר]
+📦 המחיר באתר עשוי להשתנות
+🎟️ קופון: [אם יש]
+
+🔗 לינק למוצר
+[URL]
 ```
 
-### אימות אחרי הביצוע
-- `SELECT jobname, schedule FROM cron.job WHERE jobname LIKE 'daily-feed-sync-batch-%';` — ארבע שורות.
-- מחר אחרי 03:35 UTC: `SELECT MAX(updated_at), COUNT(*) FROM feed_products WHERE updated_at > NOW() - INTERVAL '1 hour';` — צריך להיות > 0.
+### היקף
+- קובץ אחד: `supabase/functions/generate-deal-message/index.ts`
+- ~120 שורות משוכתבות (מתוך ~180 קיימות)
+- אין שינויי DB, אין secrets חדשים
+- עלות: ~0 קרדיטים לפיתוח, deploy אחד של edge function
 
-### לא נכלל בתוכנית הזו
-- שינויים בלוגיקת בחירת המוצרים ב-`daily-recommendations` (נחזור לזה אחרי שנראה איך נראה הפיד הטרי).
-- הרחבת `LAZADA_CATEGORY_MAP` (חסרה "כללי", "רכב" צרה מאוד).
-- הפעלה ידנית מיידית של הסנכרון. אם תרצה לזרז את הריצה הראשונה, נריץ ידנית את 4 ה-batches אחרי שיוצרו ה-cron jobs.
-
-עלות: 1 קרדיט ליצירת ה-cron.
+### בדיקה לאחר deploy
+קריאה לפונקציה עם 3 דוגמאות (KSP, AliExpress, Lazada) דרך `curl_edge_functions` ובדיקת הפלט.

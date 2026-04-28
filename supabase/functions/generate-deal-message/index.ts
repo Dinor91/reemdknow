@@ -5,12 +5,137 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Platform-specific strategic focus injected into the prompt
+function getPlatformContext(source: string): string {
+  switch ((source || "").toLowerCase()) {
+    case "ksp":
+      return `Platform: KSP (חנות אלקטרוניקה ישראלית).
+דגש בטיחות/תחזוקה: אחריות יבואן רשמי בארץ, שירות בעברית, מדיניות החזרות. אין צורך לדבר על תקני CE או תקעים — זה מוצר ישראלי.`;
+    case "aliexpress":
+      return `Platform: AliExpress (יבוא ישיר מסין).
+דגש בטיחות/תחזוקה: לציין במידת הצורך תקני בטיחות (CE/RoHS) למוצרי חשמל, סוג תקע (לרוב צריך מתאם), זמני משלוח של 2-4 שבועות, ואחריות מוגבלת מהמוכר.`;
+    case "lazada":
+      return `Platform: Lazada Thailand (שוק תאילנדי).
+דגש בטיחות/תחזוקה: תקן TIS למוצרי חשמל בתאילנד, תקע Type A/B/C, אחריות מקומית בתאילנד.`;
+    case "amazon":
+      // Infrastructure only — not yet active. Falls back to generic if invoked.
+      return `Platform: Amazon.
+דגש בטיחות/תחזוקה: לציין יתרונות Prime/BestSeller אם קיימים, מדיניות החזרות נדיבה.`;
+    default:
+      return `Platform: כללי.
+דגש בטיחות/תחזוקה: לציין מה שרלוונטי למוצר הספציפי (אחריות, התאמה, תחזוקה).`;
+  }
+}
+
+// Safe, generic per-category fallback note (used when no manual product.note is provided)
+function getCategoryFallbackNote(category: string): string {
+  const c = (category || "").toLowerCase();
+  if (c.includes("auto") || c.includes("רכב")) return "בדקו תאימות לדגם הרכב שלכם לפני הזמנה.";
+  if (c.includes("tools") || c.includes("כלים")) return "בדקו סוג התקע והמתח (V) שמתאים לבית.";
+  if (c.includes("kids") || c.includes("ילד")) return "בדקו את הגיל המומלץ ואת תקני הבטיחות.";
+  if (c.includes("health") || c.includes("בריאות")) return "לא תחליף לייעוץ רפואי — להתייעץ עם איש מקצוע במקרה ספק.";
+  if (c.includes("home") || c.includes("בית")) return "בדקו מידות מול המקום שבו תתקינו או תניחו את המוצר.";
+  if (c.includes("fashion") || c.includes("אופנה")) return "מידות אסיאתיות נוטות להיות קטנות — לבדוק טבלת מידות.";
+  if (c.includes("gadget") || c.includes("גאדג")) return "בדקו תאימות עם המכשיר שלכם (אנדרואיד/iOS, סוג חיבור).";
+  return "כדאי לקרוא ביקורות אחרונות ולבדוק התאמה לצורך הספציפי שלכם.";
+}
+
+function buildAuditorPrompt({
+  product,
+  coupon,
+  source,
+  productUrl,
+}: {
+  product: any;
+  coupon: string | null | undefined;
+  source: string;
+  productUrl: string;
+}) {
+  const platformContext = getPlatformContext(source);
+  const isKsp = (source || "").toLowerCase() === "ksp";
+
+  const ratingValue =
+    product.rating && product.rating !== "חדש" && Number(product.rating) > 0 ? product.rating : null;
+  const salesValue = product.sales_7d && Number(product.sales_7d) > 0 ? product.sales_7d : null;
+
+  // Hybrid Dknow Note: manual note wins, otherwise category fallback
+  const dknowNote =
+    product.note && String(product.note).trim().length > 0
+      ? String(product.note).trim()
+      : getCategoryFallbackNote(product.category || "");
+
+  const systemPrompt = `אתה כותב הודעת WhatsApp בעברית בשם reemdknow — בודק מוצרים מקצועי, לא מוכר.
+הקהל: 1,200 חברים בקהילת דילים.
+
+הטון:
+- מקצועי, אנליטי, כן. כמו חבר שבדק את המוצר ומספר עליו.
+- אסור להשתמש במילים: "מדהים", "מטורף", "חובה", "הכי", "פצצה", "WOW", "סופר", "אש".
+- אסור סופרלטיבים שיווקיים. אסור סימני קריאה מוגזמים.
+- בלי אימוג'ים בכותרות. אימוג'ים רק בתחילת בולט אחד או בשורת מחיר/קופון/לינק.
+
+${platformContext}
+
+מבנה ההודעה — חובה לשמור עליו בדיוק:
+
+[שורה 1 — Hook: שאלה קצרה שמציגה בעיה יומיומית שהמוצר פותר. ללא סופרלטיבים. מותאמת לקטגוריה.]
+
+[שם המוצר בעברית אם אפשר, אחרת אנגלית]
+[1-2 שורות תיאור עניני — מה המוצר עושה ולמי הוא מתאים]
+
+${
+  isKsp
+    ? `[אם יש discount_percent > 0: 🏷️ ${product.discount_percent ?? ""}% הנחה (מחיר מקורי: ${product.original_price ?? ""})]`
+    : `[אם דירוג קיים ו-> 0: ⭐ ${ratingValue ?? ""}]   [אם sales_7d > 0: 🔥 נמכר ${salesValue ?? ""} פעמים השבוע]
+[אם אין דירוג ואין מכירות — לדלג על השורה כולה]`
+}
+
+🔧 טכני: [מפרט אמיתי מתוך הנתונים — חומר/הספק/קיבולת/מידות/תאימות. בלי להמציא מספרים שלא קיימים.]
+💰 ערך: [למה המחיר משתלם ביחס לחלופות בשוק. עניני, בלי סופרלטיבים.]
+🛡️ בטיחות/תחזוקה: [נקודה אחת ספציפית לפי הקונטקסט הפלטפורמתי שלמעלה.]
+💡 הערת Dknow: ${dknowNote}
+
+💰 [המחיר עם סימן מטבע]
+📦 המחיר באתר עשוי להשתנות
+${coupon ? `🎟️ קופון: ${coupon}` : "[אם אין קופון — לדלג על השורה הזו לחלוטין]"}
+
+🔗 לינק למוצר
+[product_url]
+
+כללים קריטיים:
+- 4 בולטים בדיוק: טכני, ערך, בטיחות/תחזוקה, הערת Dknow. לא יותר ולא פחות.
+- "הערת Dknow" חייבת להיות בדיוק הטקסט הבא: "${dknowNote}". לא לשנות, לא להוסיף, לא לקצר.
+- אסור להמציא מפרטים. אם אין נתון — לכתוב משהו כללי-בטוח לפי הקטגוריה.
+- העתק את ה-URL אות באות כפי שניתן. אל תשנה שום תו.
+- אסור להוסיף חתימה, אסור להוסיף "reemdknow", אסור להוסיף שורה אחרי הלינק.
+- ההודעה כולה מתחת ל-200 מילים.`;
+
+  const userPrompt = `Generate the audit-style message for this product.
+
+Source/Platform: ${source || "default"}
+Name: ${product.name}
+Brand: ${product.brand || "לא ידוע"}
+Category: ${product.category || "כללי"}
+Price: ${product.price}
+${product.original_price ? `Original Price: ${product.original_price}` : ""}
+${product.discount_percent ? `Discount: ${product.discount_percent}%` : ""}
+Rating: ${ratingValue ?? "NONE"}
+Sales_7d: ${salesValue ?? "NONE"}
+Manual Note (if any): ${product.note || "NONE"}
+Resolved Dknow Note to use verbatim: ${dknowNote}
+URL: ${productUrl}
+Coupon: ${coupon || "NONE"}
+
+CRITICAL: The URL must appear EXACTLY as-is in your output. Do not change any character.`;
+
+  return { systemPrompt, userPrompt };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { product, coupon, source } = await req.json();
-    const isKsp = source === "ksp";
+    const isKsp = (source || "").toLowerCase() === "ksp";
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -21,9 +146,10 @@ serve(async (req) => {
     console.log("[1] source:", source || "default");
 
     if (!isKsp) {
-      const isAlreadyTracked = productUrl.includes("s.click.aliexpress.com") || 
-                                productUrl.includes("a.aliexpress.com") || 
-                                productUrl.includes("aff_fcid");
+      const isAlreadyTracked =
+        productUrl.includes("s.click.aliexpress.com") ||
+        productUrl.includes("a.aliexpress.com") ||
+        productUrl.includes("aff_fcid");
 
       if (productUrl.includes("aliexpress.com") && TRACKING_ID && !isAlreadyTracked) {
         const separator = productUrl.includes("?") ? "&" : "?";
@@ -31,117 +157,13 @@ serve(async (req) => {
       }
     }
 
-    let systemPrompt: string;
-    let userPrompt: string;
+    const { systemPrompt, userPrompt } = buildAuditorPrompt({
+      product,
+      coupon,
+      source: source || "default",
+      productUrl,
+    });
 
-    if (isKsp) {
-      systemPrompt = `You are writing a WhatsApp message in Hebrew for a deals community of 1,200 members.
-The product is from KSP, an Israeli electronics store.
-
-Write the message using EXACTLY this structure:
-
-[Opening line — one catchy question related to the product category with a relevant emoji]
-
-[Product name and brand with a relevant emoji]
-
-✨ למה זאת הבחירה שלי?
-• [benefit 1 – practical/functional]
-• [benefit 2 – quality/reliability]
-• [benefit 3 – value for money]
-• [benefit 4 – unique advantage]
-
-💰 [price in ₪] [+ a short value-for-money comment]
-${product.discount_percent ? `🏷️ ${product.discount_percent}% הנחה! (מחיר מקורי: ${product.original_price})` : ""}
-📦 המחיר באתר עשוי להשתנות
-${product.note ? `💡 ${product.note}` : ""}
-
-🔗 לינק למוצר
-[product_url]
-
-RULES:
-- Natural Hebrew, warm personal tone, NOT salesy
-- All 4 benefit bullets are required
-- CRITICAL: Copy the URL EXACTLY as provided. Do not modify any character.
-- Total message under 200 words`;
-
-      userPrompt = `Generate a WhatsApp deal message for this KSP product:
-
-Name: ${product.name}
-Brand: ${product.brand}
-Category: ${product.category || "כללי"}
-Price: ${product.price}
-${product.original_price ? `Original Price: ${product.original_price}` : ""}
-${product.discount_percent ? `Discount: ${product.discount_percent}%` : ""}
-${product.note ? `Note: ${product.note}` : ""}
-URL: ${productUrl}
-CRITICAL: The URL above must appear EXACTLY as-is in your output. Do not change any character.`;
-    } else {
-      systemPrompt = `You are writing a WhatsApp message in Hebrew for a deals community of 1,200 members.
-
-Write the message using EXACTLY this structure:
-
-[HOOK – one line question targeting the specific audience for this product.
-Match the hook to the product type:
-- Kids toys/games → "הורים לילדים? מחפשים דרך להעסיק אותם באופן עצמאי?"
-- Computer/tech accessories → "עובדים הרבה עם המחשב? מחפשים נוחות אמיתית?"
-- Kitchen appliances → "אוהבים לבשל אבל שונאים את הבלאגן?"
-- Sports/fitness → "חוזרים לכושר? מחפשים ציוד שיחזיק לאורך זמן?"
-- Smart home/gadgets → "רוצים לשדרג את הבית בלי לשבור את הכיס?"
-- Tools/DIY → "אוהבים לתקן דברים בבית? הנה כלי שישמח אתכם"
-- Lighting → "רוצים לשנות את האווירה בבית בקלות?"
-Always adapt the hook to the specific product. Never use a generic hook.]
-
-[Product name in Hebrew if possible]
-[1-2 lines describing what the product does in simple conversational Hebrew]
-
-[IF rating exists and > 0: ⭐ דירוג [rating]]
-[IF rating is null, 0, or "חדש" → skip rating line entirely, do NOT show any rating line]
-
-[IF sales_7d exists and > 0: 🔥 נמכר [sales_7d] פעמים השבוע]
-[IF sales_7d is 0 or null → skip sales line entirely]
-
-✨ למה זאת הבחירה שלי?
-• [benefit 1 – functional/practical]
-• [benefit 2 – emotional or unique value]
-• [benefit 3 – only if genuinely adds value]
-• [benefit 4 – only if genuinely adds value]
-(MINIMUM 2 bullets, MAXIMUM 4 bullets)
-
-💰 החל מ-[price] [currency symbol]
-📦 המחיר באתר עשוי להשתנות
-[IF coupon: 🎟️ לא לשכוח להכניס קופון: [COUPON]]
-[IF no coupon → skip entirely, do NOT add any coupon line]
-
-🔗 לינק למוצר
-[product_url]
-
-RULES:
-- Natural Hebrew, personal tone, not robotic
-- Hook must match the specific product
-- Benefits sound like personal recommendations
-- Never exceed 4 bullets
-- Never add coupon line if no coupon given
-- NEVER show rating line if rating is null, 0, or "חדש"
-- NEVER show sales line if sales_7d is 0 or null
-- ALWAYS add "📦 המחיר באתר עשוי להשתנות" right after the price line
-- CRITICAL: Copy the URL EXACTLY as provided. Do not modify, shorten, or change ANY character in the URL. The URL must appear in the output 100% identical to the input.
-- Total message under 200 words`;
-
-      const ratingValue = product.rating && product.rating !== "חדש" && Number(product.rating) > 0 ? product.rating : null;
-      const salesValue = product.sales_7d && Number(product.sales_7d) > 0 ? product.sales_7d : null;
-
-      userPrompt = `Generate a WhatsApp deal message for this product:
-
-Name: ${product.name}
-Price: ${product.price}
-Rating: ${ratingValue ? ratingValue : "NONE - do NOT include any rating line"}
-Sales_7d: ${salesValue ? salesValue : "NONE - do NOT include any sales line"}
-Brand: ${product.brand || "לא ידוע"}
-Category: ${product.category || "כללי"}
-URL: ${productUrl}
-CRITICAL: The URL above must appear EXACTLY as-is in your output. Do not change any character.
-Coupon: ${coupon || "NONE - do NOT include any coupon line"}`;
-    }
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
