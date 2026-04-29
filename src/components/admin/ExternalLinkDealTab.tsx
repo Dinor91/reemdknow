@@ -335,6 +335,7 @@ export const ExternalLinkDealTab = () => {
   const isKsp = platform === "ksp";
   const isAmazon = platform === "amazon";
   const isManual = isKsp || isAmazon;
+  const currencyLabel = isKsp ? "₪" : isAmazon ? "$" : currencySymbol;
 
   return (
     <div className="space-y-4" dir="rtl">
