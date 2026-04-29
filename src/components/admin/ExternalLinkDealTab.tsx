@@ -54,6 +54,7 @@ export const ExternalLinkDealTab = () => {
   const [manualFields, setManualFields] = useState<Set<string>>(new Set());
 
   const isKspUrl = (u: string) => u.toLowerCase().includes("ksp.co.il");
+  const isAmazonUrl = (u: string) => /amazon\.[a-z.]+|amzn\.to|a\.co\//i.test(u);
 
   const kspDiscountPercent = (): number | null => {
     const price = parseFloat(editPrice);
@@ -62,29 +63,42 @@ export const ExternalLinkDealTab = () => {
     return Math.round(((original - price) / original) * 100);
   };
 
+  const resetManualForm = (newPlatform: "ksp" | "amazon", trimmedUrl: string, currency: string) => {
+    setPlatform(newPlatform);
+    setAffiliateUrl(trimmedUrl);
+    setCurrencySymbol(currency);
+    setDecodeSuccess(false);
+    setProduct(null);
+    setEditName("");
+    setEditPrice("");
+    setEditRating("");
+    setEditSales("");
+    setEditBrand("");
+    setEditCategory("כללי");
+    setEditOriginalPrice("");
+    setEditNote("");
+    setManualFields(new Set());
+  };
+
   const handleDecode = async () => {
     if (!url.trim()) {
       toast.error("הזן קישור");
       return;
     }
 
+    const trimmed = url.trim();
+
     // KSP: skip decode, go straight to manual form
-    if (isKspUrl(url.trim())) {
-      setPlatform("ksp");
-      setAffiliateUrl(url.trim());
-      setCurrencySymbol("₪");
-      setDecodeSuccess(false);
-      setProduct(null);
-      setEditName("");
-      setEditPrice("");
-      setEditRating("");
-      setEditSales("");
-      setEditBrand("");
-      setEditCategory("כללי");
-      setEditOriginalPrice("");
-      setEditNote("");
-      setManualFields(new Set());
+    if (isKspUrl(trimmed)) {
+      resetManualForm("ksp", trimmed, "₪");
       toast.info("🛒 קישור KSP — מלא את הפרטים ידנית");
+      return;
+    }
+
+    // Amazon: skip decode, manual form (PA-API not connected)
+    if (isAmazonUrl(trimmed)) {
+      resetManualForm("amazon", trimmed, "$");
+      toast.info("📦 קישור Amazon — מלא את הפרטים ידנית");
       return;
     }
 
