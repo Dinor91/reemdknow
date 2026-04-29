@@ -161,6 +161,8 @@ export const ExternalLinkDealTab = () => {
     setIsGenerating(true);
     try {
       const isKsp = platform === "ksp";
+      const isAmazon = platform === "amazon";
+      const isManual = isKsp || isAmazon;
       const priceStr = isKsp ? `${editPrice} ₪` : `${editPrice} ${currencySymbol}`;
       const discount = kspDiscountPercent();
 
@@ -177,9 +179,10 @@ export const ExternalLinkDealTab = () => {
         coupon: coupon || undefined,
       };
 
-      if (isKsp) {
-        body.source = "ksp";
-        body.product.original_price = editOriginalPrice ? `${editOriginalPrice} ₪` : null;
+      if (isManual) {
+        body.source = isKsp ? "ksp" : "amazon";
+        const currencyLabel = isKsp ? "₪" : "$";
+        body.product.original_price = editOriginalPrice ? `${editOriginalPrice} ${currencyLabel}` : null;
         body.product.discount_percent = discount;
         body.product.note = editNote || null;
       }
