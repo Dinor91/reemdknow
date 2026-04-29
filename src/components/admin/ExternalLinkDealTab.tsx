@@ -381,7 +381,7 @@ export const ExternalLinkDealTab = () => {
             <CardTitle className="text-base">פרטי מוצר</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {!isKsp && imageUrl && (
+            {!isManual && imageUrl && (
               <div className="flex items-center gap-3">
                 <img src={imageUrl} alt={editName} className="w-20 h-20 object-cover rounded-lg border border-border" />
                 <span className="text-sm text-muted-foreground">תמונת מוצר</span>
