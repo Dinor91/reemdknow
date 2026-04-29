@@ -18,9 +18,8 @@ function getPlatformContext(source: string): string {
       return `Platform: Lazada Thailand (שוק תאילנדי).
 דגש בטיחות/אחריות: עדיפות למוכרי LazMall (אותנטיות מובטחת), תקן TIS למוצרי חשמל בתאילנד, תקע Type A/B/C, אחריות מקומית בתאילנד.`;
     case "amazon":
-      // Infrastructure ready — will activate when Amazon API connects.
-      return `Platform: Amazon.
-דגש בטיחות/אחריות: ${product_is_best_seller_hint()} משלוח Prime כשרלוונטי, מדיניות החזרות נדיבה, סימון Best Seller / Amazon's Choice אם מופיע.`;
+      return `Platform: Amazon (קמעונאי גלובלי, רוב המשלוחים לישראל מ-Amazon.com).
+דגש בטיחות/אחריות: משלוח Prime כשרלוונטי (משלוח מהיר ועקיבות), מדיניות החזרות נדיבה של אמזון (30 יום), אחריות יצרן בינלאומית. שימו לב — לא תמיד יש שירות מקומי בארץ, ייתכן מתאם תקע נדרש למוצרי חשמל, ולעיתים נוסף מס יבוא בכניסה לארץ. אם המוצר מסומן Best Seller / Amazon's Choice — לציין זאת.`;
     default:
       return `Platform: כללי.
 דגש בטיחות/אחריות: לציין מה שרלוונטי למוצר הספציפי (אחריות, התאמה, תחזוקה).`;
