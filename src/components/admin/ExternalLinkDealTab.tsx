@@ -333,6 +333,8 @@ export const ExternalLinkDealTab = () => {
 
   const manualInputClass = "border-orange-400 border-2";
   const isKsp = platform === "ksp";
+  const isAmazon = platform === "amazon";
+  const isManual = isKsp || isAmazon;
 
   return (
     <div className="space-y-4" dir="rtl">
