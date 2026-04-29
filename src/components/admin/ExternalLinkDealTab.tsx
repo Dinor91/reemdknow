@@ -25,7 +25,7 @@ export const ExternalLinkDealTab = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [platform, setPlatform] = useState<"aliexpress" | "lazada" | "ksp" | null>(null);
+  const [platform, setPlatform] = useState<"aliexpress" | "lazada" | "ksp" | "amazon" | null>(null);
   const [product, setProduct] = useState<DecodedProduct | null>(null);
   const [affiliateUrl, setAffiliateUrl] = useState("");
   const [productId, setProductId] = useState<string | null>(null);
