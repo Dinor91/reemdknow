@@ -133,12 +133,13 @@ Open with a daily-frustration question. Never "אם אתם מחפשים".
 
 1. Hook (frustration question)
 2. *שם מוצר - מותג*
-3. STATUS LINE — build it from these atoms, joining ONLY the ones that exist with " | ":
-   - ⭐ ${ratingValue ?? "MISSING"}  (include only if not MISSING)
-   - 🏷️ ${discountValue ? discountValue + "% הנחה" : "MISSING"}  (include only if not MISSING)
-   - 📈 ${salesValue ? salesValue + " מכירות השבוע" : "MISSING"}  (include only if not MISSING)
-   - 🏆 BestSeller  (only if Is Best Seller = YES)
-   IF ALL ATOMS MISSING — OMIT THE ENTIRE STATUS LINE. Do NOT print "אין דירוג" or "אין הנחה".
+3. STATUS LINE — atoms joined with " | ", ONLY for atoms that exist:
+   - ⭐ ${ratingValue ?? "OMIT"}
+   - 🏷️ ${discountValue ? discountValue + "% הנחה" : "OMIT"}
+   - 📈 ${salesValue ? salesValue + " מכירות השבוע" : "OMIT"}
+   - 🏆 BestSeller (only if YES)
+   ⛔ IF ALL ATOMS = OMIT → SKIP THE STATUS LINE ENTIRELY. Move directly from the product name to "✨ למה זאת הבחירה שלי?".
+   ⛔ FORBIDDEN PHRASES (never write these): "ללא דירוג", "אין דירוג", "אין הנחה", "ללא נתוני מכירה", "לא ידוע", "MISSING", "OMIT".
 4. ✨ למה זאת הבחירה שלי?
 5. 🔧 **[מונח הנדסי]:** עובדה מהגראונדינג + משמעות מעשית
 6. 💰 **[ערך]:** הצדקת מחיר מול חלופות זולות יותר (רק אם הגראונדינג מגלה מלכודת באותו מותג)
@@ -149,10 +150,12 @@ Open with a daily-frustration question. Never "אם אתם מחפשים".
 
 [שורה ריקה]
 
-9. בלוק מחיר ומשלוח (כל שורה בנפרד עם האייקון שלה):
-   💲 כמה תשלמו? [product.price]${product.original_price ? " (במקום [original_price])" : ""}
-   ${coupon ? "🎟️ **קופון:** `" + coupon + "`" : "(skip coupon line if no coupon)"}
-   ${shippingInfo ? "🚚 " + shippingInfo : "(skip shipping line if no info)"}
+9. בלוק מחיר — בלי כותרת. כל שורה בנפרד, בדיוק בפורמט הזה:
+   💲 כמה תשלמו? ${product.price}${product.original_price ? " (במקום " + product.original_price + ")" : ""}
+   ${coupon ? '🎟️ **קופון:** `' + coupon + '`' : "(אם אין קופון — דלג על השורה הזו לחלוטין)"}
+   ${shippingInfo ? "🚚 " + shippingInfo : "(אם אין משלוח — דלג על השורה הזו לחלוטין)"}
+   ⛔ אסור לכתוב את הכותרת "💰 אזור מחיר ומשלוח". מתחילים ישר ב-💲.
+   ⛔ פורמט המחיר חייב להיות "💲 כמה תשלמו? ${product.price}" — לא "💲 ${product.price}" לבד.
 
 [שורה ריקה — חובה לפני הלינק]
 
