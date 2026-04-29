@@ -496,7 +496,7 @@ export const ExternalLinkDealTab = () => {
 
             <Button
               onClick={handleGenerateMessage}
-              disabled={isGenerating || !editName || !editPrice || (isKsp && !editBrand)}
+              disabled={isGenerating || !editName || !editPrice || (isManual && !editBrand)}
               className="w-full"
             >
               {isGenerating ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : "📝"} צור הודעה
