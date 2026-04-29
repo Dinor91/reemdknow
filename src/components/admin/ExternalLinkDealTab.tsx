@@ -362,13 +362,13 @@ export const ExternalLinkDealTab = () => {
           </div>
           {platform && (
             <div className="flex items-center gap-2">
-              <Badge variant={isKsp ? "secondary" : platform === "aliexpress" ? "default" : "secondary"}>
-                {isKsp ? "🛒 KSP" : platform === "aliexpress" ? "🇮🇱 AliExpress" : "🇹🇭 Lazada"}
+              <Badge variant={isManual ? "secondary" : platform === "aliexpress" ? "default" : "secondary"}>
+                {isKsp ? "🛒 KSP" : isAmazon ? "📦 Amazon" : platform === "aliexpress" ? "🇮🇱 AliExpress" : "🇹🇭 Lazada"}
               </Badge>
               <span className="text-xs text-muted-foreground">מטבע: {currencySymbol}</span>
-              {!isKsp && decodeSuccess && <Badge variant="outline" className="text-green-600">✅ פענוח הצליח</Badge>}
-              {!isKsp && !decodeSuccess && product && <Badge variant="outline" className="text-yellow-600">⚠️ ערוך ידנית</Badge>}
-              {isKsp && <Badge variant="outline" className="text-blue-600">📝 מילוי ידני</Badge>}
+              {!isManual && decodeSuccess && <Badge variant="outline" className="text-green-600">✅ פענוח הצליח</Badge>}
+              {!isManual && !decodeSuccess && product && <Badge variant="outline" className="text-yellow-600">⚠️ ערוך ידנית</Badge>}
+              {isManual && <Badge variant="outline" className="text-blue-600">📝 מילוי ידני</Badge>}
             </div>
           )}
         </CardContent>
