@@ -164,6 +164,75 @@ export type Database = {
         }
         Relationships: []
       }
+      amazon_editor_products: {
+        Row: {
+          asin: string | null
+          brand: string | null
+          category_name_hebrew: string
+          created_at: string
+          discount_percentage: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          last_shown: string | null
+          note: string | null
+          original_price_usd: number | null
+          out_of_stock: boolean | null
+          price_usd: number | null
+          product_name_english: string | null
+          product_name_hebrew: string
+          rating: number | null
+          sales_count: number | null
+          source: string | null
+          tracking_link: string
+          updated_at: string
+        }
+        Insert: {
+          asin?: string | null
+          brand?: string | null
+          category_name_hebrew: string
+          created_at?: string
+          discount_percentage?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          last_shown?: string | null
+          note?: string | null
+          original_price_usd?: number | null
+          out_of_stock?: boolean | null
+          price_usd?: number | null
+          product_name_english?: string | null
+          product_name_hebrew: string
+          rating?: number | null
+          sales_count?: number | null
+          source?: string | null
+          tracking_link: string
+          updated_at?: string
+        }
+        Update: {
+          asin?: string | null
+          brand?: string | null
+          category_name_hebrew?: string
+          created_at?: string
+          discount_percentage?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          last_shown?: string | null
+          note?: string | null
+          original_price_usd?: number | null
+          out_of_stock?: boolean | null
+          price_usd?: number | null
+          product_name_english?: string | null
+          product_name_hebrew?: string
+          rating?: number | null
+          sales_count?: number | null
+          source?: string | null
+          tracking_link?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blocked_emails: {
         Row: {
           blocked_at: string
