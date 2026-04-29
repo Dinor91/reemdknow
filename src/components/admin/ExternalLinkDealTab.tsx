@@ -349,7 +349,7 @@ export const ExternalLinkDealTab = () => {
         <CardContent className="space-y-3">
           <div className="flex gap-2">
             <Input
-              placeholder="הדבק קישור AliExpress / Lazada / KSP..."
+              placeholder="הדבק קישור AliExpress / Lazada / KSP / Amazon..."
               value={url}
               onChange={e => setUrl(e.target.value)}
               className="flex-1"
