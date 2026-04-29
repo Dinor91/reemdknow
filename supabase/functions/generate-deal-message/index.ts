@@ -229,21 +229,32 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Append affiliate tracking params to AliExpress links
-    const TRACKING_ID = Deno.env.get("ALIEXPRESS_TRACKING_ID");
+    // Append affiliate tracking params per platform
+    const ALI_TRACKING_ID = Deno.env.get("ALIEXPRESS_TRACKING_ID");
+    const AMZ_TRACKING_ID = Deno.env.get("AMAZON_TRACKING_ID");
     let productUrl = product.url || "";
     console.log("[1] productUrl RAW from product.url:", productUrl);
     console.log("[1] source:", source || "default");
 
-    if (!isKsp) {
-      const isAlreadyTracked =
+    const lowerSrc = (source || "").toLowerCase();
+
+    if (lowerSrc !== "ksp") {
+      // AliExpress affiliate injection
+      const isAlreadyTrackedAli =
         productUrl.includes("s.click.aliexpress.com") ||
         productUrl.includes("a.aliexpress.com") ||
         productUrl.includes("aff_fcid");
 
-      if (productUrl.includes("aliexpress.com") && TRACKING_ID && !isAlreadyTracked) {
+      if (productUrl.includes("aliexpress.com") && ALI_TRACKING_ID && !isAlreadyTrackedAli) {
         const separator = productUrl.includes("?") ? "&" : "?";
-        productUrl = `${productUrl}${separator}aff_fcid=${TRACKING_ID}&aff_platform=portals-tool`;
+        productUrl = `${productUrl}${separator}aff_fcid=${ALI_TRACKING_ID}&aff_platform=portals-tool`;
+      }
+
+      // Amazon affiliate injection — add ?tag= if not already present
+      const isAmazonUrl = /amazon\.[a-z.]+|amzn\.to|a\.co/i.test(productUrl);
+      if (isAmazonUrl && AMZ_TRACKING_ID && !/[?&]tag=/.test(productUrl)) {
+        const separator = productUrl.includes("?") ? "&" : "?";
+        productUrl = `${productUrl}${separator}tag=${AMZ_TRACKING_ID}`;
       }
     }
 
