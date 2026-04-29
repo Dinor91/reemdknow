@@ -18,9 +18,8 @@ function getPlatformContext(source: string): string {
       return `Platform: Lazada Thailand (שוק תאילנדי).
 דגש בטיחות/אחריות: עדיפות למוכרי LazMall (אותנטיות מובטחת), תקן TIS למוצרי חשמל בתאילנד, תקע Type A/B/C, אחריות מקומית בתאילנד.`;
     case "amazon":
-      // Infrastructure ready — will activate when Amazon API connects.
-      return `Platform: Amazon.
-דגש בטיחות/אחריות: ${product_is_best_seller_hint()} משלוח Prime כשרלוונטי, מדיניות החזרות נדיבה, סימון Best Seller / Amazon's Choice אם מופיע.`;
+      return `Platform: Amazon (קמעונאי גלובלי, רוב המשלוחים לישראל מ-Amazon.com).
+דגש בטיחות/אחריות: משלוח Prime כשרלוונטי (משלוח מהיר ועקיבות), מדיניות החזרות נדיבה של אמזון (30 יום), אחריות יצרן בינלאומית. שימו לב — לא תמיד יש שירות מקומי בארץ, ייתכן מתאם תקע נדרש למוצרי חשמל, ולעיתים נוסף מס יבוא בכניסה לארץ. אם המוצר מסומן Best Seller / Amazon's Choice — לציין זאת.`;
     default:
       return `Platform: כללי.
 דגש בטיחות/אחריות: לציין מה שרלוונטי למוצר הספציפי (אחריות, התאמה, תחזוקה).`;
@@ -230,21 +229,32 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Append affiliate tracking params to AliExpress links
-    const TRACKING_ID = Deno.env.get("ALIEXPRESS_TRACKING_ID");
+    // Append affiliate tracking params per platform
+    const ALI_TRACKING_ID = Deno.env.get("ALIEXPRESS_TRACKING_ID");
+    const AMZ_TRACKING_ID = Deno.env.get("AMAZON_TRACKING_ID");
     let productUrl = product.url || "";
     console.log("[1] productUrl RAW from product.url:", productUrl);
     console.log("[1] source:", source || "default");
 
-    if (!isKsp) {
-      const isAlreadyTracked =
+    const lowerSrc = (source || "").toLowerCase();
+
+    if (lowerSrc !== "ksp") {
+      // AliExpress affiliate injection
+      const isAlreadyTrackedAli =
         productUrl.includes("s.click.aliexpress.com") ||
         productUrl.includes("a.aliexpress.com") ||
         productUrl.includes("aff_fcid");
 
-      if (productUrl.includes("aliexpress.com") && TRACKING_ID && !isAlreadyTracked) {
+      if (productUrl.includes("aliexpress.com") && ALI_TRACKING_ID && !isAlreadyTrackedAli) {
         const separator = productUrl.includes("?") ? "&" : "?";
-        productUrl = `${productUrl}${separator}aff_fcid=${TRACKING_ID}&aff_platform=portals-tool`;
+        productUrl = `${productUrl}${separator}aff_fcid=${ALI_TRACKING_ID}&aff_platform=portals-tool`;
+      }
+
+      // Amazon affiliate injection — add ?tag= if not already present
+      const isAmazonUrl = /amazon\.[a-z.]+|amzn\.to|a\.co/i.test(productUrl);
+      if (isAmazonUrl && AMZ_TRACKING_ID && !/[?&]tag=/.test(productUrl)) {
+        const separator = productUrl.includes("?") ? "&" : "?";
+        productUrl = `${productUrl}${separator}tag=${AMZ_TRACKING_ID}`;
       }
     }
 
@@ -298,7 +308,8 @@ serve(async (req) => {
           url.includes("aliexpress.com") ||
           url.includes("lazada.co") ||
           url.includes("s.click.") ||
-          url.includes("ksp.co.il")
+          url.includes("ksp.co.il") ||
+          /amazon\.[a-z.]+|amzn\.to|a\.co/i.test(url)
         ) {
           if (url !== productUrl) {
             message = message.replace(url, productUrl);
