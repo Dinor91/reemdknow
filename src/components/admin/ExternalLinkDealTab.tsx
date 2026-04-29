@@ -393,7 +393,7 @@ export const ExternalLinkDealTab = () => {
                 <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="שם המוצר בעברית" />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground">מותג {isKsp && <span className="text-red-500">*</span>}</label>
+                <label className="text-sm text-muted-foreground">מותג {isManual && <span className="text-red-500">*</span>}</label>
                 <Input value={editBrand} onChange={e => setEditBrand(e.target.value)} placeholder="מותג" />
               </div>
               <div>
