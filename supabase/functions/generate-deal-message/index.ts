@@ -308,7 +308,8 @@ serve(async (req) => {
           url.includes("aliexpress.com") ||
           url.includes("lazada.co") ||
           url.includes("s.click.") ||
-          url.includes("ksp.co.il")
+          url.includes("ksp.co.il") ||
+          /amazon\.[a-z.]+|amzn\.to|a\.co/i.test(url)
         ) {
           if (url !== productUrl) {
             message = message.replace(url, productUrl);
