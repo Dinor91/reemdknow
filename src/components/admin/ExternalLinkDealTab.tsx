@@ -218,20 +218,43 @@ export const ExternalLinkDealTab = () => {
 
     try {
       const isKsp = platform === "ksp";
+      const isAmazon = platform === "amazon";
+
+      const platformLabel =
+        isKsp || platform === "aliexpress" ? "israel" :
+        isAmazon ? "amazon" :
+        "thailand";
 
       const { error: dealError } = await supabase.from("deals_sent" as any).insert({
         product_name: editName,
         product_name_hebrew: editName,
-        platform: isKsp ? "israel" : (platform === "aliexpress" ? "israel" : "thailand"),
+        platform: platformLabel,
         category: editCategory,
         affiliate_url: affiliateUrl,
-        product_id: isKsp ? null : productId,
+        product_id: (isKsp || isAmazon) ? null : productId,
       } as any);
 
       if (dealError) console.error("deals_sent save error:", dealError);
 
-      // KSP: save to deals_sent only, not to israel_editor_products
-      if (!isKsp) {
+      // KSP: save to deals_sent only
+      if (isAmazon) {
+        const { error } = await supabase.from("amazon_editor_products" as any).insert({
+          product_name_hebrew: editName,
+          brand: editBrand || null,
+          tracking_link: affiliateUrl,
+          category_name_hebrew: editCategory,
+          price_usd: editPrice ? parseFloat(editPrice) : null,
+          original_price_usd: editOriginalPrice ? parseFloat(editOriginalPrice) : null,
+          discount_percentage: kspDiscountPercent(),
+          rating: editRating ? parseFloat(editRating) : null,
+          sales_count: editSales ? parseInt(editSales) : null,
+          note: editNote || null,
+          is_active: true,
+          out_of_stock: false,
+          source: "external_link",
+        } as any);
+        if (error) throw error;
+      } else if (!isKsp) {
         if (platform === "aliexpress") {
           const { error } = await supabase.from("israel_editor_products" as any).insert({
             aliexpress_product_id: productId,
@@ -272,7 +295,12 @@ export const ExternalLinkDealTab = () => {
       }
 
       setSaved(true);
-      toast.success(isKsp ? "✅ נשמר ל-deals_sent" : `✅ נשמר ל-${platform === "aliexpress" ? "israel_editor_products" : "category_products"} + deals_sent`);
+      const targetTable =
+        isKsp ? "deals_sent" :
+        isAmazon ? "amazon_editor_products + deals_sent" :
+        platform === "aliexpress" ? "israel_editor_products + deals_sent" :
+        "category_products + deals_sent";
+      toast.success(`✅ נשמר ל-${targetTable}`);
     } catch (e: any) {
       console.error("Save error:", e);
       toast.error(e.message || "שגיאה בשמירה");
