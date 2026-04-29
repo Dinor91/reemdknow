@@ -480,20 +480,19 @@ export const ExternalLinkDealTab = () => {
               )}
             </div>
 
-            {/* Affiliate URL for KSP (read-only display) */}
-            {isKsp && (
+            {/* Affiliate URL editable for manual platforms */}
+            {isManual && (
               <div>
                 <label className="text-sm text-muted-foreground">קישור אפיליאציה</label>
                 <Input value={affiliateUrl} onChange={e => setAffiliateUrl(e.target.value)} dir="ltr" />
               </div>
             )}
 
-            {!isKsp && (
-              <div>
-                <label className="text-sm text-muted-foreground">קופון (אופציונלי)</label>
-                <Input value={coupon} onChange={e => setCoupon(e.target.value)} placeholder="קוד קופון" dir="ltr" />
-              </div>
-            )}
+            {/* Coupon — available for ALL platforms */}
+            <div>
+              <label className="text-sm text-muted-foreground">קופון (אופציונלי)</label>
+              <Input value={coupon} onChange={e => setCoupon(e.target.value)} placeholder="קוד קופון" dir="ltr" />
+            </div>
 
             <Button
               onClick={handleGenerateMessage}
