@@ -422,12 +422,12 @@ export const ExternalLinkDealTab = () => {
                 />
               </div>
 
-              {/* KSP-specific: original price + note */}
-              {isKsp && (
+              {/* Manual platforms (KSP/Amazon): original price + note */}
+              {isManual && (
                 <>
                   <div>
                     <label className="text-sm text-muted-foreground">
-                      מחיר מקורי (₪)
+                      מחיר מקורי ({currencyLabel})
                       {kspDiscountPercent() && (
                         <span className="text-green-600 font-medium mr-2">
                           {kspDiscountPercent()}% הנחה
@@ -452,7 +452,7 @@ export const ExternalLinkDealTab = () => {
                 </>
               )}
 
-              {/* Non-KSP: rating + sales */}
+              {/* Rating + sales — for all except KSP (Amazon DOES show these) */}
               {!isKsp && (
                 <>
                   <div>
