@@ -312,6 +312,24 @@ serve(async (req) => {
       }
     }
 
+    // === Post-processing enforcement (in case the model slipped) ===
+    // 1. Remove placeholder phrases for missing data
+    const placeholders = [
+      /^.*ללא דירוג.*$/gm,
+      /^.*אין דירוג.*$/gm,
+      /^.*אין הנחה.*$/gm,
+      /^.*ללא נתוני מכירה.*$/gm,
+      /^.*ללא הנחה.*$/gm,
+    ];
+    // Only strip lines that are pure status placeholders (contain ⭐ or 🏷️ or 📈 + a placeholder)
+    message = message.replace(/^.*[⭐🏷️📈].*?(ללא דירוג|אין דירוג|אין הנחה|ללא נתוני מכירה|ללא הנחה|לא ידוע).*$/gm, "");
+    // 2. Remove "💰 אזור מחיר ומשלוח" header line if model added it
+    message = message.replace(/^.*💰\s*אזור מחיר.*$/gm, "");
+    // 3. Ensure price line uses "כמה תשלמו?" format — fix bare "💲 <price>" lines
+    message = message.replace(/^💲\s+(?!כמה תשלמו)(.+)$/gm, "💲 כמה תשלמו? $1");
+    // 4. Collapse 3+ blank lines into 2
+    message = message.replace(/\n{3,}/g, "\n\n").trim();
+
     return new Response(JSON.stringify({ message, grounded: !!groundingFacts }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
