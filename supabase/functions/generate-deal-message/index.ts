@@ -260,10 +260,28 @@ serve(async (req) => {
     // B. Fix unicode replacement chars
     message = message.replace(/�/g, "");
 
-    // B2. If model wrote the Dknow note as a bullet, restore it to the proper structural line
-    message = message.replace(/^[\s]*•\s*\*\*\s*הערת\s*Dknow:?\s*\*?\*?\s*/gm, "💡 הערת Dknow: ");
-    // B3. Strip any bullet line that ended up being a broken Dknow line (without proper marker)
-    message = message.replace(/^[\s]*•\s*\*\*\s*(?=.*הערת\s*Dknow)/gm, "💡 ");
+    // B2. Any line containing "הערת Dknow" — normalize to a clean structural line
+    //     (handles bullet prefix, broken emoji, extra markdown — all variants)
+    message = message.split("\n").map((line: string) => {
+      if (/הערת\s*Dknow/.test(line) && !/^💡\s*הערת/.test(line.trim())) {
+        // Strip any prefix garbage (•, **, broken emojis, whitespace) before "הערת Dknow"
+        const cleaned = line.replace(/^.*?הערת\s*Dknow:?\s*\*?\*?\s*/, "").trim();
+        return cleaned ? `💡 הערת Dknow: ${cleaned}` : "";
+      }
+      return line;
+    }).join("\n");
+    // B3. Deduplicate Dknow lines — keep only the first
+    {
+      const lines = message.split("\n");
+      let seen = false;
+      message = lines.filter((l: string) => {
+        if (/^💡\s*הערת\s*Dknow/.test(l.trim())) {
+          if (seen) return false;
+          seen = true;
+        }
+        return true;
+      }).join("\n");
+    }
 
     // C. Convert engineering bullet emojis to • if model slipped them
     message = message.replace(/^[\s]*[🔧💰🛡️⚙️🔩]\s*\*?\*?\s*/gm, "• **");
