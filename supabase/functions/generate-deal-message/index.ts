@@ -305,8 +305,6 @@ serve(async (req) => {
 
     message = `${message}\n\n${priceLine}\n\n🔗 לינק למוצר:\n${productUrl}`;
 
-    message = `${message}\n\n${priceLine}\n\n🔗 לינק למוצר:\n${productUrl}`;
-
 
     return new Response(JSON.stringify({ message, grounded: !!groundingFacts }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
