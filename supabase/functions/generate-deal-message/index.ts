@@ -276,20 +276,24 @@ serve(async (req) => {
     // A. Strip any URLs the model accidentally included (we add the link ourselves)
     message = message.replace(/https?:\/\/[^\s\n)]+/g, "");
 
-    // B. Fix unicode replacement chars (U+FFFD and similar broken chars)
-    message = message.replace(/\uFFFD/g, "").replace(/�/g, "");
+    // B. Aggressive cleaning — strip invisible/broken/directional unicode that breaks regex
+    message = message
+      .replace(/\uFFFD/g, "")           // replacement char
+      .replace(/[\u200B-\u200F]/g, "")  // ZWSP, ZWNJ, ZWJ, LRM, RLM
+      .replace(/[\u202A-\u202E]/g, "")  // directional embedding/override
+      .replace(/[\u2066-\u2069]/g, "")  // directional isolates
+      .replace(/\uFEFF/g, "")            // BOM
+      .replace(/�/g, "");
 
-    // B2. Any line containing "הערת Dknow" — normalize to a clean structural line.
-    //     A bullet line (• ...) that mentions "הערת Dknow" is a model leak — drop it,
-    //     do NOT promote it to the real Dknow line (the real one will follow below).
+    // B2. Deny-list — any line mentioning "הערת Dknow" that is NOT in the strict
+    //     "💡 הערת Dknow" format is a leak (bullet, broken emoji, ** prefix, etc.)
+    //     → DELETE the line entirely. Do not try to "fix" it. The real Dknow line
+    //     will either survive elsewhere or the H2 fallback will regenerate it.
     message = message.split("\n").map((line: string) => {
-      const trimmed = line.trim();
       if (!/הערת\s*Dknow/.test(line)) return line;
-      if (/^💡\s*הערת/.test(trimmed)) return line; // already clean
-      if (/^[•\-*]/.test(trimmed)) return ""; // bullet leak — drop it entirely
-      // Other prefix garbage (broken emoji, **, etc.) — clean and keep
-      const cleaned = line.replace(/^.*?הערת\s*Dknow:?\s*\*?\*?\s*/, "").trim();
-      return cleaned ? `💡 הערת Dknow: ${cleaned}` : "";
+      const trimmed = line.trim();
+      if (/^💡\s*הערת\s*Dknow/.test(trimmed)) return line; // strictly clean — keep
+      return ""; // leak — drop
     }).join("\n");
     // B3. Deduplicate Dknow lines — keep only the LAST (the real one usually comes last)
     {
