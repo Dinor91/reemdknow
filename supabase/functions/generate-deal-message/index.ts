@@ -260,27 +260,27 @@ serve(async (req) => {
     // B. Fix unicode replacement chars (U+FFFD and similar broken chars)
     message = message.replace(/\uFFFD/g, "").replace(/�/g, "");
 
-    // B2. Any line containing "הערת Dknow" — normalize to a clean structural line
-    //     (handles bullet prefix, broken emoji, extra markdown — all variants)
+    // B2. Any line containing "הערת Dknow" — normalize to a clean structural line.
+    //     A bullet line (• ...) that mentions "הערת Dknow" is a model leak — drop it,
+    //     do NOT promote it to the real Dknow line (the real one will follow below).
     message = message.split("\n").map((line: string) => {
-      if (/הערת\s*Dknow/.test(line) && !/^💡\s*הערת/.test(line.trim())) {
-        // Strip any prefix garbage (•, **, broken emojis, whitespace) before "הערת Dknow"
-        const cleaned = line.replace(/^.*?הערת\s*Dknow:?\s*\*?\*?\s*/, "").trim();
-        return cleaned ? `💡 הערת Dknow: ${cleaned}` : "";
-      }
-      return line;
+      const trimmed = line.trim();
+      if (!/הערת\s*Dknow/.test(line)) return line;
+      if (/^💡\s*הערת/.test(trimmed)) return line; // already clean
+      if (/^[•\-*]/.test(trimmed)) return ""; // bullet leak — drop it entirely
+      // Other prefix garbage (broken emoji, **, etc.) — clean and keep
+      const cleaned = line.replace(/^.*?הערת\s*Dknow:?\s*\*?\*?\s*/, "").trim();
+      return cleaned ? `💡 הערת Dknow: ${cleaned}` : "";
     }).join("\n");
-    // B3. Deduplicate Dknow lines — keep only the first
+    // B3. Deduplicate Dknow lines — keep only the LAST (the real one usually comes last)
     {
       const lines = message.split("\n");
-      let seen = false;
-      message = lines.filter((l: string) => {
-        if (/^💡\s*הערת\s*Dknow/.test(l.trim())) {
-          if (seen) return false;
-          seen = true;
-        }
-        return true;
-      }).join("\n");
+      const dknowIdxs: number[] = [];
+      lines.forEach((l, i) => { if (/^💡\s*הערת\s*Dknow/.test(l.trim())) dknowIdxs.push(i); });
+      if (dknowIdxs.length > 1) {
+        const keep = dknowIdxs[dknowIdxs.length - 1];
+        message = lines.filter((_, i) => !dknowIdxs.includes(i) || i === keep).join("\n");
+      }
     }
 
     // C. Convert engineering bullet emojis to • if model slipped them
@@ -346,7 +346,8 @@ serve(async (req) => {
     }
 
     // I. Append the deterministic price + link blocks
-    const priceParts: string[] = [`💲 ${product.price}`];
+    const cleanPrice = String(product.price || "").replace(/\s+/g, " ").trim();
+    const priceParts: string[] = [`💲 כמה תשלמו? ${cleanPrice}`];
     if (coupon) priceParts.push(`🎟️ קופון: ${coupon}`);
     const shippingInfo = product.shipping_info ? String(product.shipping_info).trim() : null;
     if (shippingInfo) priceParts.push(`🚚 ${shippingInfo}`);
