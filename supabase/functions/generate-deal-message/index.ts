@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Platform-specific strategic focus injected into the prompt (Dynamic Context v2)
+// Platform-specific strategic focus injected into the prompt
 function getPlatformContext(source: string): string {
   switch ((source || "").toLowerCase()) {
     case "ksp":
@@ -39,7 +39,6 @@ async function fetchGroundingFacts(productName: string, brand: string | null | u
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ query, limit: 4 }),
-      // 12s ceiling so the function still feels snappy
       signal: AbortSignal.timeout(12000),
     });
     if (!res.ok) {
@@ -78,100 +77,79 @@ function buildAuditorPrompt({
 }) {
   const platformContext = getPlatformContext(source);
 
-  const ratingValue =
-    product.rating && product.rating !== "חדש" && Number(product.rating) > 0 ? product.rating : null;
-  const salesValue = product.sales_7d && Number(product.sales_7d) > 0 ? product.sales_7d : null;
-  const discountValue = product.discount_percent && Number(product.discount_percent) > 0 ? product.discount_percent : null;
-
   const hasManualNote = product.note && String(product.note).trim().length > 0;
   const manualNote = hasManualNote ? String(product.note).trim() : null;
-
-  const isBestSeller = product.is_best_seller === true;
   const shippingInfo = product.shipping_info ? String(product.shipping_info).trim() : null;
 
-  // Hybrid Verdict logic — manual note wins, otherwise generate from grounding+category
   const dknowNoteInstruction = hasManualNote
-    ? `Use this EXACT manual Dknow note as the CORE VERDICT, character-for-character: "${manualNote}". 
-This is the user's professional opinion — it must become the heart of the message.
-If it mentions a "competing option" or "trap model", treat that as the most important insight.`
-    : `Generate a professional verdict using the GROUNDING FACTS below. Pick ONE of:
-   (a) maintenance tip ("ודאו ש...")
-   (b) hidden technical limitation ("שימו לב ש...")
-   (c) insider recommendation NOT in the marketing specs.
-Do NOT compare to other models unless the grounding facts reveal a clear "trap" model in the same brand.
-NEVER repeat the product name. NEVER restate the bullets above.`;
+    ? `Use this EXACT manual Dknow note as the CORE — character-for-character: "${manualNote}".
+This is the user's professional verdict — it overrides everything else.`
+    : `Generate a Dknow note that is STRICTLY one of:
+   (א) פעולת תחזוקה/שימוש קונקרטית שהמשתמש צריך לעשות ("להעביר חלקי הסיליקון במדיח פעם בשבוע", "לבדוק חיזוק ברגים אחרי 100 ק\"מ", "להפעיל מצב self-clean פעם בחודש").
+   (ב) אזהרה מדגם דומה/זול יותר באותו מותג שהוא "מלכודת" צרכנית (פשרה איכותית).
+NEVER: לחזור על שם המוצר, להזכיר מחיר, לכתוב "מומלץ"/"כדאי" בלי הצדקה טכנית, לסכם את הבולטים שמעל.`;
 
   const groundingBlock = groundingFacts
-    ? `### GROUNDING FACTS (real web research — extracted from search results)
+    ? `### GROUNDING FACTS (real web research)
 ${groundingFacts}
 
-USE THESE FACTS to extract:
-- Real materials (PU foam, stainless steel 304, ABS, etc.)
-- Real safety/quality standards (CE, RoHS, FDA, ANSI, TIS, ISO ratings)
-- Real performance numbers (5-day ice retention, 600W, IP67, etc.)
-- Brand heritage signals (year founded, country of origin, market position)
-NEVER invent facts. If the grounding does not contain a number, omit that bullet entirely.`
+USE THESE FACTS to extract the SPECIFIC name of the technology/patent/material/standard:
+- חומרים: "נירוסטה 304", "PU מוזרק 32 מ\"מ", "סיליקון food-grade", "ABS"
+- פטנטים/טכנולוגיות: "פטנט Hydraflow", "מנגנון FreeSip", "טכנולוגיית UVGuard"
+- תקנים: "CE", "RoHS", "FDA", "ANSI Z87.1", "TIS 1521", "IP67"
+- ביצועים מדידים: "שמירת קור 24 שעות", "600W", "טווח 10 מטר"
+NEVER invent. אם אין נתון בגראונדינג — דלג על הבולט.`
     : `### GROUNDING FACTS
-NONE available. Use ONLY the structured product fields below. Do NOT invent technical specs.`;
+NONE. השתמש רק במידע מהשדות. אל תמציא מפרט.`;
 
   const systemPrompt = `### BRAND IDENTITY
-You are "Dknow Auditor v3" — an engineering-grade product reviewer for the Israeli community "reemdknow".
-You write a forensic AUDIT, not an ad. Your authority comes from EXPOSING the engineering truth most consumers miss.
+You are "Dknow Auditor v4" — engineering-grade product reviewer for the Israeli community "reemdknow".
+You write a polished, conversational AUDIT — not an ad. The tone is a knowledgeable friend explaining why a specific engineering detail matters.
 
-### CORE PRINCIPLE: ENGINEERING TRUTH > MARKETING SPEC
-Wrong: "קיבולת 49 ליטר — נפח שמתאים למשפחה"  (this is the box label, anyone can read it)
-Right: "🔧 בידוד PU מוזרק 32 מ\"מ + UVGuard — שמירת קרח ל-5 ימים בחום של 32°C, לא רק נפח"
-Always expose materials, standards, certifications, lab numbers — extracted from grounding.
+### YOUR JOB
+Generate ONLY the CONTENT BLOCK. The price line and link line are added automatically by the system AFTER your output — do NOT write them yourself.
+
+### CORE PRINCIPLE
+Wrong: "קיבולת 49 ליטר — נפח שמתאים למשפחה" (anyone can read the box)
+Right: "**בידוד ואקום משולש**: שומר על המים קרים גם ברכב לוהט בקיץ הישראלי, לא רק בקבוק יפה"
 
 ### FORBIDDEN WORDS (Anti-Bot)
-NEVER use: מטורף, מדהים, הזוי, חובה, הכי טוב, מספק, מציע, יחסית, בשוק קיימים, תמורה טובה, מיועד ל
+NEVER: מטורף, מדהים, הזוי, חובה, הכי טוב, מספק, מציע, יחסית, תמורה טובה, מיועד ל
+NEVER use robotic connectors: "מה שזה אומר עבורך", "המשמעות היא", "זה אומר ש", "כלומר".
+המשפט בכל בולט חייב לזרום טבעי, כאילו אתה מסביר לחבר. אך ורק עברית — בלי מילים בערבית/אנגלית בתוך הסבר עברי.
 
-### HOOK RULE
-Open with a daily-frustration question. Never "אם אתם מחפשים".
+### EXACT OUTPUT STRUCTURE (write EXACTLY this, nothing else)
 
-### MANDATORY STRUCTURE (strict order)
-
-1. Hook (frustration question)
-2. *שם מוצר - מותג*
-3. STATUS LINE — atoms joined with " | ", ONLY for atoms that exist:
-   - ⭐ ${ratingValue ?? "OMIT"}
-   - 🏷️ ${discountValue ? discountValue + "% הנחה" : "OMIT"}
-   - 📈 ${salesValue ? salesValue + " מכירות השבוע" : "OMIT"}
-   - 🏆 BestSeller (only if YES)
-   ⛔ IF ALL ATOMS = OMIT → SKIP THE STATUS LINE ENTIRELY. Move directly from the product name to "✨ למה זאת הבחירה שלי?".
-   ⛔ FORBIDDEN PHRASES (never write these): "ללא דירוג", "אין דירוג", "אין הנחה", "ללא נתוני מכירה", "לא ידוע", "MISSING", "OMIT".
-4. ✨ למה זאת הבחירה שלי?
-5. 🔧 **[מונח הנדסי]:** עובדה מהגראונדינג + משמעות מעשית
-6. 💰 **[ערך]:** הצדקת מחיר מול חלופות זולות יותר (רק אם הגראונדינג מגלה מלכודת באותו מותג)
-7. 🛡️ **[בטיחות/תקן]:** תקן ספציפי מהגראונדינג + משמעות
-8. 💡 **הערת Dknow:** ה-VERDICT — דעה מקצועית, אזהרה, או "אופציה נגדית". זה לב ההודעה.
-   ❌ אסור: לחזור על שם המוצר, להזכיר מחירים, לשלב קופונים.
-   ✅ חובה: insight שלא נמצא במפרט הרשמי.
-
+[שורה 1] Hook — שאלת תסכול יומיומית. בלי "אם אתם מחפשים".
 [שורה ריקה]
+[שורה 2] שם המוצר - מותג   (פורמט: "שם המוצר - שם המותג")
+[שורה ריקה]
+[שורה 3] ✨ למה זאת הבחירה שלי?
+[שורות בולטים] בדיוק 2 או 3 בולטים (לא 4, לא 1!) בפורמט:
+• **[שם הטכנולוגיה/פטנט/חומר הספציפי מהגראונדינג]:** הסבר טבעי שמחבר את ההנדסה לתועלת יומיומית.
+[שורה ריקה]
+💡 הערת Dknow: [חובה — לא לדלג! לפי החוקים בהמשך]
 
-9. בלוק מחיר — בלי כותרת. כל שורה בנפרד, בדיוק בפורמט הזה:
-   💲 כמה תשלמו? ${product.price}${product.original_price ? " (במקום " + product.original_price + ")" : ""}
-   ${coupon ? '🎟️ **קופון:** `' + coupon + '`' : "(אם אין קופון — דלג על השורה הזו לחלוטין)"}
-   ${shippingInfo ? "🚚 " + shippingInfo : "(אם אין משלוח — דלג על השורה הזו לחלוטין)"}
-   ⛔ אסור לכתוב את הכותרת "💰 אזור מחיר ומשלוח". מתחילים ישר ב-💲.
-   ⛔ פורמט המחיר חייב להיות "💲 כמה תשלמו? ${product.price}" — לא "💲 ${product.price}" לבד.
+⛔ הערת Dknow היא חובה מוחלטת. אם תדלג עליה — הפלט פסול. חייבת להופיע בדיוק אחרי הבולטים, עם השורה הריקה לפניה.
+⛔ STOP HERE. אל תכתוב כלום אחרי הערת Dknow. אסור לכתוב מחיר, לינק, קופון, משלוח, חתימה, או כל דבר נוסף. המערכת מוסיפה את זה אוטומטית.
 
-[שורה ריקה — חובה לפני הלינק]
+### BULLET RULES
+⛔ אסור: אימוג'י לפני הבולט (לא 🔧 לא 💰 לא 🛡️). רק התו "•".
+⛔ אסור: שם בולט גנרי כמו "טכני" / "ערך" / "בטיחות". חייב להיות שם ספציפי.
+⛔ אסור: ביטויי קישור רובוטיים אחרי הנקודתיים.
+⛔ אסור: יותר מ-3 בולטים.
 
-10. 🔗 לינק למוצר:
-    ${productUrl}
+### ABSOLUTE PROHIBITIONS
+⛔ אין שורת סטטוס של ⭐ דירוג / 🏷️ הנחה / 📈 מכירות / 🏆 BestSeller.
+⛔ אין מחיר, קופון, משלוח, או לינק בפלט שלך — המערכת מוסיפה אותם אוטומטית.
+⛔ אין חתימה, אין "reemdknow", אין שום דבר אחרי הערת Dknow.
+⛔ מקסימום סימן קריאה אחד בכל ההודעה. עד 150 מילים.
 
-### DKNOW NOTE — THE VERDICT (most important rule)
+### DKNOW NOTE RULES (THE VERDICT)
 ${dknowNoteInstruction}
 
-If the manual note describes a "competing option" or "trap model" (e.g. "the cheaper Twist model is a trap"),
-that warning becomes the headline of the Dknow note — phrased as a direct warning to the reader.
-
 ### COMPARISON RULE
-- Do NOT compare brand-vs-brand for its own sake.
-- Compare ONLY when: (a) the user provided a "direction" in the manual note, OR (b) grounding reveals a same-brand cheaper model that's a known trap.
-- Otherwise — focus on the engineering depth of THIS product.
+לא להשוות סתם. רק אם: (א) המשתמש נתן כיוון בהערה הידנית, או (ב) הגראונדינג חושף דגם זול יותר באותו מותג שהוא מלכודת.
 
 ### PLATFORM CONTEXT
 ${platformContext}
@@ -179,43 +157,22 @@ ${platformContext}
 ${groundingBlock}
 
 ### DATA INJECTION
-- URL = ${productUrl} (exact, character-for-character)
-- Price = ${product.price}
-- Original price = ${product.original_price || "NONE"}
-- Rating = ${ratingValue ?? "NONE"}
-- Sales 7d = ${salesValue ?? "NONE"}
-- Discount = ${discountValue ?? "NONE"}%
-- Coupon = ${coupon || "NONE"}
-- Best Seller = ${isBestSeller ? "YES" : "NO"}
-- Shipping = ${shippingInfo ?? "NONE"}
+- Brand = ${product.brand || "NONE"}
+- Category = ${product.category || "כללי"}
+- Manual Verdict = ${manualNote ?? "NONE"}`;
 
-### CRITICAL RULES
-- URL exact: ${productUrl}
-- No signature, no "reemdknow", nothing after the URL.
-- Max ONE exclamation mark in the entire message.
-- Under 200 words.
-- HIDE empty data — never write "אין דירוג", "אין הנחה", "לא ידוע".
-- COUPON: include the 🎟️ line ONLY if Coupon ≠ NONE, on its own separate line.
-- Empty line between the price block and the URL line — mandatory.`;
-
-  const userPrompt = `Generate the audit for this product.
+  const userPrompt = `Generate the audit CONTENT BLOCK only (Hook → name → ✨ bullets → 💡 Dknow note). STOP after the Dknow note.
 
 Source: ${source || "default"}
 Name: ${product.name}
 Brand: ${product.brand || "NONE"}
 Category: ${product.category || "כללי"}
-Price: ${product.price}
-Original Price: ${product.original_price || "NONE"}
-Discount: ${discountValue ?? "NONE"}%
-Rating: ${ratingValue ?? "NONE"}
-Sales_7d: ${salesValue ?? "NONE"}
-Is Best Seller: ${isBestSeller ? "YES" : "NO"}
-Shipping Info: ${shippingInfo ?? "NONE"}
 Manual Dknow Verdict: ${manualNote ?? "NONE — generate from grounding"}
-URL: ${productUrl}
-Coupon: ${coupon || "NONE"}
 
-Remember: hide any data marked NONE. The URL must appear EXACTLY as-is.`;
+Remember:
+- 2-3 bullets only, with • and **bold** technology name.
+- No emojis on bullets.
+- STOP after the 💡 Dknow note. Do not write price, coupon, shipping, or link.`;
 
   return { systemPrompt, userPrompt };
 }
@@ -295,40 +252,108 @@ serve(async (req) => {
     const data = await response.json();
     let message = data.choices?.[0]?.message?.content || "";
 
-    // URL Post-processing — preserve affiliate link
-    const urlRegex = /https?:\/\/[^\s\n)]+/g;
-    const urls = message.match(urlRegex);
-    if (urls && urls.length > 0) {
-      for (const url of urls) {
-        if (
-          url.includes("aliexpress.com") ||
-          url.includes("lazada.co") ||
-          url.includes("s.click.") ||
-          url.includes("ksp.co.il") ||
-          /amazon\.[a-z.]+|amzn\.to|a\.co/i.test(url)
-        ) {
-          if (url !== productUrl) message = message.replace(url, productUrl);
+    // === Post-processing v4 — clean content + append deterministic blocks ===
+
+    // A. Strip any URLs the model accidentally included (we add the link ourselves)
+    message = message.replace(/https?:\/\/[^\s\n)]+/g, "");
+
+    // B. Fix unicode replacement chars (U+FFFD and similar broken chars)
+    message = message.replace(/\uFFFD/g, "").replace(/�/g, "");
+
+    // B2. Any line containing "הערת Dknow" — normalize to a clean structural line
+    //     (handles bullet prefix, broken emoji, extra markdown — all variants)
+    message = message.split("\n").map((line: string) => {
+      if (/הערת\s*Dknow/.test(line) && !/^💡\s*הערת/.test(line.trim())) {
+        // Strip any prefix garbage (•, **, broken emojis, whitespace) before "הערת Dknow"
+        const cleaned = line.replace(/^.*?הערת\s*Dknow:?\s*\*?\*?\s*/, "").trim();
+        return cleaned ? `💡 הערת Dknow: ${cleaned}` : "";
+      }
+      return line;
+    }).join("\n");
+    // B3. Deduplicate Dknow lines — keep only the first
+    {
+      const lines = message.split("\n");
+      let seen = false;
+      message = lines.filter((l: string) => {
+        if (/^💡\s*הערת\s*Dknow/.test(l.trim())) {
+          if (seen) return false;
+          seen = true;
+        }
+        return true;
+      }).join("\n");
+    }
+
+    // C. Convert engineering bullet emojis to • if model slipped them
+    message = message.replace(/^[\s]*[🔧💰🛡️⚙️🔩]\s*\*?\*?\s*/gm, "• **");
+
+    // D. Remove any leftover status/price/link/coupon lines the model wrote
+    //    (the model was told NOT to write these, but we enforce it)
+    message = message.replace(/^[\s]*(💲|🎟️|🚚|🔗|💰\s*אזור|💵|🛒).*$/gm, "");
+    message = message.replace(/^.*[⭐🏷️📈🏆].*$/gm, (line) => {
+      const stripped = line.replace(/[⭐🏷️📈🏆\s\d.,%|]/g, "");
+      return stripped.length < 5 ? "" : line;
+    });
+    message = message.replace(/^.*לינק למוצר.*$/gm, "");
+    message = message.replace(/^.*reemdknow.*$/gim, "");
+
+    // E. Remove placeholder phrases for missing data
+    message = message.replace(/^.*(ללא דירוג|אין דירוג|אין הנחה|ללא נתוני מכירה|ללא הנחה|לא ידוע).*$/gm, "");
+
+    // F. Strip robotic connectors after bullet colons
+    message = message.replace(/:\*\*\s*(מה שזה אומר עבורך|המשמעות היא|זה אומר ש|כלומר)[,:\s]*/g, ":** ");
+    message = message.replace(/(מה שזה אומר עבורך|המשמעות היא|זה אומר ש)[,:\s]+/g, "");
+
+    // G. Limit bullets to 3 max in the ✨ block
+    message = message.replace(
+      /(✨[^\n]*\n)((?:[\s]*•[^\n]*\n?){4,})/m,
+      (_m, header, bullets) => {
+        const lines = bullets.split("\n").filter((l: string) => l.trim().startsWith("•"));
+        return header + lines.slice(0, 3).join("\n") + "\n";
+      }
+    );
+
+    // H. Collapse 3+ blank lines, trim trailing whitespace
+    message = message.replace(/\n{3,}/g, "\n\n").trim();
+
+    // H2. Ensure Dknow note exists — fallback if model skipped it
+    if (!/💡\s*הערת\s*Dknow/.test(message)) {
+      const manualNote = product.note && String(product.note).trim();
+      if (manualNote) {
+        message = `${message}\n\n💡 הערת Dknow: ${manualNote}`;
+      } else {
+        // Focused 2nd AI call — generate just the note
+        try {
+          const noteRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                { role: "system", content: `כתוב משפט אחד או שניים בעברית — הערת Dknow למוצר. חייב להיות (א) פעולת תחזוקה קונקרטית או (ב) אזהרה מדגם דומה זול שהוא מלכודת. אסור: שם המוצר, מחיר, "מומלץ"/"כדאי". בלי קידומת, רק הטקסט.` },
+                { role: "user", content: `מוצר: ${product.name} (${product.brand || ""}). קטגוריה: ${product.category || "כללי"}.${groundingFacts ? "\nמידע: " + groundingFacts.slice(0, 800) : ""}` },
+              ],
+            }),
+          });
+          if (noteRes.ok) {
+            const nd = await noteRes.json();
+            const noteText = (nd.choices?.[0]?.message?.content || "").trim().replace(/^["׳']|["׳']$/g, "");
+            if (noteText) message = `${message}\n\n💡 הערת Dknow: ${noteText}`;
+          }
+        } catch (e) {
+          console.log("[dknow-fallback] error:", e instanceof Error ? e.message : String(e));
         }
       }
     }
 
-    // === Post-processing enforcement (in case the model slipped) ===
-    // 1. Remove placeholder phrases for missing data
-    const placeholders = [
-      /^.*ללא דירוג.*$/gm,
-      /^.*אין דירוג.*$/gm,
-      /^.*אין הנחה.*$/gm,
-      /^.*ללא נתוני מכירה.*$/gm,
-      /^.*ללא הנחה.*$/gm,
-    ];
-    // Only strip lines that are pure status placeholders (contain ⭐ or 🏷️ or 📈 + a placeholder)
-    message = message.replace(/^.*[⭐🏷️📈].*?(ללא דירוג|אין דירוג|אין הנחה|ללא נתוני מכירה|ללא הנחה|לא ידוע).*$/gm, "");
-    // 2. Remove "💰 אזור מחיר ומשלוח" header line if model added it
-    message = message.replace(/^.*💰\s*אזור מחיר.*$/gm, "");
-    // 3. Ensure price line uses "כמה תשלמו?" format — fix bare "💲 <price>" lines
-    message = message.replace(/^💲\s+(?!כמה תשלמו)(.+)$/gm, "💲 כמה תשלמו? $1");
-    // 4. Collapse 3+ blank lines into 2
-    message = message.replace(/\n{3,}/g, "\n\n").trim();
+    // I. Append the deterministic price + link blocks
+    const priceParts: string[] = [`💲 ${product.price}`];
+    if (coupon) priceParts.push(`🎟️ קופון: ${coupon}`);
+    const shippingInfo = product.shipping_info ? String(product.shipping_info).trim() : null;
+    if (shippingInfo) priceParts.push(`🚚 ${shippingInfo}`);
+    const priceLine = priceParts.join(" | ");
+
+    message = `${message}\n\n${priceLine}\n\n🔗 לינק למוצר:\n${productUrl}`;
+
 
     return new Response(JSON.stringify({ message, grounded: !!groundingFacts }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
