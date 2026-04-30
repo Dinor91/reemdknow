@@ -251,75 +251,55 @@ serve(async (req) => {
     const data = await response.json();
     let message = data.choices?.[0]?.message?.content || "";
 
-    // URL Post-processing — preserve affiliate link
-    const urlRegex = /https?:\/\/[^\s\n)]+/g;
-    const urls = message.match(urlRegex);
-    if (urls && urls.length > 0) {
-      for (const url of urls) {
-        if (
-          url.includes("aliexpress.com") ||
-          url.includes("lazada.co") ||
-          url.includes("s.click.") ||
-          url.includes("ksp.co.il") ||
-          /amazon\.[a-z.]+|amzn\.to|a\.co/i.test(url)
-        ) {
-          if (url !== productUrl) message = message.replace(url, productUrl);
-        }
-      }
-    }
+    // === Post-processing v4 — clean content + append deterministic blocks ===
 
-    // === Post-processing enforcement v4 ===
-    // 1. Fix unicode replacement chars (�) — happens when model corrupts emojis
-    // Try to restore based on line context
-    message = message.replace(/^[\s•*]*\*\*\s*�\s*הערת Dknow/gm, "💡 הערת Dknow");
-    message = message.replace(/^[\s•*]*\*\*\s*�\s*(\d)/gm, "💲 $1");
-    message = message.replace(/^[\s•*]*\*\*\s*�\s*לינק/gm, "🔗 לינק");
-    message = message.replace(/�/g, ""); // strip any remaining replacement chars
+    // A. Strip any URLs the model accidentally included (we add the link ourselves)
+    message = message.replace(/https?:\/\/[^\s\n)]+/g, "");
 
-    // 2. If model wrote bullet-prefixed lines for the structural blocks, restore them
-    message = message.replace(/^[\s]*•\s*\*\*\s*הערת Dknow:?\s*/gm, "💡 הערת Dknow: ");
-    message = message.replace(/^[\s]*•\s*\*\*\s*(?=\d+\s*₪|\d+\s*$)/gm, "💲 ");
-    message = message.replace(/^[\s]*•\s*\*\*\s*(?=לינק)/gm, "🔗 ");
+    // B. Fix unicode replacement chars
+    message = message.replace(/�/g, "");
 
-    // 3. Convert engineering bullet emojis to • if model slipped them at start of bullet
+    // C. Convert engineering bullet emojis to • if model slipped them
     message = message.replace(/^[\s]*[🔧💰🛡️⚙️🔩]\s*\*?\*?\s*/gm, "• **");
 
-    // 4. Remove any leftover status lines (⭐/🏷️/📈/🏆 — short lines dominated by these)
+    // D. Remove any leftover status/price/link/coupon lines the model wrote
+    //    (the model was told NOT to write these, but we enforce it)
+    message = message.replace(/^[\s]*(💲|🎟️|🚚|🔗|💰\s*אזור|💵|🛒).*$/gm, "");
     message = message.replace(/^.*[⭐🏷️📈🏆].*$/gm, (line) => {
       const stripped = line.replace(/[⭐🏷️📈🏆\s\d.,%|]/g, "");
       return stripped.length < 5 ? "" : line;
     });
-    // 5. Remove placeholder phrases for missing data
+    message = message.replace(/^.*לינק למוצר.*$/gm, "");
+    message = message.replace(/^.*reemdknow.*$/gim, "");
+
+    // E. Remove placeholder phrases for missing data
     message = message.replace(/^.*(ללא דירוג|אין דירוג|אין הנחה|ללא נתוני מכירה|ללא הנחה|לא ידוע).*$/gm, "");
-    // 6. Remove "💰 אזור מחיר ומשלוח" header line if model added it
-    message = message.replace(/^.*💰\s*אזור מחיר.*$/gm, "");
-    // 7. Remove "כמה תשלמו?" if model added it
-    message = message.replace(/💲\s*כמה תשלמו\?\s*/g, "💲 ");
-    // 8. Strip robotic connectors after bullet colons
+
+    // F. Strip robotic connectors after bullet colons
     message = message.replace(/:\*\*\s*(מה שזה אומר עבורך|המשמעות היא|זה אומר ש|כלומר)[,:\s]*/g, ":** ");
     message = message.replace(/(מה שזה אומר עבורך|המשמעות היא|זה אומר ש)[,:\s]+/g, "");
 
-    // 9. Merge separate price/coupon/shipping lines into single line
+    // G. Limit bullets to 3 max in the ✨ block
     message = message.replace(
-      /(💲[^\n|]+?)\n+(🎟️[^\n|]+?)(?:\n+(🚚[^\n|]+?))?(?=\n|$)/g,
-      (_m, p, c, s) => s ? `${p.trim()} | ${c.trim()} | ${s.trim()}` : `${p.trim()} | ${c.trim()}`
-    );
-    message = message.replace(
-      /(💲[^\n|]+?)\n+(🚚[^\n|]+?)(?=\n|$)/g,
-      (_m, p, s) => `${p.trim()} | ${s.trim()}`
-    );
-
-    // 10. Limit bullets to 3 max (in the ✨ block)
-    message = message.replace(
-      /(✨[^\n]*\n)((?:^•[^\n]*\n){4,})/m,
+      /(✨[^\n]*\n)((?:[\s]*•[^\n]*\n?){4,})/m,
       (_m, header, bullets) => {
         const lines = bullets.split("\n").filter((l: string) => l.trim().startsWith("•"));
         return header + lines.slice(0, 3).join("\n") + "\n";
       }
     );
 
-    // 11. Collapse 3+ blank lines into 2
+    // H. Collapse 3+ blank lines, trim trailing whitespace
     message = message.replace(/\n{3,}/g, "\n\n").trim();
+
+    // I. Append the deterministic price + link blocks
+    const priceParts: string[] = [`💲 ${product.price}`];
+    if (coupon) priceParts.push(`🎟️ קופון: ${coupon}`);
+    const shippingInfo = product.shipping_info ? String(product.shipping_info).trim() : null;
+    if (shippingInfo) priceParts.push(`🚚 ${shippingInfo}`);
+    const priceLine = priceParts.join(" | ");
+
+    message = `${message}\n\n${priceLine}\n\n🔗 לינק למוצר:\n${productUrl}`;
+
 
     return new Response(JSON.stringify({ message, grounded: !!groundingFacts }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
