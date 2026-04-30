@@ -260,6 +260,11 @@ serve(async (req) => {
     // B. Fix unicode replacement chars
     message = message.replace(/�/g, "");
 
+    // B2. If model wrote the Dknow note as a bullet, restore it to the proper structural line
+    message = message.replace(/^[\s]*•\s*\*\*\s*הערת\s*Dknow:?\s*\*?\*?\s*/gm, "💡 הערת Dknow: ");
+    // B3. Strip any bullet line that ended up being a broken Dknow line (without proper marker)
+    message = message.replace(/^[\s]*•\s*\*\*\s*(?=.*הערת\s*Dknow)/gm, "💡 ");
+
     // C. Convert engineering bullet emojis to • if model slipped them
     message = message.replace(/^[\s]*[🔧💰🛡️⚙️🔩]\s*\*?\*?\s*/gm, "• **");
 
