@@ -292,9 +292,34 @@ serve(async (req) => {
     // H. Collapse 3+ blank lines, trim trailing whitespace
     message = message.replace(/\n{3,}/g, "\n\n").trim();
 
-    // H2. If model forgot the Dknow note and a manual one was provided, append it
-    if (!/💡\s*הערת\s*Dknow/.test(message) && product.note && String(product.note).trim()) {
-      message = `${message}\n\n💡 הערת Dknow: ${String(product.note).trim()}`;
+    // H2. Ensure Dknow note exists — fallback if model skipped it
+    if (!/💡\s*הערת\s*Dknow/.test(message)) {
+      const manualNote = product.note && String(product.note).trim();
+      if (manualNote) {
+        message = `${message}\n\n💡 הערת Dknow: ${manualNote}`;
+      } else {
+        // Focused 2nd AI call — generate just the note
+        try {
+          const noteRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                { role: "system", content: `כתוב משפט אחד או שניים בעברית — הערת Dknow למוצר. חייב להיות (א) פעולת תחזוקה קונקרטית או (ב) אזהרה מדגם דומה זול שהוא מלכודת. אסור: שם המוצר, מחיר, "מומלץ"/"כדאי". בלי קידומת, רק הטקסט.` },
+                { role: "user", content: `מוצר: ${product.name} (${product.brand || ""}). קטגוריה: ${product.category || "כללי"}.${groundingFacts ? "\nמידע: " + groundingFacts.slice(0, 800) : ""}` },
+              ],
+            }),
+          });
+          if (noteRes.ok) {
+            const nd = await noteRes.json();
+            const noteText = (nd.choices?.[0]?.message?.content || "").trim().replace(/^["׳']|["׳']$/g, "");
+            if (noteText) message = `${message}\n\n💡 הערת Dknow: ${noteText}`;
+          }
+        } catch (e) {
+          console.log("[dknow-fallback] error:", e instanceof Error ? e.message : String(e));
+        }
+      }
     }
 
     // I. Append the deterministic price + link blocks
