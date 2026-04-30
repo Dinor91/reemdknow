@@ -257,8 +257,8 @@ serve(async (req) => {
     // A. Strip any URLs the model accidentally included (we add the link ourselves)
     message = message.replace(/https?:\/\/[^\s\n)]+/g, "");
 
-    // B. Fix unicode replacement chars
-    message = message.replace(/�/g, "");
+    // B. Fix unicode replacement chars (U+FFFD and similar broken chars)
+    message = message.replace(/\uFFFD/g, "").replace(/�/g, "");
 
     // B2. Any line containing "הערת Dknow" — normalize to a clean structural line
     //     (handles bullet prefix, broken emoji, extra markdown — all variants)
