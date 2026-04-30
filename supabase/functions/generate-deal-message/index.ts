@@ -335,6 +335,19 @@ serve(async (req) => {
       }
     );
 
+    // G2. Enforce 15-word cap per bullet explanation (after the bold tech name)
+    message = message.split("\n").map((line: string) => {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("•")) return line;
+      const m = trimmed.match(/^(•\s*\*\*[^*]+\*\*\s*:\s*)(.+)$/);
+      if (!m) return line;
+      const [, prefix, explanation] = m;
+      const words = explanation.split(/\s+/);
+      if (words.length <= 15) return line;
+      const clipped = words.slice(0, 15).join(" ").replace(/[,.;:!?]+$/, "");
+      return `${prefix}${clipped}`;
+    }).join("\n");
+
     // H. Collapse 3+ blank lines, trim trailing whitespace
     message = message.replace(/\n{3,}/g, "\n\n").trim();
 
