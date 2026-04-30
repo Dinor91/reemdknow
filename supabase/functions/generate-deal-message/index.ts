@@ -281,26 +281,37 @@ serve(async (req) => {
     }
 
     // === Post-processing enforcement v4 ===
-    // 1. Remove any leftover status lines (⭐/🏷️/📈/🏆 standalone lines)
+    // 1. Fix unicode replacement chars (�) — happens when model corrupts emojis
+    // Try to restore based on line context
+    message = message.replace(/^[\s•*]*\*\*\s*�\s*הערת Dknow/gm, "💡 הערת Dknow");
+    message = message.replace(/^[\s•*]*\*\*\s*�\s*(\d)/gm, "💲 $1");
+    message = message.replace(/^[\s•*]*\*\*\s*�\s*לינק/gm, "🔗 לינק");
+    message = message.replace(/�/g, ""); // strip any remaining replacement chars
+
+    // 2. If model wrote bullet-prefixed lines for the structural blocks, restore them
+    message = message.replace(/^[\s]*•\s*\*\*\s*הערת Dknow:?\s*/gm, "💡 הערת Dknow: ");
+    message = message.replace(/^[\s]*•\s*\*\*\s*(?=\d+\s*₪|\d+\s*$)/gm, "💲 ");
+    message = message.replace(/^[\s]*•\s*\*\*\s*(?=לינק)/gm, "🔗 ");
+
+    // 3. Convert engineering bullet emojis to • if model slipped them at start of bullet
+    message = message.replace(/^[\s]*[🔧💰🛡️⚙️🔩]\s*\*?\*?\s*/gm, "• **");
+
+    // 4. Remove any leftover status lines (⭐/🏷️/📈/🏆 — short lines dominated by these)
     message = message.replace(/^.*[⭐🏷️📈🏆].*$/gm, (line) => {
-      // keep the line only if it's clearly part of body content (long, has Hebrew sentence structure)
-      // status lines are short and dominated by these emojis + numbers
       const stripped = line.replace(/[⭐🏷️📈🏆\s\d.,%|]/g, "");
       return stripped.length < 5 ? "" : line;
     });
-    // 2. Remove placeholder phrases for missing data
+    // 5. Remove placeholder phrases for missing data
     message = message.replace(/^.*(ללא דירוג|אין דירוג|אין הנחה|ללא נתוני מכירה|ללא הנחה|לא ידוע).*$/gm, "");
-    // 3. Remove "💰 אזור מחיר ומשלוח" header line if model added it
+    // 6. Remove "💰 אזור מחיר ומשלוח" header line if model added it
     message = message.replace(/^.*💰\s*אזור מחיר.*$/gm, "");
-    // 4. Remove "כמה תשלמו?" if model added it
+    // 7. Remove "כמה תשלמו?" if model added it
     message = message.replace(/💲\s*כמה תשלמו\?\s*/g, "💲 ");
-    // 5. Strip robotic connectors after bullet colons
+    // 8. Strip robotic connectors after bullet colons
     message = message.replace(/:\*\*\s*(מה שזה אומר עבורך|המשמעות היא|זה אומר ש|כלומר)[,:\s]*/g, ":** ");
-    message = message.replace(/(מה שזה אומר עבורך|המשמעות היא היא|זה אומר ש)[,:\s]+/g, "");
-    // 6. Convert engineering bullet emojis to • if model slipped them
-    message = message.replace(/^[\s]*[🔧💰🛡️⚙️🔩]\s*\*?\*?/gm, "• **");
-    // 7. Merge separate price/coupon/shipping lines into single line
-    // Pattern: 💲 ... \n 🎟️ ... \n 🚚 ...
+    message = message.replace(/(מה שזה אומר עבורך|המשמעות היא|זה אומר ש)[,:\s]+/g, "");
+
+    // 9. Merge separate price/coupon/shipping lines into single line
     message = message.replace(
       /(💲[^\n|]+?)\n+(🎟️[^\n|]+?)(?:\n+(🚚[^\n|]+?))?(?=\n|$)/g,
       (_m, p, c, s) => s ? `${p.trim()} | ${c.trim()} | ${s.trim()}` : `${p.trim()} | ${c.trim()}`
@@ -309,7 +320,17 @@ serve(async (req) => {
       /(💲[^\n|]+?)\n+(🚚[^\n|]+?)(?=\n|$)/g,
       (_m, p, s) => `${p.trim()} | ${s.trim()}`
     );
-    // 8. Collapse 3+ blank lines into 2
+
+    // 10. Limit bullets to 3 max (in the ✨ block)
+    message = message.replace(
+      /(✨[^\n]*\n)((?:^•[^\n]*\n){4,})/m,
+      (_m, header, bullets) => {
+        const lines = bullets.split("\n").filter((l: string) => l.trim().startsWith("•"));
+        return header + lines.slice(0, 3).join("\n") + "\n";
+      }
+    );
+
+    // 11. Collapse 3+ blank lines into 2
     message = message.replace(/\n{3,}/g, "\n\n").trim();
 
     return new Response(JSON.stringify({ message, grounded: !!groundingFacts }), {
