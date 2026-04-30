@@ -346,7 +346,8 @@ serve(async (req) => {
     }
 
     // I. Append the deterministic price + link blocks
-    const priceParts: string[] = [`💲 ${product.price}`];
+    const cleanPrice = String(product.price || "").replace(/\s+/g, " ").trim();
+    const priceParts: string[] = [`💲 כמה תשלמו? ${cleanPrice}`];
     if (coupon) priceParts.push(`🎟️ קופון: ${coupon}`);
     const shippingInfo = product.shipping_info ? String(product.shipping_info).trim() : null;
     if (shippingInfo) priceParts.push(`🚚 ${shippingInfo}`);
