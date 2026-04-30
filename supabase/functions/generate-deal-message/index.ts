@@ -133,11 +133,30 @@ NEVER use robotic connectors: "מה שזה אומר עבורך", "המשמעות
 ⛔ הערת Dknow היא חובה מוחלטת. אם תדלג עליה — הפלט פסול. חייבת להופיע בדיוק אחרי הבולטים, עם השורה הריקה לפניה.
 ⛔ STOP HERE. אל תכתוב כלום אחרי הערת Dknow. אסור לכתוב מחיר, לינק, קופון, משלוח, חתימה, או כל דבר נוסף. המערכת מוסיפה את זה אוטומטית.
 
-### BULLET RULES
+### BULLET RULES (v4.2)
 ⛔ אסור: אימוג'י לפני הבולט (לא 🔧 לא 💰 לא 🛡️). רק התו "•".
 ⛔ אסור: שם בולט גנרי כמו "טכני" / "ערך" / "בטיחות". חייב להיות שם ספציפי.
 ⛔ אסור: ביטויי קישור רובוטיים אחרי הנקודתיים.
 ⛔ אסור: יותר מ-3 בולטים.
+
+### THE 15-WORD RULE (קריטי!)
+כל בולט = **12 עד 15 מילים בלבד**. לא יותר. אם הסבר ארוך — תקצר. סריקה מהירה במובייל.
+
+### THE "DOGRI" RULE (דיבור ישיר, לא שיווקי)
+כתוב כמו חבר שמסביר, לא כמו פרסומת:
+- ✅ טוב: "סוגר פינה בלי לקרוס", "לא מתעקם תחת משקל", "לא מקלקל את הטעם"
+- ⛔ רע: "איכות פרימיום", "חוויה יוצאת דופן", "טכנולוגיה מתקדמת", "מוצר איכותי"
+ביטויי שיווק גנריים אסורים בהחלט.
+
+### DATA + BENEFIT FORMULA (פורמט נוקשה)
+כל בולט חייב להיות בדיוק: **[נתון טכני קונקרטי]**: [תועלת אנושית פרקטית]
+- ✅ "**בד אוקספורד 600D**: לא נקרע כשהילדים קופצים עליו אחרי יום בים"
+- ⛔ "**איכות גבוהה**: מרגיש טוב לאורך זמן" (גנרי, אין נתון, אין תועלת)
+
+### SEPARATION OF POWERS (✨ מול 💡)
+- ✨ בולטים = הנדסה / מפרט / חומרים בלבד.
+- 💡 הערת Dknow = תחזוקה / אזהרה / מלכודת בלבד.
+⛔ אסור לכלול "הערת Dknow" בתוך בולט. אסור לכלול מפרט הנדסי בתוך הערת Dknow.
 
 ### ABSOLUTE PROHIBITIONS
 ⛔ אין שורת סטטוס של ⭐ דירוג / 🏷️ הנחה / 📈 מכירות / 🏆 BestSeller.
@@ -257,20 +276,24 @@ serve(async (req) => {
     // A. Strip any URLs the model accidentally included (we add the link ourselves)
     message = message.replace(/https?:\/\/[^\s\n)]+/g, "");
 
-    // B. Fix unicode replacement chars (U+FFFD and similar broken chars)
-    message = message.replace(/\uFFFD/g, "").replace(/�/g, "");
+    // B. Aggressive cleaning — strip invisible/broken/directional unicode that breaks regex
+    message = message
+      .replace(/\uFFFD/g, "")           // replacement char
+      .replace(/[\u200B-\u200F]/g, "")  // ZWSP, ZWNJ, ZWJ, LRM, RLM
+      .replace(/[\u202A-\u202E]/g, "")  // directional embedding/override
+      .replace(/[\u2066-\u2069]/g, "")  // directional isolates
+      .replace(/\uFEFF/g, "")            // BOM
+      .replace(/�/g, "");
 
-    // B2. Any line containing "הערת Dknow" — normalize to a clean structural line.
-    //     A bullet line (• ...) that mentions "הערת Dknow" is a model leak — drop it,
-    //     do NOT promote it to the real Dknow line (the real one will follow below).
+    // B2. Deny-list — any line mentioning "הערת Dknow" that is NOT in the strict
+    //     "💡 הערת Dknow" format is a leak (bullet, broken emoji, ** prefix, etc.)
+    //     → DELETE the line entirely. Do not try to "fix" it. The real Dknow line
+    //     will either survive elsewhere or the H2 fallback will regenerate it.
     message = message.split("\n").map((line: string) => {
-      const trimmed = line.trim();
       if (!/הערת\s*Dknow/.test(line)) return line;
-      if (/^💡\s*הערת/.test(trimmed)) return line; // already clean
-      if (/^[•\-*]/.test(trimmed)) return ""; // bullet leak — drop it entirely
-      // Other prefix garbage (broken emoji, **, etc.) — clean and keep
-      const cleaned = line.replace(/^.*?הערת\s*Dknow:?\s*\*?\*?\s*/, "").trim();
-      return cleaned ? `💡 הערת Dknow: ${cleaned}` : "";
+      const trimmed = line.trim();
+      if (/^💡\s*הערת\s*Dknow/.test(trimmed)) return line; // strictly clean — keep
+      return ""; // leak — drop
     }).join("\n");
     // B3. Deduplicate Dknow lines — keep only the LAST (the real one usually comes last)
     {
@@ -311,6 +334,19 @@ serve(async (req) => {
         return header + lines.slice(0, 3).join("\n") + "\n";
       }
     );
+
+    // G2. Enforce 15-word cap per bullet explanation (after the bold tech name)
+    message = message.split("\n").map((line: string) => {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("•")) return line;
+      const m = trimmed.match(/^(•\s*\*\*[^*]+\*\*\s*:\s*)(.+)$/);
+      if (!m) return line;
+      const [, prefix, explanation] = m;
+      const words = explanation.split(/\s+/);
+      if (words.length <= 15) return line;
+      const clipped = words.slice(0, 15).join(" ").replace(/[,.;:!?]+$/, "");
+      return `${prefix}${clipped}`;
+    }).join("\n");
 
     // H. Collapse 3+ blank lines, trim trailing whitespace
     message = message.replace(/\n{3,}/g, "\n\n").trim();
