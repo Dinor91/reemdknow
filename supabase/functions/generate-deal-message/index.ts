@@ -291,12 +291,19 @@ serve(async (req) => {
     // H. Collapse 3+ blank lines, trim trailing whitespace
     message = message.replace(/\n{3,}/g, "\n\n").trim();
 
+    // H2. If model forgot the Dknow note and a manual one was provided, append it
+    if (!/💡\s*הערת\s*Dknow/.test(message) && product.note && String(product.note).trim()) {
+      message = `${message}\n\n💡 הערת Dknow: ${String(product.note).trim()}`;
+    }
+
     // I. Append the deterministic price + link blocks
     const priceParts: string[] = [`💲 ${product.price}`];
     if (coupon) priceParts.push(`🎟️ קופון: ${coupon}`);
     const shippingInfo = product.shipping_info ? String(product.shipping_info).trim() : null;
     if (shippingInfo) priceParts.push(`🚚 ${shippingInfo}`);
     const priceLine = priceParts.join(" | ");
+
+    message = `${message}\n\n${priceLine}\n\n🔗 לינק למוצר:\n${productUrl}`;
 
     message = `${message}\n\n${priceLine}\n\n🔗 לינק למוצר:\n${productUrl}`;
 
