@@ -9,6 +9,10 @@ import { LinkConverter } from "@/components/admin/LinkConverter";
 import { ExternalLinkDealTab } from "@/components/admin/ExternalLinkDealTab";
 import { ProductSearchTab } from "@/components/admin/ProductSearchTab";
 import { CsvImportTab } from "@/components/admin/CsvImportTab";
+import { ScoutDraftsTab } from "@/components/admin/v2/ScoutDraftsTab";
+import { GrowthTab } from "@/components/admin/v2/GrowthTab";
+import { RevenueTab } from "@/components/admin/v2/RevenueTab";
+import { RoadmapTab } from "@/components/admin/v2/RoadmapTab";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import dknowLogo from "@/assets/dknow-logo.png";
@@ -2638,8 +2642,24 @@ const Admin = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="products" className="w-full" dir="rtl">
+        <Tabs defaultValue="scout-drafts" className="w-full" dir="rtl">
           <TabsList className="flex w-full overflow-x-auto mb-6 gap-1 h-auto flex-wrap md:flex-nowrap">
+            <TabsTrigger value="scout-drafts" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <Package className="h-3 w-3 md:h-4 md:w-4" />
+              <span>טיוטות Scout</span>
+            </TabsTrigger>
+            <TabsTrigger value="growth" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
+              <span>צמיחה</span>
+            </TabsTrigger>
+            <TabsTrigger value="revenue" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
+              <span>הכנסות</span>
+            </TabsTrigger>
+            <TabsTrigger value="roadmap" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
+              <span>מפת דרכים</span>
+            </TabsTrigger>
             <TabsTrigger value="csv-import" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
               <FileSpreadsheet className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">ייבוא CSV</span>
@@ -2675,6 +2695,18 @@ const Admin = () => {
               <span className="sm:hidden">דיל🔗</span>
             </TabsTrigger>
           </TabsList>
+          <TabsContent value="scout-drafts">
+            <ScoutDraftsTab />
+          </TabsContent>
+          <TabsContent value="growth">
+            <GrowthTab />
+          </TabsContent>
+          <TabsContent value="revenue">
+            <RevenueTab />
+          </TabsContent>
+          <TabsContent value="roadmap">
+            <RoadmapTab />
+          </TabsContent>
           <TabsContent value="csv-import">
             <CsvImportTab />
           </TabsContent>
