@@ -2631,18 +2631,18 @@ const Admin = () => {
             )}
           </div>
           <div className="flex gap-2 items-center flex-wrap justify-end">
-            <Button onClick={toggleTheme} variant="outline" size="icon" className="h-9 w-9" title={isDark ? "מצב בהיר" : "מצב לילה"}>
+            <Button onClick={toggleTheme} variant="outline" size="icon" className="h-11 w-11 min-h-[44px]" title={isDark ? "מצב בהיר" : "מצב לילה"}>
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button onClick={handleSignOut} variant="outline" size="sm">
+            <Button onClick={handleSignOut} variant="outline" size="sm" className="min-h-[44px] px-3">
               <LogOut className="h-4 w-4 ml-2" />
               התנתק
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1 order-last md:order-none w-full md:w-auto justify-center">
+                <Button variant="outline" size="sm" className="min-h-[44px] px-3 gap-1">
                   <Wrench className="h-4 w-4" />
-                  כלים V1
+                  V1
                   <ChevronDownIcon className="h-3 w-3 opacity-60" />
                 </Button>
               </DropdownMenuTrigger>
