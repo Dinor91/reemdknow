@@ -2630,13 +2630,17 @@ const Admin = () => {
               <span className="text-sm text-muted-foreground hidden md:inline">({user.email})</span>
             )}
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap justify-end">
             <Button onClick={toggleTheme} variant="outline" size="icon" className="h-9 w-9" title={isDark ? "מצב בהיר" : "מצב לילה"}>
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
+            <Button onClick={handleSignOut} variant="outline" size="sm">
+              <LogOut className="h-4 w-4 ml-2" />
+              התנתק
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1">
+                <Button variant="outline" size="sm" className="gap-1 order-last md:order-none w-full md:w-auto justify-center">
                   <Wrench className="h-4 w-4" />
                   כלים V1
                   <ChevronDownIcon className="h-3 w-3 opacity-60" />
@@ -2658,10 +2662,6 @@ const Admin = () => {
                 <DropdownMenuItem onSelect={() => setLegacyTab("external-deal")}>🔗 דיל מקישור</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button onClick={handleSignOut} variant="outline" size="sm">
-              <LogOut className="h-4 w-4 ml-2" />
-              התנתק
-            </Button>
           </div>
         </div>
 
