@@ -263,7 +263,7 @@ export function GrowthTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Instagram */}
         <Card className="p-4">
-          <KpiHeader title="אינסטגרם — עוקבים" current={igNow} previous={igPrev} goal={GOALS.instagram} />
+          <KpiHeader title="אינסטגרם — עוקבים" current={igNow} previous={igPrev} goal={GOALS.instagram} color={IG_COLOR} />
           {loading ? (
             <div className="text-center text-muted-foreground py-8">טוען...</div>
           ) : chartData.length === 0 ? (
@@ -310,7 +310,7 @@ export function GrowthTab() {
 
         {/* Community */}
         <Card className="p-4">
-          <KpiHeader title="קהילה — וואטסאפ + טלגרם" current={commNow} previous={commPrev} goal={GOALS.community} />
+          <KpiHeader title="קהילה — וואטסאפ + טלגרם" current={commNow} previous={commPrev} goal={GOALS.community} color={COMM_COLOR} />
           <div className="flex gap-4 text-xs text-muted-foreground -mt-2 mb-2">
             <span className="inline-flex items-center gap-1">
               <span className="w-2 h-2 rounded-full" style={{ background: WA_COLOR }} />
