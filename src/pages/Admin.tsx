@@ -25,6 +25,8 @@ import { BarChart, Bar, XAxis, YAxis } from "recharts";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Wrench, ChevronDown as ChevronDownIcon } from "lucide-react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
 import { toast } from "sonner";
@@ -2630,11 +2632,30 @@ const Admin = () => {
             <Button onClick={toggleTheme} variant="outline" size="icon" className="h-9 w-9" title={isDark ? "מצב בהיר" : "מצב לילה"}>
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Link to="/daily-deals">
-              <Button variant="outline" size="sm" className="gap-1">
-                📦 Daily Deals
-              </Button>
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Wrench className="h-4 w-4" />
+                  כלים V1
+                  <ChevronDownIcon className="h-3 w-3 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>כלים ישנים</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/daily-deals">📦 Daily Deals</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setLegacyTab("csv-import")}>📄 ייבוא CSV</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setLegacyTab("products")}>📦 המלצות העורך</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setLegacyTab("feed")}>🏬 מוצרים פופולריים</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setLegacyTab("converter")}>🔗 המרת קישורים</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setLegacyTab("requests")}>💬 פניות</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setLegacyTab("smart-search")}>🔍 חיפוש חכם</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setLegacyTab("external-deal")}>🔗 דיל מקישור</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button onClick={handleSignOut} variant="outline" size="sm">
               <LogOut className="h-4 w-4 ml-2" />
               התנתק
@@ -2642,15 +2663,15 @@ const Admin = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="scout-drafts" className="w-full" dir="rtl">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
           <TabsList className="flex w-full overflow-x-auto mb-6 gap-1 h-auto flex-wrap md:flex-nowrap">
-            <TabsTrigger value="scout-drafts" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <Package className="h-3 w-3 md:h-4 md:w-4" />
-              <span>טיוטות Scout</span>
-            </TabsTrigger>
             <TabsTrigger value="growth" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
               <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
               <span>צמיחה</span>
+            </TabsTrigger>
+            <TabsTrigger value="scout-drafts" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
+              <Package className="h-3 w-3 md:h-4 md:w-4" />
+              <span>טיוטות Scout</span>
             </TabsTrigger>
             <TabsTrigger value="revenue" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
               <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
@@ -2659,40 +2680,6 @@ const Admin = () => {
             <TabsTrigger value="roadmap" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
               <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
               <span>מפת דרכים</span>
-            </TabsTrigger>
-            <TabsTrigger value="csv-import" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <FileSpreadsheet className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">ייבוא CSV</span>
-              <span className="sm:hidden">CSV</span>
-            </TabsTrigger>
-            <TabsTrigger value="products" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <Package className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">המלצות העורך</span>
-              <span className="sm:hidden">המלצות</span>
-            </TabsTrigger>
-            <TabsTrigger value="feed" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <Store className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">מוצרים פופולריים</span>
-              <span className="sm:hidden">פופולרי</span>
-            </TabsTrigger>
-            <TabsTrigger value="converter" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <Link2 className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">המרת קישורים</span>
-              <span className="sm:hidden">המרה</span>
-            </TabsTrigger>
-            <TabsTrigger value="requests" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <MessageSquare className="h-3 w-3 md:h-4 md:w-4" />
-              פניות
-            </TabsTrigger>
-            <TabsTrigger value="smart-search" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <Search className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">חיפוש חכם</span>
-              <span className="sm:hidden">חיפוש</span>
-            </TabsTrigger>
-            <TabsTrigger value="external-deal" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <ExternalLink className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">דיל מקישור</span>
-              <span className="sm:hidden">דיל🔗</span>
             </TabsTrigger>
           </TabsList>
           <TabsContent value="scout-drafts">
