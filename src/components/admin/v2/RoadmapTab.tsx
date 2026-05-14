@@ -115,9 +115,11 @@ export function RoadmapTab() {
                 value={editTimeInput}
                 onChange={(e) => setEditTimeInput(e.target.value)}
                 placeholder="עדכן זמן..."
+                className="flex-1"
               />
-              <Button onClick={saveEditTime} disabled={saving} size="sm" className="min-h-[44px]">
-                <Save className="h-4 w-4" />
+              <Button onClick={saveEditTime} disabled={saving} size="sm" className="min-h-[44px] px-4">
+                <Save className="h-4 w-4 ml-1" />
+                שמור
               </Button>
             </div>
           </Card>

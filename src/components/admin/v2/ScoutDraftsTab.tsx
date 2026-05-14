@@ -193,20 +193,20 @@ export function ScoutDraftsTab() {
           אין טיוטות {showArchived ? "בארכיון" : "ממתינות"}. ה-Scout יזרים פריטים אוטומטית.
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {visible.map((d) => (
             <Card key={d.id} className="overflow-hidden flex flex-col">
-              <div className="relative aspect-square bg-muted">
+              <div className="relative aspect-[4/3] bg-muted">
                 {d.image_url ? (
                   <img src={d.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">אין תמונה</div>
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">אין תמונה</div>
                 )}
-                <Badge className="absolute top-2 right-2" variant="secondary">
-                  {d.platform === "amazon" ? "Amazon" : "AliExpress"}
+                <Badge className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0" variant="secondary">
+                  {d.platform === "amazon" ? "Amazon" : "AE"}
                 </Badge>
                 {d.category_name_hebrew && (
-                  <Badge className="absolute top-2 left-2" variant="outline">{d.category_name_hebrew}</Badge>
+                  <Badge className="absolute top-1.5 left-1.5 text-[10px] px-1.5 py-0" variant="outline">{d.category_name_hebrew}</Badge>
                 )}
               </div>
               <div className="p-3 flex-1 flex flex-col gap-2">

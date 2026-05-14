@@ -4,7 +4,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter, Link2, Search, Moon, Sun, FileSpreadsheet } from "lucide-react";
+import { RefreshCw, LogOut, Calendar, Package, BarChart3, Save, X, Store, Star, StarOff, MessageSquare, Mail, Phone, ChevronDown, ChevronUp, Download, ExternalLink, PackageX, ChevronLeft, ChevronRight, Filter, Link2, Search, Moon, Sun, FileSpreadsheet, Target } from "lucide-react";
 import { LinkConverter } from "@/components/admin/LinkConverter";
 import { ExternalLinkDealTab } from "@/components/admin/ExternalLinkDealTab";
 import { ProductSearchTab } from "@/components/admin/ProductSearchTab";
@@ -2666,21 +2666,21 @@ const Admin = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
-          <TabsList className="flex w-full overflow-x-auto mb-6 gap-1 h-auto flex-wrap md:flex-nowrap">
-            <TabsTrigger value="growth" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
+          <TabsList className="grid grid-cols-2 md:flex md:w-full w-full mb-6 gap-1 h-auto">
+            <TabsTrigger value="growth" className="flex items-center justify-center gap-2 text-sm px-3 py-2.5 min-h-[44px]">
+              <BarChart3 className="h-4 w-4" />
               <span>צמיחה</span>
             </TabsTrigger>
-            <TabsTrigger value="scout-drafts" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <Package className="h-3 w-3 md:h-4 md:w-4" />
+            <TabsTrigger value="scout-drafts" className="flex items-center justify-center gap-2 text-sm px-3 py-2.5 min-h-[44px]">
+              <Package className="h-4 w-4" />
               <span>טיוטות Scout</span>
             </TabsTrigger>
-            <TabsTrigger value="revenue" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
+            <TabsTrigger value="revenue" className="flex items-center justify-center gap-2 text-sm px-3 py-2.5 min-h-[44px]">
+              <BarChart3 className="h-4 w-4" />
               <span>הכנסות</span>
             </TabsTrigger>
-            <TabsTrigger value="roadmap" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 py-2 flex-shrink-0">
-              <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
+            <TabsTrigger value="roadmap" className="flex items-center justify-center gap-2 text-sm px-3 py-2.5 min-h-[44px]">
+              <Target className="h-4 w-4" />
               <span>מפת דרכים</span>
             </TabsTrigger>
           </TabsList>
