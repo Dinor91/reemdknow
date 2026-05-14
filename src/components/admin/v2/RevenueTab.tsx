@@ -212,13 +212,11 @@ export function RevenueTab() {
         <h3 className="font-bold mb-3">העלאת CSV הכנסות (Amazon / AliExpress / Lazada)</h3>
         <Label
           htmlFor="csv-upload"
-          className="block border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:bg-muted/30 transition-colors min-h-[100px] flex items-center justify-center"
+          className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:bg-muted/30 transition-colors min-h-[120px]"
         >
-          <div>
-            <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-            <div className="text-sm">{uploading ? "מעלה..." : "גרור קובץ CSV או לחץ לבחירה"}</div>
-            <div className="text-xs text-muted-foreground mt-1">מזהה אוטומטית פלטפורמה ומבצע המרה ל-ILS</div>
-          </div>
+          <Upload className="h-6 w-6 mb-2 text-muted-foreground" />
+          <div className="text-sm">{uploading ? "מעלה..." : "גרור קובץ CSV או לחץ לבחירה"}</div>
+          <div className="text-xs text-muted-foreground mt-1">מזהה אוטומטית פלטפורמה ומבצע המרה ל-ILS</div>
           <input
             id="csv-upload"
             type="file"
@@ -257,15 +255,23 @@ export function RevenueTab() {
           {hitOfWeek.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">אין קליקים השבוע</div>
           ) : (
-            <ChartContainer config={chartConfig} className="h-[220px] w-full">
-              <BarChart data={hitOfWeek} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="week" width={90} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="ils" fill="hsl(var(--primary))" radius={4} />
-              </BarChart>
-            </ChartContainer>
+            <ul className="space-y-2">
+              {hitOfWeek.map((row, i) => {
+                const max = Math.max(...hitOfWeek.map((r) => r.ils));
+                const pct = (row.ils / max) * 100;
+                return (
+                  <li key={i} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="truncate">{row.week}</span>
+                      <span className="font-bold tabular-nums text-primary">{row.ils}</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded overflow-hidden">
+                      <div className="h-full bg-primary rounded" style={{ width: `${pct}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </Card>
       </div>
