@@ -166,7 +166,9 @@ export type Database = {
       }
       amazon_editor_products: {
         Row: {
+          archived_at: string | null
           asin: string | null
+          audit_notes: string | null
           brand: string | null
           category_name_hebrew: string
           created_at: string
@@ -188,7 +190,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           asin?: string | null
+          audit_notes?: string | null
           brand?: string | null
           category_name_hebrew: string
           created_at?: string
@@ -210,7 +214,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           asin?: string | null
+          audit_notes?: string | null
           brand?: string | null
           category_name_hebrew?: string
           created_at?: string
@@ -536,9 +542,74 @@ export type Database = {
         }
         Relationships: []
       }
+      growth_metrics: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          instagram_followers: number | null
+          note: string | null
+          recorded_at: string
+          telegram_members: number | null
+          whatsapp_members: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instagram_followers?: number | null
+          note?: string | null
+          recorded_at?: string
+          telegram_members?: number | null
+          whatsapp_members?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instagram_followers?: number | null
+          note?: string | null
+          recorded_at?: string
+          telegram_members?: number | null
+          whatsapp_members?: number | null
+        }
+        Relationships: []
+      }
+      investigation_posts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          platform: string | null
+          posted_at: string
+          title: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          platform?: string | null
+          posted_at?: string
+          title: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          platform?: string | null
+          posted_at?: string
+          title?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       israel_editor_products: {
         Row: {
           aliexpress_product_id: string | null
+          archived_at: string | null
+          audit_notes: string | null
           category_name_hebrew: string
           created_at: string
           discount_percentage: number | null
@@ -559,6 +630,8 @@ export type Database = {
         }
         Insert: {
           aliexpress_product_id?: string | null
+          archived_at?: string | null
+          audit_notes?: string | null
           category_name_hebrew: string
           created_at?: string
           discount_percentage?: number | null
@@ -579,6 +652,8 @@ export type Database = {
         }
         Update: {
           aliexpress_product_id?: string | null
+          archived_at?: string | null
+          audit_notes?: string | null
           category_name_hebrew?: string
           created_at?: string
           discount_percentage?: number | null
@@ -725,6 +800,72 @@ export type Database = {
           is_active?: boolean
           platform?: string
           valid_until?: string
+        }
+        Relationships: []
+      }
+      revenue_uploads: {
+        Row: {
+          commission_ils: number | null
+          created_by: string | null
+          filename: string | null
+          gross_revenue_ils: number | null
+          id: string
+          orders_count: number | null
+          period_end: string | null
+          period_start: string | null
+          platform: string
+          raw: Json | null
+          uploaded_at: string
+        }
+        Insert: {
+          commission_ils?: number | null
+          created_by?: string | null
+          filename?: string | null
+          gross_revenue_ils?: number | null
+          id?: string
+          orders_count?: number | null
+          period_end?: string | null
+          period_start?: string | null
+          platform: string
+          raw?: Json | null
+          uploaded_at?: string
+        }
+        Update: {
+          commission_ils?: number | null
+          created_by?: string | null
+          filename?: string | null
+          gross_revenue_ils?: number | null
+          id?: string
+          orders_count?: number | null
+          period_end?: string | null
+          period_start?: string | null
+          platform?: string
+          raw?: Json | null
+          uploaded_at?: string
+        }
+        Relationships: []
+      }
+      roadmap_metrics: {
+        Row: {
+          id: string
+          key: string
+          note: string | null
+          updated_at: string
+          value: number | null
+        }
+        Insert: {
+          id?: string
+          key: string
+          note?: string | null
+          updated_at?: string
+          value?: number | null
+        }
+        Update: {
+          id?: string
+          key?: string
+          note?: string | null
+          updated_at?: string
+          value?: number | null
         }
         Relationships: []
       }
