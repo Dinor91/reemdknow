@@ -80,8 +80,8 @@ function ProgressRing({ current, goal, color, size = 96 }: { current: number; go
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="text-lg font-bold tabular-nums leading-none">{Math.round(pct)}%</div>
-        <div className="text-[10px] text-muted-foreground mt-0.5">מהיעד</div>
+        <div className="text-2xl font-bold tabular-nums leading-none">{Math.round(pct)}%</div>
+        <div className="text-xs text-muted-foreground mt-1">מהיעד</div>
       </div>
     </div>
   );
@@ -102,20 +102,22 @@ function KpiHeader({
 }) {
   const remaining = Math.max(0, goal - current);
   return (
-    <div className="flex flex-col items-center text-center mb-4">
-      <div className="text-xs text-muted-foreground mb-1">{title}</div>
-      <div className="text-4xl font-bold tabular-nums leading-none" style={{ color }}>
-        {fmt(current)}
-      </div>
-      <div className="text-sm text-muted-foreground mt-2">מתוך {fmt(goal)}</div>
-      <div className="flex items-center gap-3 mt-2">
-        <Delta current={current} previous={previous} />
-        {remaining > 0 && (
-          <span className="text-xs text-muted-foreground">· נותרו {fmt(remaining)}</span>
-        )}
-      </div>
-      <div className="mt-3">
-        <ProgressRing current={current} goal={goal} color={color} size={88} />
+    <div className="mb-4">
+      <div className="text-base font-semibold text-muted-foreground mb-3">{title}</div>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col items-start text-right">
+          <div className="text-4xl font-bold tabular-nums leading-none" style={{ color }}>
+            {fmt(current)}
+          </div>
+          <div className="text-sm text-muted-foreground mt-2">מתוך {fmt(goal)}</div>
+          <div className="flex items-center gap-3 mt-2">
+            <Delta current={current} previous={previous} />
+            {remaining > 0 && (
+              <span className="text-xs text-muted-foreground">· נותרו {fmt(remaining)}</span>
+            )}
+          </div>
+        </div>
+        <ProgressRing current={current} goal={goal} color={color} size={176} />
       </div>
     </div>
   );
@@ -311,13 +313,13 @@ export function GrowthTab() {
         {/* Community */}
         <Card className="p-4">
           <KpiHeader title="קהילה — וואטסאפ + טלגרם" current={commNow} previous={commPrev} goal={GOALS.community} color={COMM_COLOR} />
-          <div className="flex gap-4 text-xs text-muted-foreground -mt-2 mb-2">
-            <span className="inline-flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full" style={{ background: WA_COLOR }} />
+          <div className="flex gap-4 text-sm text-muted-foreground -mt-2 mb-2">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: WA_COLOR }} />
               וואטסאפ: <strong className="text-foreground">{fmt(last?.whatsapp_members ?? 0)}</strong>
             </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full" style={{ background: TG_COLOR }} />
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: TG_COLOR }} />
               טלגרם: <strong className="text-foreground">{fmt(last?.telegram_members ?? 0)}</strong>
             </span>
           </div>
