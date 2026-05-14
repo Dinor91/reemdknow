@@ -202,10 +202,9 @@ export function GrowthTab() {
     <div className="text-center text-muted-foreground py-8">הזן נתונים ראשונים כדי לראות גרף.</div>
   );
 
-  const renderSinglePoint = (value: number, goal: number) => (
-    <div className="flex flex-col items-center justify-center py-8">
-      <div className="text-5xl font-bold">{fmt(value)}</div>
-      <div className="text-sm text-muted-foreground mt-1">יעד: {fmt(goal)} — נדרשת עוד מדידה כדי לראות מגמה</div>
+  const renderSinglePoint = (_value: number, _goal: number) => (
+    <div className="text-center text-muted-foreground py-8 text-sm">
+      נדרשת עוד מדידה כדי לראות מגמה
     </div>
   );
 
