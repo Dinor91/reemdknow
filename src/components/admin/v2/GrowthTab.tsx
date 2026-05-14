@@ -102,21 +102,21 @@ function KpiHeader({
 }) {
   const remaining = Math.max(0, goal - current);
   return (
-    <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-      <div>
-        <div className="text-sm text-muted-foreground">{title}</div>
-        <div className="flex items-baseline gap-2">
-          <div className="text-3xl font-bold tabular-nums" style={{ color }}>{fmt(current)}</div>
-          <div className="text-sm text-muted-foreground">מתוך {fmt(goal)}</div>
-        </div>
-        <div className="flex items-center gap-3 mt-1">
-          <Delta current={current} previous={previous} />
-          {remaining > 0 && (
-            <span className="text-xs text-muted-foreground">נותרו {fmt(remaining)}</span>
-          )}
-        </div>
+    <div className="flex flex-col items-center text-center mb-4">
+      <div className="text-xs text-muted-foreground mb-1">{title}</div>
+      <div className="text-6xl font-bold tabular-nums leading-none" style={{ color }}>
+        {fmt(current)}
       </div>
-      <ProgressRing current={current} goal={goal} color={color} />
+      <div className="text-sm text-muted-foreground mt-2">מתוך {fmt(goal)}</div>
+      <div className="flex items-center gap-3 mt-2">
+        <Delta current={current} previous={previous} />
+        {remaining > 0 && (
+          <span className="text-xs text-muted-foreground">· נותרו {fmt(remaining)}</span>
+        )}
+      </div>
+      <div className="mt-3">
+        <ProgressRing current={current} goal={goal} color={color} size={56} />
+      </div>
     </div>
   );
 }
