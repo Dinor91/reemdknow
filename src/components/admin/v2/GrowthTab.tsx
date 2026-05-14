@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, ReferenceLine, CartesianGrid, Legend } from "recharts";
-import { AlertTriangle, Save } from "lucide-react";
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, ReferenceLine, CartesianGrid, Legend } from "recharts";
+import { AlertTriangle, Save, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { format } from "date-fns";
 
 interface GrowthRow {
@@ -20,10 +20,71 @@ interface GrowthRow {
 
 const GOALS = { instagram: 10000, community: 1000 };
 
-const chartConfig = {
-  instagram: { label: "אינסטגרם", color: "hsl(330, 75%, 55%)" },
-  community: { label: "קהילה (וואטסאפ+טלגרם)", color: "hsl(180, 60%, 45%)" },
+const IG_COLOR = "hsl(330, 75%, 55%)";
+const COMM_COLOR = "hsl(180, 60%, 45%)";
+const WA_COLOR = "hsl(142, 60%, 45%)";
+const TG_COLOR = "hsl(210, 80%, 55%)";
+
+const fmt = (n: number) => n.toLocaleString("he-IL");
+
+const igConfig = {
+  instagram: { label: "אינסטגרם", color: IG_COLOR },
 };
+const commConfig = {
+  community: { label: "סך קהילה", color: COMM_COLOR },
+  whatsapp: { label: "וואטסאפ", color: WA_COLOR },
+  telegram: { label: "טלגרם", color: TG_COLOR },
+};
+
+function Delta({ current, previous }: { current: number; previous: number | null }) {
+  if (previous === null || previous === undefined) return null;
+  const diff = current - previous;
+  if (diff === 0)
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+        <Minus className="h-3 w-3" /> ללא שינוי
+      </span>
+    );
+  const Icon = diff > 0 ? TrendingUp : TrendingDown;
+  const cls = diff > 0 ? "text-emerald-600" : "text-destructive";
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-medium ${cls}`}>
+      <Icon className="h-3 w-3" />
+      {diff > 0 ? "+" : ""}
+      {fmt(diff)}
+    </span>
+  );
+}
+
+function KpiHeader({
+  title,
+  current,
+  previous,
+  goal,
+}: {
+  title: string;
+  current: number;
+  previous: number | null;
+  goal: number;
+}) {
+  const pct = Math.min(100, Math.round((current / goal) * 100));
+  return (
+    <div className="flex items-end justify-between mb-3 gap-3 flex-wrap">
+      <div>
+        <div className="text-sm text-muted-foreground">{title}</div>
+        <div className="flex items-baseline gap-2">
+          <div className="text-3xl font-bold">{fmt(current)}</div>
+          <div className="text-sm text-muted-foreground">/ {fmt(goal)}</div>
+        </div>
+        <Delta current={current} previous={previous} />
+      </div>
+      <div className="text-left">
+        <div className="text-2xl font-bold tabular-nums">{pct}%</div>
+        <div className="text-xs text-muted-foreground">מהיעד</div>
+      </div>
+    </div>
+  );
+}
 
 export function GrowthTab() {
   const [rows, setRows] = useState<GrowthRow[]>([]);
@@ -69,10 +130,21 @@ export function GrowthTab() {
       rows.map((r) => ({
         date: format(new Date(r.recorded_at), "dd/MM"),
         instagram: r.instagram_followers ?? 0,
+        whatsapp: r.whatsapp_members ?? 0,
+        telegram: r.telegram_members ?? 0,
         community: (r.whatsapp_members ?? 0) + (r.telegram_members ?? 0),
       })),
     [rows]
   );
+
+  const last = rows[rows.length - 1];
+  const prev = rows[rows.length - 2];
+  const igNow = last?.instagram_followers ?? 0;
+  const igPrev = prev ? prev.instagram_followers ?? 0 : null;
+  const commNow = (last?.whatsapp_members ?? 0) + (last?.telegram_members ?? 0);
+  const commPrev = prev ? (prev.whatsapp_members ?? 0) + (prev.telegram_members ?? 0) : null;
+
+  const xInterval = chartData.length > 10 ? Math.ceil(chartData.length / 8) : 0;
 
   async function save() {
     setSaving(true);
@@ -88,6 +160,17 @@ export function GrowthTab() {
     }
     setSaving(false);
   }
+
+  const renderEmpty = () => (
+    <div className="text-center text-muted-foreground py-8">הזן נתונים ראשונים כדי לראות גרף.</div>
+  );
+
+  const renderSinglePoint = (value: number, goal: number) => (
+    <div className="flex flex-col items-center justify-center py-8">
+      <div className="text-5xl font-bold">{fmt(value)}</div>
+      <div className="text-sm text-muted-foreground mt-1">יעד: {fmt(goal)} — נדרשת עוד מדידה כדי לראות מגמה</div>
+    </div>
+  );
 
   return (
     <div className="space-y-4" dir="rtl">
@@ -142,28 +225,124 @@ export function GrowthTab() {
         </Button>
       </Card>
 
-      <Card className="p-4">
-        <h3 className="font-bold mb-3">התקדמות מול יעדי אוגוסט 2026</h3>
-        {loading ? (
-          <div className="text-center text-muted-foreground py-8">טוען...</div>
-        ) : chartData.length === 0 ? (
-          <div className="text-center text-muted-foreground py-8">הזן נתונים ראשונים כדי לראות גרף.</div>
-        ) : (
-          <ChartContainer config={chartConfig} className="h-[260px] w-full">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Legend />
-              <ReferenceLine y={GOALS.instagram} stroke="hsl(330, 75%, 55%)" strokeDasharray="5 5" label="יעד IG" />
-              <ReferenceLine y={GOALS.community} stroke="hsl(180, 60%, 45%)" strokeDasharray="5 5" label="יעד קהילה" />
-              <Line type="monotone" dataKey="instagram" stroke="hsl(330, 75%, 55%)" strokeWidth={2} />
-              <Line type="monotone" dataKey="community" stroke="hsl(180, 60%, 45%)" strokeWidth={2} />
-            </LineChart>
-          </ChartContainer>
-        )}
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Instagram */}
+        <Card className="p-4">
+          <KpiHeader title="אינסטגרם — עוקבים" current={igNow} previous={igPrev} goal={GOALS.instagram} />
+          {loading ? (
+            <div className="text-center text-muted-foreground py-8">טוען...</div>
+          ) : chartData.length === 0 ? (
+            renderEmpty()
+          ) : chartData.length === 1 ? (
+            renderSinglePoint(igNow, GOALS.instagram)
+          ) : (
+            <ChartContainer config={igConfig} className="h-[240px] w-full">
+              <AreaChart data={chartData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="igFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={IG_COLOR} stopOpacity={0.4} />
+                    <stop offset="100%" stopColor={IG_COLOR} stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
+                <XAxis dataKey="date" interval={xInterval} fontSize={11} />
+                <YAxis
+                  domain={[0, Math.max(GOALS.instagram * 1.1, igNow * 1.15)]}
+                  tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v))}
+                  fontSize={11}
+                  width={40}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ReferenceLine
+                  y={GOALS.instagram}
+                  stroke={IG_COLOR}
+                  strokeDasharray="5 5"
+                  label={{ value: `יעד ${fmt(GOALS.instagram)}`, fontSize: 10, fill: IG_COLOR, position: "insideTopRight" }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="instagram"
+                  stroke={IG_COLOR}
+                  strokeWidth={2.5}
+                  fill="url(#igFill)"
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              </AreaChart>
+            </ChartContainer>
+          )}
+        </Card>
+
+        {/* Community */}
+        <Card className="p-4">
+          <KpiHeader title="קהילה — וואטסאפ + טלגרם" current={commNow} previous={commPrev} goal={GOALS.community} />
+          <div className="flex gap-4 text-xs text-muted-foreground -mt-2 mb-2">
+            <span className="inline-flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full" style={{ background: WA_COLOR }} />
+              וואטסאפ: <strong className="text-foreground">{fmt(last?.whatsapp_members ?? 0)}</strong>
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full" style={{ background: TG_COLOR }} />
+              טלגרם: <strong className="text-foreground">{fmt(last?.telegram_members ?? 0)}</strong>
+            </span>
+          </div>
+          {loading ? (
+            <div className="text-center text-muted-foreground py-8">טוען...</div>
+          ) : chartData.length === 0 ? (
+            renderEmpty()
+          ) : chartData.length === 1 ? (
+            renderSinglePoint(commNow, GOALS.community)
+          ) : (
+            <ChartContainer config={commConfig} className="h-[240px] w-full">
+              <LineChart data={chartData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
+                <XAxis dataKey="date" interval={xInterval} fontSize={11} />
+                <YAxis
+                  domain={[0, Math.max(GOALS.community * 1.1, commNow * 1.15)]}
+                  tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v))}
+                  fontSize={11}
+                  width={40}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <ReferenceLine
+                  y={GOALS.community}
+                  stroke={COMM_COLOR}
+                  strokeDasharray="5 5"
+                  label={{ value: `יעד ${fmt(GOALS.community)}`, fontSize: 10, fill: COMM_COLOR, position: "insideTopRight" }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="community"
+                  name="סך קהילה"
+                  stroke={COMM_COLOR}
+                  strokeWidth={2.5}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="whatsapp"
+                  name="וואטסאפ"
+                  stroke={WA_COLOR}
+                  strokeWidth={1.5}
+                  strokeDasharray="4 3"
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="telegram"
+                  name="טלגרם"
+                  stroke={TG_COLOR}
+                  strokeWidth={1.5}
+                  strokeDasharray="4 3"
+                  dot={false}
+                />
+              </LineChart>
+            </ChartContainer>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }
