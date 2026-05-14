@@ -109,11 +109,11 @@ function KpiHeader({
           <div className="text-4xl font-bold tabular-nums leading-none" style={{ color }}>
             {fmt(current)}
           </div>
-          <div className="text-sm text-muted-foreground mt-2">מתוך {fmt(goal)}</div>
+          <div className="text-base text-muted-foreground mt-2">מתוך {fmt(goal)}</div>
           <div className="flex items-center gap-3 mt-2">
             <Delta current={current} previous={previous} />
             {remaining > 0 && (
-              <span className="text-xs text-muted-foreground">· נותרו {fmt(remaining)}</span>
+              <span className="text-base text-muted-foreground">· נותרו {fmt(remaining)}</span>
             )}
           </div>
         </div>
