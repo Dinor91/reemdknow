@@ -2605,6 +2605,8 @@ const Admin = () => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
+  const [activeTab, setActiveTab] = useState<string>("growth");
+  const setLegacyTab = (v: string) => setActiveTab(v);
 
   const handleSignOut = async () => {
     await signOut();
