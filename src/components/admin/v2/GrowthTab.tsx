@@ -104,7 +104,7 @@ function KpiHeader({
   return (
     <div className="flex flex-col items-center text-center mb-4">
       <div className="text-xs text-muted-foreground mb-1">{title}</div>
-      <div className="text-6xl font-bold tabular-nums leading-none" style={{ color }}>
+      <div className="text-4xl font-bold tabular-nums leading-none" style={{ color }}>
         {fmt(current)}
       </div>
       <div className="text-sm text-muted-foreground mt-2">מתוך {fmt(goal)}</div>
@@ -115,7 +115,7 @@ function KpiHeader({
         )}
       </div>
       <div className="mt-3">
-        <ProgressRing current={current} goal={goal} color={color} size={56} />
+        <ProgressRing current={current} goal={goal} color={color} size={88} />
       </div>
     </div>
   );
