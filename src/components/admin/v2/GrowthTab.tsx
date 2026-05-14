@@ -56,32 +56,67 @@ function Delta({ current, previous }: { current: number; previous: number | null
   );
 }
 
+function ProgressRing({ current, goal, color, size = 96 }: { current: number; goal: number; color: string; size?: number }) {
+  const stroke = 10;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = Math.min(100, (current / goal) * 100);
+  const offset = c - (pct / 100) * c;
+  return (
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="hsl(var(--muted))" strokeWidth={stroke} fill="none" />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={color}
+          strokeWidth={stroke}
+          fill="none"
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 600ms ease" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <div className="text-lg font-bold tabular-nums leading-none">{Math.round(pct)}%</div>
+        <div className="text-[10px] text-muted-foreground mt-0.5">מהיעד</div>
+      </div>
+    </div>
+  );
+}
+
 function KpiHeader({
   title,
   current,
   previous,
   goal,
+  color,
 }: {
   title: string;
   current: number;
   previous: number | null;
   goal: number;
+  color: string;
 }) {
-  const pct = Math.min(100, Math.round((current / goal) * 100));
+  const remaining = Math.max(0, goal - current);
   return (
-    <div className="flex items-end justify-between mb-3 gap-3 flex-wrap">
+    <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
       <div>
         <div className="text-sm text-muted-foreground">{title}</div>
         <div className="flex items-baseline gap-2">
-          <div className="text-3xl font-bold">{fmt(current)}</div>
-          <div className="text-sm text-muted-foreground">/ {fmt(goal)}</div>
+          <div className="text-3xl font-bold tabular-nums" style={{ color }}>{fmt(current)}</div>
+          <div className="text-sm text-muted-foreground">מתוך {fmt(goal)}</div>
         </div>
-        <Delta current={current} previous={previous} />
+        <div className="flex items-center gap-3 mt-1">
+          <Delta current={current} previous={previous} />
+          {remaining > 0 && (
+            <span className="text-xs text-muted-foreground">נותרו {fmt(remaining)}</span>
+          )}
+        </div>
       </div>
-      <div className="text-left">
-        <div className="text-2xl font-bold tabular-nums">{pct}%</div>
-        <div className="text-xs text-muted-foreground">מהיעד</div>
-      </div>
+      <ProgressRing current={current} goal={goal} color={color} />
     </div>
   );
 }
