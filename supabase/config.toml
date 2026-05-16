@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.daily-recommendations]
 verify_jwt = false
+
+[functions.auditor-ingest]
+verify_jwt = false
