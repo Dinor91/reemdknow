@@ -130,7 +130,8 @@ Deno.serve(async (req) => {
     sales_count: p.sales_count ?? 0,
     image_url: p.image_url ?? null,
     audit_notes: p.content ?? null,
-    source: "auditor",
+    source: "scout_v2",
+    is_active: false,
   };
 
   const table =
