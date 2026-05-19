@@ -115,7 +115,11 @@ export function ScoutDraftsTab() {
   }
 
   async function handleCopy(d: Draft) {
-    const text = formatForWhatsApp(d, d.platform);
+    const text = d.audit_notes ?? "";
+    if (!text) {
+      toast.error("אין תוכן להעתקה (audit_notes ריק)");
+      return;
+    }
     await navigator.clipboard.writeText(text);
     toast.success("הועתק לוואטסאפ");
   }
