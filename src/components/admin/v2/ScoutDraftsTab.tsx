@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Send, Copy, Archive, RefreshCw, Star, Search, RotateCcw } from "lucide-react";
-import { formatForWhatsApp } from "@/lib/whatsappFormatter";
+import { Send, Copy, Archive, RefreshCw, Search, RotateCcw, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 
 type Platform = "aliexpress" | "amazon";
 interface Draft {
