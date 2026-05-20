@@ -218,87 +218,130 @@ export function ScoutDraftsTab() {
           אין טיוטות {showArchived ? "בארכיון" : "ממתינות"}. ה-Scout יזרים פריטים אוטומטית.
         </Card>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {visible.map((d) => (
-            <Card key={d.id} className="overflow-hidden flex flex-col">
-              <div className="relative aspect-[4/3] bg-muted">
-                {d.image_url ? (
-                  <img src={d.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">אין תמונה</div>
-                )}
-                <Badge className="absolute top-1.5 right-1.5 text-[10px] px-1.5 py-0" variant="secondary">
-                  {d.platform === "amazon" ? "Amazon" : "AE"}
-                </Badge>
-                {d.category_name_hebrew && (
-                  <Badge className="absolute top-1.5 left-1.5 text-[10px] px-1.5 py-0" variant="outline">{d.category_name_hebrew}</Badge>
-                )}
+        <div className="space-y-6">
+          {groups.map((group) => (
+            <section key={group.key} className="space-y-2">
+              <div className="flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur z-10 py-1.5">
+                <h2 className="text-base font-bold">{group.label}</h2>
+                <Badge variant="secondary" className="text-[10px]">{group.items.length}</Badge>
               </div>
-              <div className="p-3 flex-1 flex flex-col gap-2">
-                <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">
-                  {d.product_name_hebrew || d.product_name_english || "ללא שם"}
-                </h3>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  {d.price_usd && d.price_usd > 0 && <span>${Number(d.price_usd).toFixed(2)}</span>}
-                  {d.rating && d.rating > 0 && (
-                    <span className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-current" /> {Number(d.rating).toFixed(1)}
-                    </span>
-                  )}
-                  {d.sales_count && d.sales_count > 0 && <span>🔥 {d.sales_count}</span>}
-                </div>
-                {d.audit_notes && (
-                  <p className="text-xs italic bg-muted/50 rounded p-2 line-clamp-3">{d.audit_notes}</p>
-                )}
-                <div className="mt-auto pt-2 flex flex-col gap-2">
-                  {!showArchived ? (
-                    <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {group.items.map((d) => {
+                  const isOpen = !!expanded[d.id];
+                  const hasNotes = !!(d.audit_notes && d.audit_notes.trim());
+                  return (
+                    <Card key={d.id} className="overflow-hidden flex flex-col p-3 gap-3">
+                      {/* Compact header: image + meta */}
+                      <div className="flex gap-3">
+                        <div className="relative w-24 h-24 shrink-0 rounded-md overflow-hidden bg-muted">
+                          {d.image_url ? (
+                            <img src={d.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[10px]">אין תמונה</div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                          <h3 className="font-semibold text-sm line-clamp-2 leading-snug">
+                            {d.product_name_hebrew || d.product_name_english || "ללא שם"}
+                          </h3>
+                          <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                            {d.price_usd && d.price_usd > 0 && (
+                              <span className="font-semibold">${Number(d.price_usd).toFixed(2)}</span>
+                            )}
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                              {d.platform === "amazon" ? "Amazon" : "AE"}
+                            </Badge>
+                            {d.category_name_hebrew && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                {d.category_name_hebrew}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expand/collapse audit_notes */}
                       <Button
                         size="sm"
-                        className="w-full min-h-[44px]"
-                        onClick={() => handleApprove(d)}
-                        disabled={actingId === d.id}
+                        variant="ghost"
+                        className="w-full justify-between h-8 text-xs"
+                        onClick={() => setExpanded((s) => ({ ...s, [d.id]: !s[d.id] }))}
+                        disabled={!hasNotes}
                       >
-                        <Send className="h-4 w-4 ml-2" />
-                        אישור ושליחה
+                        <span>{!hasNotes ? "אין פוסט" : isOpen ? "הסתר פוסט" : "הצג פוסט מלא"}</span>
+                        {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </Button>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="min-h-[44px]"
-                          onClick={() => handleCopy(d)}
-                        >
-                          <Copy className="h-4 w-4 ml-1" />
-                          וואטסאפ
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="min-h-[44px] hover:text-destructive"
-                          onClick={() => handleArchive(d)}
-                          disabled={actingId === d.id}
-                        >
-                          <Archive className="h-4 w-4 ml-1" />
-                          ארכיון
-                        </Button>
+                      {isOpen && hasNotes && (
+                        <pre className="text-xs whitespace-pre-wrap bg-muted/50 rounded p-2 font-sans leading-relaxed max-h-80 overflow-auto">
+                          {d.audit_notes}
+                        </pre>
+                      )}
+
+                      {/* Actions */}
+                      <div className="mt-auto flex flex-col gap-2">
+                        {!showArchived ? (
+                          <>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button
+                                size="sm"
+                                className="min-h-[40px]"
+                                onClick={() => handleApprove(d)}
+                                disabled={actingId === d.id}
+                              >
+                                <Send className="h-4 w-4 ml-1" />
+                                אישור ושליחה
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="min-h-[40px]"
+                                onClick={() => d.tracking_link && window.open(d.tracking_link, "_blank", "noopener,noreferrer")}
+                                disabled={!d.tracking_link}
+                              >
+                                <ExternalLink className="h-4 w-4 ml-1" />
+                                צפה במוצר
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="min-h-[40px]"
+                                onClick={() => handleCopy(d)}
+                              >
+                                <Copy className="h-4 w-4 ml-1" />
+                                וואטסאפ
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="min-h-[40px] hover:text-destructive"
+                                onClick={() => handleArchive(d)}
+                                disabled={actingId === d.id}
+                              >
+                                <Archive className="h-4 w-4 ml-1" />
+                                ארכיון
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full min-h-[40px]"
+                            onClick={() => handleArchive(d, true)}
+                            disabled={actingId === d.id}
+                          >
+                            <RotateCcw className="h-4 w-4 ml-2" />
+                            שחזור
+                          </Button>
+                        )}
                       </div>
-                    </>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full min-h-[44px]"
-                      onClick={() => handleArchive(d, true)}
-                      disabled={actingId === d.id}
-                    >
-                      <RotateCcw className="h-4 w-4 ml-2" />
-                      שחזור
-                    </Button>
-                  )}
-                </div>
+                    </Card>
+                  );
+                })}
               </div>
-            </Card>
+            </section>
           ))}
         </div>
       )}
