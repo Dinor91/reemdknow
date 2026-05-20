@@ -36,6 +36,7 @@ export function ScoutDraftsTab() {
   const [platformFilter, setPlatformFilter] = useState<"all" | Platform>("all");
   const [search, setSearch] = useState("");
   const [actingId, setActingId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   async function load() {
     setLoading(true);
