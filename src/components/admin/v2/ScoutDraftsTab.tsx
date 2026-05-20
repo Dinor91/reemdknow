@@ -8,8 +8,11 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Send, Copy, Archive, RefreshCw, Search, RotateCcw, ExternalLink, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
+import { ArchiveReasonDialog, ARCHIVE_REASON_LABELS, type ArchiveReason } from "@/components/admin/ArchiveReasonDialog";
+import { getTimeBucket } from "@/lib/timeBucket";
 
 type PlatformFilter = "all" | "amazon" | "aliexpress" | "ksp";
+type ReasonFilter = "all" | "sent" | "wording" | "price" | "image" | "other";
 type SourceTable = "amazon" | "israel";
 interface Draft {
   id: string;
@@ -24,6 +27,8 @@ interface Draft {
   tracking_link: string | null;
   audit_notes: string | null;
   archived_at: string | null;
+  archive_reason: string | null;
+  sent_at: string | null;
   created_at: string;
   source: string | null;
   is_active: boolean | null;
@@ -51,16 +56,18 @@ export function ScoutDraftsTab() {
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
+  const [reasonFilter, setReasonFilter] = useState<ReasonFilter>("all");
   const [search, setSearch] = useState("");
   const [actingId, setActingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const [archiveDialog, setArchiveDialog] = useState<Draft | null>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   async function load() {
     setLoading(true);
     const select =
-      "id, product_name_hebrew, product_name_english, image_url, price_usd, rating, sales_count, category_name_hebrew, tracking_link, audit_notes, archived_at, created_at, source, is_active";
+      "id, product_name_hebrew, product_name_english, image_url, price_usd, rating, sales_count, category_name_hebrew, tracking_link, audit_notes, archived_at, archive_reason, sent_at, created_at, source, is_active";
     const [israelRes, amzRes] = await Promise.all([
       supabase
         .from("israel_editor_products")
@@ -89,6 +96,9 @@ export function ScoutDraftsTab() {
   const visible = useMemo(() => {
     return drafts.filter((d) => {
       if (showArchived ? !d.archived_at : !!d.archived_at) return false;
+      if (showArchived && reasonFilter !== "all") {
+        if ((d.archive_reason ?? "other") !== reasonFilter) return false;
+      }
       if (platformFilter !== "all") {
         const p = detectPlatform(d);
         if (p !== platformFilter) return false;
@@ -99,7 +109,7 @@ export function ScoutDraftsTab() {
       }
       return true;
     });
-  }, [drafts, showArchived, platformFilter, search]);
+  }, [drafts, showArchived, reasonFilter, platformFilter, search]);
 
   const pendingCount = useMemo(
     () => drafts.filter((d) => !d.archived_at && !d.is_active).length,
@@ -116,8 +126,12 @@ export function ScoutDraftsTab() {
     return drafts.filter((d) => new Date(d.created_at).getTime() > cutoff).length;
   }, [drafts]);
 
-  // Group by day (YYYY-MM-DD)
-  const groups = useMemo(() => {
+  /**
+   * Active view → group by day (existing behavior).
+   * Archive view → group hierarchically by year → month → week.
+   */
+  const dayGroups = useMemo(() => {
+    if (showArchived) return [];
     const byDay = new Map<string, Draft[]>();
     for (const d of visible) {
       const dt = new Date(d.created_at);
@@ -149,13 +163,51 @@ export function ScoutDraftsTab() {
       }
       return { key, label, short, items: byDay.get(key)! };
     });
-  }, [visible]);
+  }, [visible, showArchived]);
+
+  // Year → Month → Week hierarchy for archive view.
+  const archiveTree = useMemo(() => {
+    if (!showArchived) return [];
+    type WeekNode = { key: string; label: string; items: Draft[] };
+    type MonthNode = { key: string; label: string; weeks: Map<string, WeekNode> };
+    type YearNode = { key: string; label: string; months: Map<string, MonthNode> };
+    const years = new Map<string, YearNode>();
+
+    for (const d of visible) {
+      const stamp = d.archived_at || d.sent_at || d.created_at;
+      const b = getTimeBucket(stamp);
+      let y = years.get(b.yearKey);
+      if (!y) { y = { key: b.yearKey, label: b.yearLabel, months: new Map() }; years.set(b.yearKey, y); }
+      let m = y.months.get(b.monthKey);
+      if (!m) { m = { key: b.monthKey, label: b.monthLabel, weeks: new Map() }; y.months.set(b.monthKey, m); }
+      let w = m.weeks.get(b.weekKey);
+      if (!w) { w = { key: b.weekKey, label: b.weekLabel, items: [] }; m.weeks.set(b.weekKey, w); }
+      w.items.push(d);
+    }
+
+    const sortDesc = (a: string, b: string) => (a < b ? 1 : -1);
+    return Array.from(years.values())
+      .sort((a, b) => sortDesc(a.key, b.key))
+      .map((y) => ({
+        ...y,
+        months: Array.from(y.months.values())
+          .sort((a, b) => sortDesc(a.key, b.key))
+          .map((m) => ({
+            ...m,
+            weeks: Array.from(m.weeks.values()).sort((a, b) => sortDesc(a.key, b.key)),
+          })),
+      }));
+  }, [visible, showArchived]);
 
   const tableFor = (s: SourceTable) => (s === "amazon" ? "amazon_editor_products" : "israel_editor_products");
 
   async function handleApprove(d: Draft) {
     setActingId(d.id);
-    const { error } = await supabase.from(tableFor(d.source_table)).update({ is_active: true }).eq("id", d.id);
+    const nowIso = new Date().toISOString();
+    const { error } = await supabase
+      .from(tableFor(d.source_table))
+      .update({ is_active: true, sent_at: nowIso, archived_at: nowIso, archive_reason: "sent" })
+      .eq("id", d.id);
     if (error) {
       toast.error("שגיאה באישור: " + error.message);
       setActingId(null);
@@ -171,9 +223,10 @@ export function ScoutDraftsTab() {
     } catch (e: any) {
       toast.warning("אושר, אבל שליחה לטלגרם נכשלה: " + (e?.message ?? ""));
     }
-    // Mark as sent locally + reflect is_active=true so the green badge persists
     setSentIds((prev) => new Set(prev).add(d.id));
-    setDrafts((prev) => prev.map((x) => (x.id === d.id ? { ...x, is_active: true } : x)));
+    setDrafts((prev) => prev.map((x) =>
+      x.id === d.id ? { ...x, is_active: true, sent_at: nowIso, archived_at: nowIso, archive_reason: "sent" } : x,
+    ));
     setActingId(null);
   }
 
@@ -187,17 +240,47 @@ export function ScoutDraftsTab() {
     toast.success("הועתק לוואטסאפ");
   }
 
-  async function handleArchive(d: Draft, restore = false) {
+  async function handleArchiveConfirm(reason: ArchiveReason, notes: string) {
+    const d = archiveDialog;
+    if (!d) return;
+    setActingId(d.id);
+    const nowIso = new Date().toISOString();
+    const patch: Record<string, any> = {
+      is_active: false,
+      archived_at: nowIso,
+      archive_reason: reason,
+    };
+    if (notes) {
+      // Append to existing notes rather than overwrite.
+      const existing = (d.audit_notes ?? "").trim();
+      patch.audit_notes = existing ? `${existing}\n\n[ארכיון] ${notes}` : `[ארכיון] ${notes}`;
+    }
+    const { error } = await supabase.from(tableFor(d.source_table)).update(patch).eq("id", d.id);
+    if (error) {
+      toast.error("שגיאה: " + error.message);
+    } else {
+      toast.success("הועבר לארכיון");
+      setDrafts((prev) => prev.map((x) =>
+        x.id === d.id ? { ...x, ...patch } : x,
+      ));
+      setArchiveDialog(null);
+    }
+    setActingId(null);
+  }
+
+  async function handleRestore(d: Draft) {
     setActingId(d.id);
     const { error } = await supabase
       .from(tableFor(d.source_table))
-      .update({ archived_at: restore ? null : new Date().toISOString() })
+      .update({ archived_at: null, archive_reason: null, sent_at: null })
       .eq("id", d.id);
     if (error) {
       toast.error("שגיאה: " + error.message);
     } else {
-      toast.success(restore ? "שוחזר" : "הועבר לארכיון");
-      setDrafts((prev) => prev.map((x) => (x.id === d.id ? { ...x, archived_at: restore ? null : new Date().toISOString() } : x)));
+      toast.success("שוחזר");
+      setDrafts((prev) => prev.map((x) =>
+        x.id === d.id ? { ...x, archived_at: null, archive_reason: null, sent_at: null } : x,
+      ));
     }
     setActingId(null);
   }
@@ -205,6 +288,155 @@ export function ScoutDraftsTab() {
   function scrollToDay(key: string) {
     sectionRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+
+  const REASON_TABS: { value: ReasonFilter; label: string }[] = [
+    { value: "all", label: "הכל" },
+    { value: "sent", label: "נשלח" },
+    { value: "wording", label: "ניסוח" },
+    { value: "price", label: "מחיר" },
+    { value: "image", label: "תמונה" },
+    { value: "other", label: "אחר" },
+  ];
+
+  const renderCard = (d: Draft) => {
+    const isOpen = !!expanded[d.id];
+    const hasNotes = !!(d.audit_notes && d.audit_notes.trim());
+    const platform = detectPlatform(d);
+    const isSent = sentIds.has(d.id) || d.is_active === true;
+    const reasonKey = d.archive_reason ?? "";
+    const reasonLabel = ARCHIVE_REASON_LABELS[reasonKey];
+    const isSentArchive = showArchived && reasonKey === "sent";
+    return (
+      <Card
+        key={d.id}
+        className={`overflow-hidden flex flex-col p-3 gap-3 ${
+          isSentArchive ? "border-green-500/40" : (isSent && !showArchived ? "border-green-500/40" : "")
+        } ${showArchived && reasonKey && reasonKey !== "sent" ? "border-red-400/40" : ""}`}
+      >
+        <div className="flex gap-3">
+          <div className="relative w-24 h-24 shrink-0 rounded-md overflow-hidden bg-muted">
+            {d.image_url ? (
+              <img src={d.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[10px]">אין תמונה</div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-semibold text-sm line-clamp-2 leading-snug flex-1">
+                {d.product_name_hebrew || d.product_name_english || "ללא שם"}
+              </h3>
+              {showArchived && reasonLabel ? (
+                <Badge
+                  className={`text-[10px] px-1.5 py-0 shrink-0 ${
+                    reasonKey === "sent"
+                      ? "bg-green-600 hover:bg-green-600 text-white"
+                      : "bg-red-100 text-red-700 hover:bg-red-100"
+                  }`}
+                >
+                  {reasonKey === "sent" && <CheckCircle2 className="h-3 w-3 ml-1" />}
+                  {reasonLabel}
+                </Badge>
+              ) : isSent ? (
+                <Badge className="bg-green-600 hover:bg-green-600 text-white text-[10px] px-1.5 py-0 shrink-0 gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  נשלח
+                </Badge>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap text-xs">
+              {d.price_usd && d.price_usd > 0 && (
+                <span className="font-semibold">${Number(d.price_usd).toFixed(2)}</span>
+              )}
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                {platformLabel(platform)}
+              </Badge>
+              {d.category_name_hebrew && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  {d.category_name_hebrew}
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <Button
+          size="sm"
+          variant="ghost"
+          className="w-full justify-between h-8 text-xs"
+          onClick={() => setExpanded((s) => ({ ...s, [d.id]: !s[d.id] }))}
+          disabled={!hasNotes}
+        >
+          <span>{!hasNotes ? "אין פוסט" : isOpen ? "הסתר פוסט" : "הצג פוסט מלא"}</span>
+          {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </Button>
+        {isOpen && hasNotes && (
+          <pre className="text-xs whitespace-pre-wrap bg-muted/50 rounded p-2 font-sans leading-relaxed max-h-80 overflow-auto">
+            {d.audit_notes}
+          </pre>
+        )}
+
+        <div className="mt-auto flex flex-col gap-2">
+          {!showArchived ? (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  size="sm"
+                  className="min-h-[40px]"
+                  onClick={() => handleApprove(d)}
+                  disabled={actingId === d.id || isSent}
+                  variant={isSent ? "secondary" : "default"}
+                >
+                  {isSent ? (
+                    <><CheckCircle2 className="h-4 w-4 ml-1" />נשלח</>
+                  ) : (
+                    <><Send className="h-4 w-4 ml-1" />אישור ושליחה</>
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="min-h-[40px]"
+                  onClick={() => d.tracking_link && window.open(d.tracking_link, "_blank", "noopener,noreferrer")}
+                  disabled={!d.tracking_link}
+                >
+                  <ExternalLink className="h-4 w-4 ml-1" />
+                  צפה במוצר
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button size="sm" variant="secondary" className="min-h-[40px]" onClick={() => handleCopy(d)}>
+                  <Copy className="h-4 w-4 ml-1" />
+                  וואטסאפ
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="min-h-[40px] hover:text-destructive"
+                  onClick={() => setArchiveDialog(d)}
+                  disabled={actingId === d.id}
+                >
+                  <Archive className="h-4 w-4 ml-1" />
+                  ארכיון
+                </Button>
+              </div>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full min-h-[40px]"
+              onClick={() => handleRestore(d)}
+              disabled={actingId === d.id}
+            >
+              <RotateCcw className="h-4 w-4 ml-2" />
+              שחזור
+            </Button>
+          )}
+        </div>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-4" dir="rtl">
@@ -227,7 +459,7 @@ export function ScoutDraftsTab() {
       </Card>
 
       {/* Filters */}
-      <Card className="p-3">
+      <Card className="p-3 space-y-2">
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -255,13 +487,29 @@ export function ScoutDraftsTab() {
             {showArchived ? "הצג פעילים" : "הצג ארכיון"}
           </Button>
         </div>
+
+        {showArchived && (
+          <div className="flex gap-1.5 flex-wrap pt-1">
+            {REASON_TABS.map((t) => (
+              <Button
+                key={t.value}
+                size="sm"
+                variant={reasonFilter === t.value ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setReasonFilter(t.value)}
+              >
+                {t.label}
+              </Button>
+            ))}
+          </div>
+        )}
       </Card>
 
-      {/* Day quick-nav */}
-      {!loading && groups.length > 1 && (
+      {/* Day quick-nav (active view only) */}
+      {!loading && !showArchived && dayGroups.length > 1 && (
         <Card className="p-2">
           <div className="flex gap-1.5 overflow-x-auto">
-            {groups.map((g) => (
+            {dayGroups.map((g) => (
               <Button
                 key={g.key}
                 size="sm"
@@ -277,16 +525,40 @@ export function ScoutDraftsTab() {
         </Card>
       )}
 
-      {/* Drafts grid */}
+      {/* Content */}
       {loading ? (
         <div className="text-center text-muted-foreground py-12">טוען...</div>
       ) : visible.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
           אין טיוטות {showArchived ? "בארכיון" : "ממתינות"}. ה-Scout יזרים פריטים אוטומטית.
         </Card>
+      ) : showArchived ? (
+        <div className="space-y-6">
+          {archiveTree.map((year) => (
+            <section key={year.key} className="space-y-3">
+              <h2 className="text-xl font-bold border-b pb-1">{year.label}</h2>
+              {year.months.map((month) => (
+                <div key={month.key} className="space-y-2 pr-2">
+                  <h3 className="text-base font-semibold text-muted-foreground">{month.label}</h3>
+                  {month.weeks.map((week) => (
+                    <div key={week.key} className="space-y-2 pr-3">
+                      <div className="flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur z-10 py-1.5">
+                        <h4 className="text-sm font-medium">{week.label}</h4>
+                        <Badge variant="secondary" className="text-[10px]">{week.items.length}</Badge>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {week.items.map(renderCard)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </section>
+          ))}
+        </div>
       ) : (
         <div className="space-y-6">
-          {groups.map((group) => (
+          {dayGroups.map((group) => (
             <section
               key={group.key}
               ref={(el) => (sectionRefs.current[group.key] = el)}
@@ -297,145 +569,19 @@ export function ScoutDraftsTab() {
                 <Badge variant="secondary" className="text-[10px]">{group.items.length}</Badge>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {group.items.map((d) => {
-                  const isOpen = !!expanded[d.id];
-                  const hasNotes = !!(d.audit_notes && d.audit_notes.trim());
-                  const platform = detectPlatform(d);
-                  const isSent = sentIds.has(d.id) || d.is_active === true;
-                  return (
-                    <Card key={d.id} className={`overflow-hidden flex flex-col p-3 gap-3 ${isSent ? "border-green-500/40" : ""}`}>
-                      {/* Compact header: image + meta */}
-                      <div className="flex gap-3">
-                        <div className="relative w-24 h-24 shrink-0 rounded-md overflow-hidden bg-muted">
-                          {d.image_url ? (
-                            <img src={d.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[10px]">אין תמונה</div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-semibold text-sm line-clamp-2 leading-snug flex-1">
-                              {d.product_name_hebrew || d.product_name_english || "ללא שם"}
-                            </h3>
-                            {isSent && (
-                              <Badge className="bg-green-600 hover:bg-green-600 text-white text-[10px] px-1.5 py-0 shrink-0 gap-1">
-                                <CheckCircle2 className="h-3 w-3" />
-                                נשלח
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 flex-wrap text-xs">
-                            {d.price_usd && d.price_usd > 0 && (
-                              <span className="font-semibold">${Number(d.price_usd).toFixed(2)}</span>
-                            )}
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                              {platformLabel(platform)}
-                            </Badge>
-                            {d.category_name_hebrew && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                {d.category_name_hebrew}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Expand/collapse audit_notes */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="w-full justify-between h-8 text-xs"
-                        onClick={() => setExpanded((s) => ({ ...s, [d.id]: !s[d.id] }))}
-                        disabled={!hasNotes}
-                      >
-                        <span>{!hasNotes ? "אין פוסט" : isOpen ? "הסתר פוסט" : "הצג פוסט מלא"}</span>
-                        {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </Button>
-                      {isOpen && hasNotes && (
-                        <pre className="text-xs whitespace-pre-wrap bg-muted/50 rounded p-2 font-sans leading-relaxed max-h-80 overflow-auto">
-                          {d.audit_notes}
-                        </pre>
-                      )}
-
-                      {/* Actions */}
-                      <div className="mt-auto flex flex-col gap-2">
-                        {!showArchived ? (
-                          <>
-                            <div className="grid grid-cols-2 gap-2">
-                              <Button
-                                size="sm"
-                                className="min-h-[40px]"
-                                onClick={() => handleApprove(d)}
-                                disabled={actingId === d.id || isSent}
-                                variant={isSent ? "secondary" : "default"}
-                              >
-                                {isSent ? (
-                                  <>
-                                    <CheckCircle2 className="h-4 w-4 ml-1" />
-                                    נשלח
-                                  </>
-                                ) : (
-                                  <>
-                                    <Send className="h-4 w-4 ml-1" />
-                                    אישור ושליחה
-                                  </>
-                                )}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="min-h-[40px]"
-                                onClick={() => d.tracking_link && window.open(d.tracking_link, "_blank", "noopener,noreferrer")}
-                                disabled={!d.tracking_link}
-                              >
-                                <ExternalLink className="h-4 w-4 ml-1" />
-                                צפה במוצר
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                className="min-h-[40px]"
-                                onClick={() => handleCopy(d)}
-                              >
-                                <Copy className="h-4 w-4 ml-1" />
-                                וואטסאפ
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="min-h-[40px] hover:text-destructive"
-                                onClick={() => handleArchive(d)}
-                                disabled={actingId === d.id}
-                              >
-                                <Archive className="h-4 w-4 ml-1" />
-                                ארכיון
-                              </Button>
-                            </div>
-                          </>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full min-h-[40px]"
-                            onClick={() => handleArchive(d, true)}
-                            disabled={actingId === d.id}
-                          >
-                            <RotateCcw className="h-4 w-4 ml-2" />
-                            שחזור
-                          </Button>
-                        )}
-                      </div>
-                    </Card>
-                  );
-                })}
+                {group.items.map(renderCard)}
               </div>
             </section>
           ))}
         </div>
       )}
+
+      <ArchiveReasonDialog
+        open={!!archiveDialog}
+        onOpenChange={(open) => { if (!open) setArchiveDialog(null); }}
+        onConfirm={handleArchiveConfirm}
+        loading={!!actingId && !!archiveDialog && actingId === archiveDialog.id}
+      />
     </div>
   );
 }
