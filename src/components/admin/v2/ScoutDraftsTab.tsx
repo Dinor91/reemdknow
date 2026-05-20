@@ -91,6 +91,27 @@ export function ScoutDraftsTab() {
     return drafts.filter((d) => new Date(d.created_at).getTime() > cutoff).length;
   }, [drafts]);
 
+  const groups = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+    const weekCutoff = startOfToday - 6 * 24 * 60 * 60 * 1000;
+    const buckets: { key: string; label: string; items: Draft[] }[] = [
+      { key: "today", label: "היום", items: [] },
+      { key: "yesterday", label: "אתמול", items: [] },
+      { key: "week", label: "השבוע", items: [] },
+      { key: "older", label: "ישן יותר", items: [] },
+    ];
+    for (const d of visible) {
+      const t = new Date(d.created_at).getTime();
+      if (t >= startOfToday) buckets[0].items.push(d);
+      else if (t >= startOfYesterday) buckets[1].items.push(d);
+      else if (t >= weekCutoff) buckets[2].items.push(d);
+      else buckets[3].items.push(d);
+    }
+    return buckets.filter((b) => b.items.length > 0);
+  }, [visible]);
+
   const tableFor = (p: Platform) => (p === "amazon" ? "amazon_editor_products" : "israel_editor_products");
 
   async function handleApprove(d: Draft) {
