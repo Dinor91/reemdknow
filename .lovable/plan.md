@@ -1,43 +1,89 @@
-## Scout Drafts Tab — UI/UX Overhaul
+# תוכנית מאוחדת — היררכיית זמן + ארכיון חכם
 
-Refactor `src/components/admin/v2/ScoutDraftsTab.tsx` only. No DB, query, or approval-logic changes.
+## 1. עקרון מנחה (חשוב!)
+האתר הציבורי שולף **רק לפי `is_active=true`** ולא מסתכל על `archived_at`.
+אומת בקוד הקיים:
+- `IsraelCategories.tsx` → `israel_editor_products` עם `is_active=true` בלבד
+- `useAliExpressProducts.ts` → `is_active=true` בלבד
+- `ThailandCategories.tsx` → `category_products` עם `is_active=true` בלבד
 
-### 1. Time-Based Grouping
-Bucket `visible` drafts by `created_at` (local time) into:
-- **היום** (Today)
-- **אתמול** (Yesterday)
-- **השבוע** (last 7 days, excluding above)
-- **ישן יותר** (Older)
+✅ אין צורך לשנות שאילתות ציבוריות. ארכיון לא יעלים מוצרים מהחנות.
 
-Render each non-empty bucket as a section: sticky-ish header with the label + count badge, followed by its card grid. Keep current sort (newest first) within each bucket.
+---
 
-### 2. Compact Cards (default state)
-Replace the current tall card with a compact horizontal layout:
-- Square thumbnail (`image_url`, ~96–112px) on the right (RTL)
-- Title (`product_name_hebrew` → fallback English), 2-line clamp
-- One meta row: price (`$X.XX`), category badge (`category_name_hebrew`), platform badge (AE/Amazon)
-- No `audit_notes`, no rating, no sales in compact view (keeps it dense)
+## 2. לוגיקת זמן (שבוע/חודש/שנה)
 
-### 3. Expand/Collapse `audit_notes`
-- Per-card local `expanded` state (`useState<Record<string, boolean>>`)
-- Toggle button: "הצג פוסט מלא" / "הסתר פוסט" with chevron icon
-- When expanded: reveal a `whitespace-pre-wrap` block of the full `audit_notes` inside the card
-- Disable button when `audit_notes` is empty
+**הגדרת שבוע:**
+- שבוע מסתיים **שישי 23:59**. מ-שבת 00:00 מוצרים שלא נשלחו מתקפלים לשבוע הקודם.
+- פורמט: `שבוע X/Y` (לדוגמה `3/5` = שבוע שלישי של מאי).
+- מספור: שבוע ראשון של חודש = השבוע שמכיל את 1 לחודש.
 
-### 4. "צפה במוצר" Button
-- New secondary button next to "אישור ושליחה"
-- Icon: `ExternalLink` from lucide-react
-- `onClick`: `window.open(d.tracking_link, "_blank", "noopener,noreferrer")`
-- Disabled when `tracking_link` is missing
-- Existing buttons preserved: Approve, Copy (WhatsApp — already returns raw `audit_notes`), Archive
+**גלגול חודש:** בסוף החודש, כל המוצרים שלא נשלחו מהשבועות מתקפלים לתיוג חודשי `מאי 2025`.
 
-### Layout
-Action row order (RTL): `[אישור ושליחה] [צפה במוצר] [וואטסאפ] [ארכיון]` + the expand toggle on its own row above actions.
+**גלגול שנה:** ב-31 בדצמבר → כל מה שלא נשלח נכנס לקיפול שנתי `2025`.
 
-### Out of Scope
-- No changes to `load()`, filters, KPI card, archive flow, `handleApprove`, `handleCopy`, or `post-scout-draft`.
-- No schema or edge function changes.
-- `formatForWhatsApp` remains unused (copy still pulls raw `audit_notes`).
+**מימוש:** ללא עמודות חדשות בDB. החישוב נעשה ב-Frontend מתוך `archived_at` (או `created_at` למוצרים פעילים) → פונקציה `getTimeBucket(date)` שמחזירה `{week, month, year}`.
 
-### Files Touched
-- `src/components/admin/v2/ScoutDraftsTab.tsx` (single-file refactor)
+---
+
+## 3. ארכיון — שתי שכבות
+
+### Tier A: "נשלח" (אוטומטי)
+ב-`handleApprove` (אישור שליחה ב-Daily Deals):
+```ts
+update: { is_active: true, sent_at: now(), archived_at: now(), archive_reason: 'sent' }
+```
+המוצר נשאר באתר הציבורי (כי `is_active=true`) **וגם** מופיע בארכיון תחת תיוג "נשלח".
+
+### Tier B: "ידני עם סיבה"
+כפתור ארכיון בכרטיס מוצר → פותח `Dialog` עם RadioGroup:
+- בעיית ניסוח
+- בעיית מחיר
+- בעיית תמונה
+- אחר (+ textarea חופשי)
+
+שמירה:
+```ts
+update: { is_active: false, archived_at: now(), archive_reason: <selected>, audit_notes: <text> }
+```
+
+---
+
+## 4. שינויי DB (migration)
+
+הוספה לטבלאות `israel_editor_products`, `amazon_editor_products`, `category_products`:
+- `sent_at TIMESTAMPTZ NULL`
+- `archive_reason TEXT NULL` — ערכים: `sent | wording | price | image | other`
+
+(העמודה `archived_at` ו-`audit_notes` כבר קיימות.)
+
+---
+
+## 5. מסך ארכיון משופר (Admin)
+
+**מבנה:**
+- סרגל סינון עליון: כל הסיבות (`הכל | נשלח | ניסוח | מחיר | תמונה | אחר`) + חיפוש טקסט.
+- קיבוץ היררכי: `2025 → מאי → שבוע 3/5 → כרטיסי מוצר`. ברירת מחדל מורחב לחודש הנוכחי.
+- באדג' לכל כרטיס: ירוק "נשלח" / אדום + סיבה.
+- כפתור "שחזר" → מנקה `archived_at`, `archive_reason`, `sent_at` ומחזיר ל-pipeline.
+
+---
+
+## 6. סדר ביצוע
+
+1. **Migration** — הוספת `sent_at` ו-`archive_reason` ל-3 הטבלאות.
+2. **handleApprove** — עדכון לכתוב `sent_at` + `archived_at` + `archive_reason='sent'`.
+3. **ArchiveReasonDialog** — קומפוננטה חדשה עם 4 רדיו + textarea.
+4. **כפתור ארכיון בכרטיס** — פתיחת הדיאלוג במקום ארכוב מיידי.
+5. **getTimeBucket util** — חישוב שבוע/חודש/שנה מתאריך.
+6. **מסך ארכיון** — סינון + קיבוץ היררכי + באדג'ים + שחזור.
+
+---
+
+## 7. מה לא נעשה עכשיו
+- **דשבורד תקלות 30 יום** — נחכה לצבירת דאטה (לפחות 20-30 ארכובים ידניים).
+- שינוי שאילתות ציבוריות — לא נדרש, כבר תקין.
+
+---
+
+אשר ואצא לביצוע לפי הסדר.

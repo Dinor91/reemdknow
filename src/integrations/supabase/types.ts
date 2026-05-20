@@ -166,6 +166,7 @@ export type Database = {
       }
       amazon_editor_products: {
         Row: {
+          archive_reason: string | null
           archived_at: string | null
           asin: string | null
           audit_notes: string | null
@@ -185,11 +186,13 @@ export type Database = {
           product_name_hebrew: string
           rating: number | null
           sales_count: number | null
+          sent_at: string | null
           source: string | null
           tracking_link: string
           updated_at: string
         }
         Insert: {
+          archive_reason?: string | null
           archived_at?: string | null
           asin?: string | null
           audit_notes?: string | null
@@ -209,11 +212,13 @@ export type Database = {
           product_name_hebrew: string
           rating?: number | null
           sales_count?: number | null
+          sent_at?: string | null
           source?: string | null
           tracking_link: string
           updated_at?: string
         }
         Update: {
+          archive_reason?: string | null
           archived_at?: string | null
           asin?: string | null
           audit_notes?: string | null
@@ -233,6 +238,7 @@ export type Database = {
           product_name_hebrew?: string
           rating?: number | null
           sales_count?: number | null
+          sent_at?: string | null
           source?: string | null
           tracking_link?: string
           updated_at?: string
@@ -293,6 +299,9 @@ export type Database = {
       category_products: {
         Row: {
           affiliate_link: string
+          archive_reason: string | null
+          archived_at: string | null
+          audit_notes: string | null
           category: string
           created_at: string
           currency: string | null
@@ -306,11 +315,15 @@ export type Database = {
           price_thb: number | null
           rating: number | null
           sales_count: number | null
+          sent_at: string | null
           source: string | null
           updated_at: string
         }
         Insert: {
           affiliate_link: string
+          archive_reason?: string | null
+          archived_at?: string | null
+          audit_notes?: string | null
           category: string
           created_at?: string
           currency?: string | null
@@ -324,11 +337,15 @@ export type Database = {
           price_thb?: number | null
           rating?: number | null
           sales_count?: number | null
+          sent_at?: string | null
           source?: string | null
           updated_at?: string
         }
         Update: {
           affiliate_link?: string
+          archive_reason?: string | null
+          archived_at?: string | null
+          audit_notes?: string | null
           category?: string
           created_at?: string
           currency?: string | null
@@ -342,6 +359,7 @@ export type Database = {
           price_thb?: number | null
           rating?: number | null
           sales_count?: number | null
+          sent_at?: string | null
           source?: string | null
           updated_at?: string
         }
@@ -608,6 +626,7 @@ export type Database = {
       israel_editor_products: {
         Row: {
           aliexpress_product_id: string | null
+          archive_reason: string | null
           archived_at: string | null
           audit_notes: string | null
           category_name_hebrew: string
@@ -624,12 +643,14 @@ export type Database = {
           product_name_hebrew: string
           rating: number | null
           sales_count: number | null
+          sent_at: string | null
           source: string | null
           tracking_link: string
           updated_at: string
         }
         Insert: {
           aliexpress_product_id?: string | null
+          archive_reason?: string | null
           archived_at?: string | null
           audit_notes?: string | null
           category_name_hebrew: string
@@ -646,12 +667,14 @@ export type Database = {
           product_name_hebrew: string
           rating?: number | null
           sales_count?: number | null
+          sent_at?: string | null
           source?: string | null
           tracking_link: string
           updated_at?: string
         }
         Update: {
           aliexpress_product_id?: string | null
+          archive_reason?: string | null
           archived_at?: string | null
           audit_notes?: string | null
           category_name_hebrew?: string
@@ -668,6 +691,7 @@ export type Database = {
           product_name_hebrew?: string
           rating?: number | null
           sales_count?: number | null
+          sent_at?: string | null
           source?: string | null
           tracking_link?: string
           updated_at?: string
