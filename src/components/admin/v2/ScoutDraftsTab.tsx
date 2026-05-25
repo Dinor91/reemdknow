@@ -92,6 +92,9 @@ export function ScoutDraftsTab() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
   const [archiveDialog, setArchiveDialog] = useState<Draft | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editedText, setEditedText] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const [now, setNow] = useState(() => new Date());
 
