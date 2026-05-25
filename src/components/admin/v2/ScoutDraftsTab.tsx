@@ -151,7 +151,8 @@ export function ScoutDraftsTab() {
     [drafts],
   );
 
-  const todayStart = useMemo(() => startOfDay(now), [now]);
+  // Anchor = end of the workday `now` belongs to (local 21:30 boundary).
+  const todayStart = useMemo(() => publishDayOf(now), [now]);
 
   const draftsToday = useMemo(() => {
     return drafts.filter((d) => !d.archived_at && publishDayOf(new Date(d.created_at)).getTime() === todayStart.getTime()).length;
