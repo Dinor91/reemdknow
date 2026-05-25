@@ -51,6 +51,19 @@ function platformLabel(p: "amazon" | "aliexpress" | "ksp" | "other") {
   return "—";
 }
 
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+}
+
+function publishDayOf(date: Date) {
+  const dayStart = startOfDay(date);
+  return new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate() + 1, 0, 0, 0, 0);
+}
+
+function dayKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 export function ScoutDraftsTab() {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +76,12 @@ export function ScoutDraftsTab() {
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
   const [archiveDialog, setArchiveDialog] = useState<Draft | null>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -116,28 +135,11 @@ export function ScoutDraftsTab() {
     [drafts],
   );
 
-  // Workday starts at 12:00. A scan run overnight (after midnight) still belongs to the
-  // same workday as the previous noon — matches the night-scan → morning-publish cycle.
-  const workdayStart = useMemo(() => {
-    const now = new Date();
-    const noonToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
-    return now.getTime() >= noonToday.getTime()
-      ? noonToday
-      : new Date(noonToday.getTime() - 24 * 60 * 60 * 1000);
-  }, [drafts]);
-
-  // Returns the workday-start (a noon timestamp) that a given created_at belongs to.
-  function workdayStartOf(d: Date) {
-    const noonSameDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0);
-    return d.getTime() >= noonSameDay.getTime()
-      ? noonSameDay
-      : new Date(noonSameDay.getTime() - 24 * 60 * 60 * 1000);
-  }
+  const todayStart = useMemo(() => startOfDay(now), [now]);
 
   const draftsToday = useMemo(() => {
-    const cutoff = workdayStart.getTime();
-    return drafts.filter((d) => new Date(d.created_at).getTime() >= cutoff && !d.archived_at).length;
-  }, [drafts, workdayStart]);
+    return drafts.filter((d) => !d.archived_at && publishDayOf(new Date(d.created_at)).getTime() === todayStart.getTime()).length;
+  }, [drafts, todayStart]);
 
   const draftsThisWeek = useMemo(() => {
     const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -145,28 +147,25 @@ export function ScoutDraftsTab() {
   }, [drafts]);
 
   /**
-   * Active view → group by workday (12:00 cutoff). A night scan belongs to the next morning's push.
+   * Active view → group by the publish day: every draft created on calendar day X
+   * is shown under calendar day X+1, and rolls to "אתמול" at midnight.
    * Archive view → group hierarchically by year → month → week.
    */
   const dayGroups = useMemo(() => {
     if (showArchived) return [];
-    const byDay = new Map<string, { items: Draft[]; workdayStart: Date }>();
+    const byDay = new Map<string, { items: Draft[]; publishDay: Date }>();
     for (const d of visible) {
-      const created = new Date(d.created_at);
-      const ws = workdayStartOf(created);
-      const key = `${ws.getFullYear()}-${String(ws.getMonth() + 1).padStart(2, "0")}-${String(ws.getDate()).padStart(2, "0")}`;
-      if (!byDay.has(key)) byDay.set(key, { items: [], workdayStart: ws });
+      const publishDay = publishDayOf(new Date(d.created_at));
+      const key = dayKey(publishDay);
+      if (!byDay.has(key)) byDay.set(key, { items: [], publishDay });
       byDay.get(key)!.items.push(d);
     }
-    const todayWorkdayStart = workdayStart.getTime();
     const dayNames = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
     const keys = Array.from(byDay.keys()).sort((a, b) => (a < b ? 1 : -1));
     return keys.map((key) => {
       const entry = byDay.get(key)!;
-      const ws = entry.workdayStart;
-      const diffDays = Math.round((todayWorkdayStart - ws.getTime()) / (24 * 60 * 60 * 1000));
-      // Workday starts noon day X → it represents the morning-push of day X+1.
-      const labelDate = new Date(ws.getTime() + 24 * 60 * 60 * 1000);
+      const labelDate = entry.publishDay;
+      const diffDays = Math.round((todayStart.getTime() - labelDate.getTime()) / (24 * 60 * 60 * 1000));
       let label: string;
       let short: string;
       if (diffDays === 0) {
@@ -183,7 +182,7 @@ export function ScoutDraftsTab() {
       }
       return { key, label, short, items: entry.items };
     });
-  }, [visible, showArchived, workdayStart]);
+  }, [visible, showArchived, todayStart]);
 
   // Year → Month → Week hierarchy for archive view.
   const archiveTree = useMemo(() => {
