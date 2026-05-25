@@ -51,13 +51,29 @@ function platformLabel(p: "amazon" | "aliexpress" | "ksp" | "other") {
   return "—";
 }
 
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
-}
+// Workday model — local browser time.
+// A "workday" runs from yesterday 21:30 → today 21:30 (local).
+// Scan runs at 22:00 local, so reset at 21:30 sits safely 30min before it.
+// publishDayOf(d) returns the END of the workday `d` belongs to — used as
+// a stable grouping anchor and as the label date ("היום" = current workday end).
+const WORKDAY_RESET_HOUR = 21;
+const WORKDAY_RESET_MINUTE = 30;
 
 function publishDayOf(date: Date) {
-  const dayStart = startOfDay(date);
-  return new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate() + 1, 0, 0, 0, 0);
+  const end = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    WORKDAY_RESET_HOUR,
+    WORKDAY_RESET_MINUTE,
+    0,
+    0,
+  );
+  // If `date` is at/after today's 21:30, it belongs to tomorrow's workday.
+  if (date.getTime() >= end.getTime()) {
+    end.setDate(end.getDate() + 1);
+  }
+  return end;
 }
 
 function dayKey(date: Date) {
