@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Send, Copy, Archive, RefreshCw, Search, RotateCcw, ExternalLink, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
+import { Send, Copy, Archive, RefreshCw, Search, RotateCcw, ExternalLink, ChevronDown, ChevronUp, CheckCircle2, Wand2 } from "lucide-react";
 import { ArchiveReasonDialog, ARCHIVE_REASON_LABELS, type ArchiveReason } from "@/components/admin/ArchiveReasonDialog";
 import { getTimeBucket } from "@/lib/timeBucket";
 
@@ -321,6 +321,49 @@ export function ScoutDraftsTab() {
     setActingId(null);
   }
 
+  async function handleQA(d: Draft) {
+    if (!d.tracking_link) {
+      toast.error("חסר קישור מוצר ל-QA");
+      return;
+    }
+    setActingId(d.id);
+    const toastId = toast.loading("מריץ QA מחדש...");
+    try {
+      const platform = detectPlatform(d);
+      const source = platform === "amazon" ? "amazon" : platform === "ksp" ? "ksp" : "aliexpress";
+      const { data, error } = await supabase.functions.invoke("generate-deal-message", {
+        body: {
+          source,
+          product: {
+            name: d.product_name_hebrew || d.product_name_english || "",
+            brand: null,
+            url: d.tracking_link,
+            price: d.price_usd,
+            originalPrice: null,
+            rating: d.rating,
+            sales: d.sales_count,
+            image: d.image_url,
+            category: d.category_name_hebrew,
+          },
+        },
+      });
+      if (error) throw error;
+      const message = (data as any)?.message;
+      if (!message) throw new Error("ה-QA לא החזיר תוכן");
+      const { error: upErr } = await supabase
+        .from(tableFor(d.source_table))
+        .update({ audit_notes: message })
+        .eq("id", d.id);
+      if (upErr) throw upErr;
+      setDrafts((prev) => prev.map((x) => (x.id === d.id ? { ...x, audit_notes: message } : x)));
+      setExpanded((s) => ({ ...s, [d.id]: true }));
+      toast.success("QA הושלם — הפוסט עודכן", { id: toastId });
+    } catch (e: any) {
+      toast.error("QA נכשל: " + (e?.message ?? ""), { id: toastId });
+    }
+    setActingId(null);
+  }
+
   function scrollToDay(key: string) {
     sectionRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -345,19 +388,19 @@ export function ScoutDraftsTab() {
     return (
       <Card
         key={d.id}
-        className={`overflow-hidden flex flex-col p-3 gap-3 ${
+        className={`overflow-hidden flex flex-col p-2.5 gap-2 ${
           isSentArchive ? "border-green-500/40" : (isSent && !showArchived ? "border-green-500/40" : "")
         } ${showArchived && reasonKey && reasonKey !== "sent" ? "border-red-400/40" : ""}`}
       >
-        <div className="flex gap-3">
-          <div className="relative w-24 h-24 shrink-0 rounded-md overflow-hidden bg-muted">
+        <div className="flex gap-2.5">
+          <div className="relative w-20 h-20 shrink-0 rounded-md overflow-hidden bg-muted">
             {d.image_url ? (
               <img src={d.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[10px]">אין תמונה</div>
             )}
           </div>
-          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+          <div className="flex-1 min-w-0 flex flex-col gap-1">
             <div className="flex items-start justify-between gap-2">
               <h3 className="font-semibold text-sm line-clamp-2 leading-snug flex-1">
                 {d.product_name_hebrew || d.product_name_english || "ללא שם"}
@@ -380,7 +423,7 @@ export function ScoutDraftsTab() {
                 </Badge>
               ) : null}
             </div>
-            <div className="flex items-center gap-1.5 flex-wrap text-xs">
+            <div className="flex items-center gap-1 flex-wrap text-xs">
               {d.price_usd && d.price_usd > 0 && (
                 <span className="font-semibold">${Number(d.price_usd).toFixed(2)}</span>
               )}
@@ -399,7 +442,7 @@ export function ScoutDraftsTab() {
         <Button
           size="sm"
           variant="ghost"
-          className="w-full justify-between h-8 text-xs"
+          className="w-full justify-between h-7 text-xs"
           onClick={() => setExpanded((s) => ({ ...s, [d.id]: !s[d.id] }))}
           disabled={!hasNotes}
         >
@@ -407,18 +450,18 @@ export function ScoutDraftsTab() {
           {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
         {isOpen && hasNotes && (
-          <pre className="text-xs whitespace-pre-wrap bg-muted/50 rounded p-2 font-sans leading-relaxed max-h-80 overflow-auto">
+          <pre className="text-xs whitespace-pre-wrap bg-muted/50 rounded p-2 font-sans leading-relaxed max-h-[28rem] overflow-auto">
             {d.audit_notes}
           </pre>
         )}
 
-        <div className="mt-auto flex flex-col gap-2">
+        <div className="mt-auto flex flex-col gap-1.5">
           {!showArchived ? (
             <>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-1.5">
                 <Button
                   size="sm"
-                  className="min-h-[40px]"
+                  className="h-9"
                   onClick={() => handleApprove(d)}
                   disabled={actingId === d.id || isSent}
                   variant={isSent ? "secondary" : "default"}
@@ -432,7 +475,7 @@ export function ScoutDraftsTab() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="min-h-[40px]"
+                  className="h-9"
                   onClick={() => d.tracking_link && window.open(d.tracking_link, "_blank", "noopener,noreferrer")}
                   disabled={!d.tracking_link}
                 >
@@ -440,15 +483,26 @@ export function ScoutDraftsTab() {
                   צפה במוצר
                 </Button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button size="sm" variant="secondary" className="min-h-[40px]" onClick={() => handleCopy(d)}>
+              <div className="grid grid-cols-3 gap-1.5">
+                <Button size="sm" variant="secondary" className="h-9" onClick={() => handleCopy(d)}>
                   <Copy className="h-4 w-4 ml-1" />
                   וואטסאפ
                 </Button>
                 <Button
                   size="sm"
-                  variant="ghost"
-                  className="min-h-[40px] hover:text-destructive"
+                  variant="outline"
+                  className="h-9"
+                  onClick={() => handleQA(d)}
+                  disabled={actingId === d.id || !d.tracking_link}
+                  title="הרץ QA מחדש — מעדכן את הפוסט"
+                >
+                  <Wand2 className="h-4 w-4 ml-1" />
+                  QA
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="h-9"
                   onClick={() => setArchiveDialog(d)}
                   disabled={actingId === d.id}
                 >
