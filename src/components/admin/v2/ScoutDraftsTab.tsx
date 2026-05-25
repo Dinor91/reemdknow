@@ -325,48 +325,34 @@ export function ScoutDraftsTab() {
     setActingId(null);
   }
 
-  async function handleQA(d: Draft) {
-    if (!d.tracking_link) {
-      toast.error("חסר קישור מוצר ל-QA");
-      return;
-    }
-    setActingId(d.id);
-    const toastId = toast.loading("מריץ QA מחדש...");
-    try {
-      const platform = detectPlatform(d);
-      const source = platform === "amazon" ? "amazon" : platform === "ksp" ? "ksp" : "aliexpress";
-      const { data, error } = await supabase.functions.invoke("generate-deal-message", {
-        body: {
-          source,
-          product: {
-            name: d.product_name_hebrew || d.product_name_english || "",
-            brand: null,
-            url: d.tracking_link,
-            price: d.price_usd,
-            originalPrice: null,
-            rating: d.rating,
-            sales: d.sales_count,
-            image: d.image_url,
-            category: d.category_name_hebrew,
-          },
-        },
-      });
-      if (error) throw error;
-      const message = (data as any)?.message;
-      if (!message) throw new Error("ה-QA לא החזיר תוכן");
-      const { error: upErr } = await supabase
-        .from(tableFor(d.source_table))
-        .update({ audit_notes: message })
-        .eq("id", d.id);
-      if (upErr) throw upErr;
-      setDrafts((prev) => prev.map((x) => (x.id === d.id ? { ...x, audit_notes: message } : x)));
-      setExpanded((s) => ({ ...s, [d.id]: true }));
-      toast.success("QA הושלם — הפוסט עודכן", { id: toastId });
-    } catch (e: any) {
-      toast.error("QA נכשל: " + (e?.message ?? ""), { id: toastId });
-    }
-    setActingId(null);
+  function startEdit(d: Draft) {
+    setEditingId(d.id);
+    setEditedText(d.audit_notes ?? "");
+    setExpanded((s) => ({ ...s, [d.id]: true }));
   }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditedText("");
+  }
+
+  async function saveEdit(d: Draft) {
+    setSavingId(d.id);
+    const { error } = await supabase
+      .from(tableFor(d.source_table))
+      .update({ audit_notes: editedText })
+      .eq("id", d.id);
+    if (error) {
+      toast.error("שגיאה בשמירה: " + error.message);
+    } else {
+      setDrafts((prev) => prev.map((x) => (x.id === d.id ? { ...x, audit_notes: editedText } : x)));
+      toast.success("הטקסט נשמר");
+      setEditingId(null);
+      setEditedText("");
+    }
+    setSavingId(null);
+  }
+
 
   function scrollToDay(key: string) {
     sectionRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
