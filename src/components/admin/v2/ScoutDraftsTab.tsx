@@ -439,10 +439,30 @@ export function ScoutDraftsTab() {
           <span>{!hasNotes ? "אין פוסט" : isOpen ? "הסתר פוסט" : "הצג פוסט מלא"}</span>
           {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
-        {isOpen && hasNotes && (
+        {isOpen && hasNotes && editingId !== d.id && (
           <pre className="text-xs whitespace-pre-wrap bg-muted/50 rounded p-2 font-sans leading-relaxed max-h-[28rem] overflow-auto">
             {d.audit_notes}
           </pre>
+        )}
+        {editingId === d.id && (
+          <div className="flex flex-col gap-1.5">
+            <Textarea
+              value={editedText}
+              onChange={(e) => setEditedText(e.target.value)}
+              className="text-xs font-sans leading-relaxed min-h-[16rem] max-h-[32rem]"
+              dir="rtl"
+            />
+            <div className="grid grid-cols-2 gap-1.5">
+              <Button size="sm" className="h-9" onClick={() => saveEdit(d)} disabled={savingId === d.id}>
+                <Save className="h-4 w-4 ml-1" />
+                שמור
+              </Button>
+              <Button size="sm" variant="outline" className="h-9" onClick={cancelEdit} disabled={savingId === d.id}>
+                <X className="h-4 w-4 ml-1" />
+                בטל
+              </Button>
+            </div>
+          </div>
         )}
 
         <div className="mt-auto flex flex-col gap-1.5">
@@ -453,7 +473,7 @@ export function ScoutDraftsTab() {
                   size="sm"
                   className="h-9"
                   onClick={() => handleApprove(d)}
-                  disabled={actingId === d.id || isSent}
+                  disabled={actingId === d.id || isSent || editingId === d.id}
                   variant={isSent ? "secondary" : "default"}
                 >
                   {isSent ? (
@@ -482,12 +502,12 @@ export function ScoutDraftsTab() {
                   size="sm"
                   variant="outline"
                   className="h-9"
-                  onClick={() => handleQA(d)}
-                  disabled={actingId === d.id || !d.tracking_link}
-                  title="הרץ QA מחדש — מעדכן את הפוסט"
+                  onClick={() => startEdit(d)}
+                  disabled={actingId === d.id || editingId === d.id}
+                  title="ערוך את טקסט הפוסט לפני שליחה"
                 >
-                  <Wand2 className="h-4 w-4 ml-1" />
-                  QA
+                  <Pencil className="h-4 w-4 ml-1" />
+                  ערוך
                 </Button>
                 <Button
                   size="sm"
@@ -501,6 +521,7 @@ export function ScoutDraftsTab() {
                 </Button>
               </div>
             </>
+
           ) : (
             <Button
               size="sm"
