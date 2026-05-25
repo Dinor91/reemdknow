@@ -466,7 +466,7 @@ export function ScoutDraftsTab() {
           <div>
             <div className="text-sm text-muted-foreground">Hands-Free Index — היום</div>
             <div className="text-3xl font-bold">
-              {draftsLast24h} <span className="text-base font-normal text-muted-foreground">/ {HANDS_FREE_DAILY_TARGET}</span>
+              {draftsToday} <span className="text-base font-normal text-muted-foreground">/ {HANDS_FREE_DAILY_TARGET}</span>
             </div>
             <div className="text-xs text-muted-foreground mt-1">השבוע: {draftsThisWeek} / {HANDS_FREE_DAILY_TARGET * 7} • ממתינות: {pendingCount}</div>
           </div>
@@ -475,7 +475,7 @@ export function ScoutDraftsTab() {
             רענון
           </Button>
         </div>
-        <Progress className="mt-3" value={Math.min(100, (draftsLast24h / HANDS_FREE_DAILY_TARGET) * 100)} />
+        <Progress className="mt-3" value={Math.min(100, (draftsToday / HANDS_FREE_DAILY_TARGET) * 100)} />
       </Card>
 
       {/* Filters */}
