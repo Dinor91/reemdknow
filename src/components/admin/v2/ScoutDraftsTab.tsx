@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Send, Copy, Archive, RefreshCw, Search, RotateCcw, ExternalLink, ChevronDown, ChevronUp, CheckCircle2, Wand2 } from "lucide-react";
+import { Send, Copy, Archive, RefreshCw, Search, RotateCcw, ExternalLink, ChevronDown, ChevronUp, CheckCircle2, Pencil, Save, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { ArchiveReasonDialog, ARCHIVE_REASON_LABELS, type ArchiveReason } from "@/components/admin/ArchiveReasonDialog";
 import { getTimeBucket } from "@/lib/timeBucket";
 
