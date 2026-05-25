@@ -1,32 +1,26 @@
-## שיפוץ UI ל-ScoutDraftsTab
+## המרת כפתור QA לכפתור עריכה
 
-איפוס יומי ב-21:30 שעון דפדפן כבר בוצע. עכשיו מבצעים את שיפוץ ה-UI:
+הסר את הלוגיקה של `handleQA` שמייצרת מחדש את הטקסט מהבק-אנד. במקומה, הוסף מצב עריכה מקומי לכל כרטיס שמאפשר לערוך את `audit_notes` ידנית לפני אישור ושליחה לטלגרם.
 
-### 1. קומפקטיות
-- צמצום padding/gap בכרטיסי הטיוטות
-- הקטנת גובה תמונה ושורות מטא
-- צפיפות מידע גבוהה יותר, פחות whitespace מיותר
+### שינויים ב-`ScoutDraftsTab.tsx` בלבד
 
-### 2. כפתורי ארכיון
-- כפתור ארכיון בולט בכל כרטיס טיוטה
-- פתיחת `ArchiveReasonDialog` הקיים (wording/price/image/other + הערה)
-- עדכון סטטוס ל-archived עם reason+notes ב-DB
+1. **הסרת `handleQA`** והאייקון `Wand2` מהאימפורטים.
 
-### 3. הרחבת טקסט
-- כפתור "הצג עוד/פחות" לטקסטים ארוכים (תיאור/הודעת דיל)
-- ברירת מחדל: 3 שורות עם clamp; הרחבה מלאה בלחיצה
+2. **State חדש לעריכה**:
+   - `editingId: string | null` — איזה כרטיס נמצא במצב עריכה
+   - `editedText: string` — הטקסט הנערך כרגע
+   - `savingId: string | null` — אינדיקציה לשמירה
 
-### 4. כפתור QA
-- כפתור QA בכל כרטיס שמריץ את ה-auditor על המוצר
-- מציג תוצאה (verdict + הערות) ב-inline panel או toast
-- כולל מצב loading
+3. **כפתור "ערוך"** (אייקון `Pencil`) במקום QA:
+   - בלחיצה: `setEditingId(d.id)` + `setEditedText(d.audit_notes || "")`
+   - מוצג כאשר לא במצב עריכה
 
-### טכני
-- קובץ יחיד: `src/components/admin/v2/ScoutDraftsTab.tsx`
-- שימוש ב-`ArchiveReasonDialog` הקיים
-- כפתור QA יקרא ל-edge function קיים (auditor) או יוסיף state חדש
-- שמירה על workday logic הקיים (21:30 reset)
-- שימוש בטוקנים סמנטיים מ-`index.css`, ללא צבעים hardcoded
+4. **מצב עריכה** — כאשר `editingId === d.id`:
+   - ה-`<pre>` של `audit_notes` מוחלף ב-`<Textarea>` עם `value={editedText}` ו-`onChange`
+   - שני כפתורים מתחת: **"שמור"** (שומר ל-DB את הטקסט החדש דרך `tableFor(d.source_table).update({ audit_notes: editedText })`) ו-**"בטל"** (סוגר בלי לשמור)
+   - לאחר שמירה מוצלחת: toast + `loadDrafts()` לרענון + סגירת מצב עריכה
 
-### לבירור לפני ביצוע
-האם כפתור QA צריך לקרוא ל-`auditor-ingest` קיים, או שיש edge function נפרד ל-QA של דראפט קיים?
+5. **כפתור האישור והשליחה לטלגרם** הקיים נשאר כפי שהוא — הוא ישלח את ה-`audit_notes` המעודכן (לאחר שמירה).
+
+### הערה טכנית
+אין שינוי בבק-אנד, אין קריאות ל-edge functions, אין שינויים בלוגיקת איפוס/סקאוט. השמירה היא `UPDATE` פשוט על העמודה `audit_notes` בטבלה הרלוונטית (`feed_products` או `israel_editor_products`).
