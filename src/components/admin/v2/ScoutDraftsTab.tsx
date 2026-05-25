@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Send, Copy, Archive, RefreshCw, Search, RotateCcw, ExternalLink, ChevronDown, ChevronUp, CheckCircle2, Wand2 } from "lucide-react";
+import { Send, Copy, Archive, RefreshCw, Search, RotateCcw, ExternalLink, ChevronDown, ChevronUp, CheckCircle2, Pencil, Save, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { ArchiveReasonDialog, ARCHIVE_REASON_LABELS, type ArchiveReason } from "@/components/admin/ArchiveReasonDialog";
 import { getTimeBucket } from "@/lib/timeBucket";
 
@@ -91,6 +92,9 @@ export function ScoutDraftsTab() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
   const [archiveDialog, setArchiveDialog] = useState<Draft | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editedText, setEditedText] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const [now, setNow] = useState(() => new Date());
 
@@ -321,48 +325,34 @@ export function ScoutDraftsTab() {
     setActingId(null);
   }
 
-  async function handleQA(d: Draft) {
-    if (!d.tracking_link) {
-      toast.error("חסר קישור מוצר ל-QA");
-      return;
-    }
-    setActingId(d.id);
-    const toastId = toast.loading("מריץ QA מחדש...");
-    try {
-      const platform = detectPlatform(d);
-      const source = platform === "amazon" ? "amazon" : platform === "ksp" ? "ksp" : "aliexpress";
-      const { data, error } = await supabase.functions.invoke("generate-deal-message", {
-        body: {
-          source,
-          product: {
-            name: d.product_name_hebrew || d.product_name_english || "",
-            brand: null,
-            url: d.tracking_link,
-            price: d.price_usd,
-            originalPrice: null,
-            rating: d.rating,
-            sales: d.sales_count,
-            image: d.image_url,
-            category: d.category_name_hebrew,
-          },
-        },
-      });
-      if (error) throw error;
-      const message = (data as any)?.message;
-      if (!message) throw new Error("ה-QA לא החזיר תוכן");
-      const { error: upErr } = await supabase
-        .from(tableFor(d.source_table))
-        .update({ audit_notes: message })
-        .eq("id", d.id);
-      if (upErr) throw upErr;
-      setDrafts((prev) => prev.map((x) => (x.id === d.id ? { ...x, audit_notes: message } : x)));
-      setExpanded((s) => ({ ...s, [d.id]: true }));
-      toast.success("QA הושלם — הפוסט עודכן", { id: toastId });
-    } catch (e: any) {
-      toast.error("QA נכשל: " + (e?.message ?? ""), { id: toastId });
-    }
-    setActingId(null);
+  function startEdit(d: Draft) {
+    setEditingId(d.id);
+    setEditedText(d.audit_notes ?? "");
+    setExpanded((s) => ({ ...s, [d.id]: true }));
   }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditedText("");
+  }
+
+  async function saveEdit(d: Draft) {
+    setSavingId(d.id);
+    const { error } = await supabase
+      .from(tableFor(d.source_table))
+      .update({ audit_notes: editedText })
+      .eq("id", d.id);
+    if (error) {
+      toast.error("שגיאה בשמירה: " + error.message);
+    } else {
+      setDrafts((prev) => prev.map((x) => (x.id === d.id ? { ...x, audit_notes: editedText } : x)));
+      toast.success("הטקסט נשמר");
+      setEditingId(null);
+      setEditedText("");
+    }
+    setSavingId(null);
+  }
+
 
   function scrollToDay(key: string) {
     sectionRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -449,10 +439,30 @@ export function ScoutDraftsTab() {
           <span>{!hasNotes ? "אין פוסט" : isOpen ? "הסתר פוסט" : "הצג פוסט מלא"}</span>
           {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
-        {isOpen && hasNotes && (
+        {isOpen && hasNotes && editingId !== d.id && (
           <pre className="text-xs whitespace-pre-wrap bg-muted/50 rounded p-2 font-sans leading-relaxed max-h-[28rem] overflow-auto">
             {d.audit_notes}
           </pre>
+        )}
+        {editingId === d.id && (
+          <div className="flex flex-col gap-1.5">
+            <Textarea
+              value={editedText}
+              onChange={(e) => setEditedText(e.target.value)}
+              className="text-xs font-sans leading-relaxed min-h-[16rem] max-h-[32rem]"
+              dir="rtl"
+            />
+            <div className="grid grid-cols-2 gap-1.5">
+              <Button size="sm" className="h-9" onClick={() => saveEdit(d)} disabled={savingId === d.id}>
+                <Save className="h-4 w-4 ml-1" />
+                שמור
+              </Button>
+              <Button size="sm" variant="outline" className="h-9" onClick={cancelEdit} disabled={savingId === d.id}>
+                <X className="h-4 w-4 ml-1" />
+                בטל
+              </Button>
+            </div>
+          </div>
         )}
 
         <div className="mt-auto flex flex-col gap-1.5">
@@ -463,7 +473,7 @@ export function ScoutDraftsTab() {
                   size="sm"
                   className="h-9"
                   onClick={() => handleApprove(d)}
-                  disabled={actingId === d.id || isSent}
+                  disabled={actingId === d.id || isSent || editingId === d.id}
                   variant={isSent ? "secondary" : "default"}
                 >
                   {isSent ? (
@@ -492,12 +502,12 @@ export function ScoutDraftsTab() {
                   size="sm"
                   variant="outline"
                   className="h-9"
-                  onClick={() => handleQA(d)}
-                  disabled={actingId === d.id || !d.tracking_link}
-                  title="הרץ QA מחדש — מעדכן את הפוסט"
+                  onClick={() => startEdit(d)}
+                  disabled={actingId === d.id || editingId === d.id}
+                  title="ערוך את טקסט הפוסט לפני שליחה"
                 >
-                  <Wand2 className="h-4 w-4 ml-1" />
-                  QA
+                  <Pencil className="h-4 w-4 ml-1" />
+                  ערוך
                 </Button>
                 <Button
                   size="sm"
@@ -511,6 +521,7 @@ export function ScoutDraftsTab() {
                 </Button>
               </div>
             </>
+
           ) : (
             <Button
               size="sm"
