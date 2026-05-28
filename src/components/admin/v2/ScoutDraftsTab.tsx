@@ -159,8 +159,15 @@ export function ScoutDraftsTab() {
   const todayStart = useMemo(() => publishDayOf(now), [now]);
 
   const draftsToday = useMemo(() => {
-    return drafts.filter((d) => !d.archived_at && publishDayOf(new Date(d.created_at)).getTime() === todayStart.getTime()).length;
+    return drafts.filter((d) => publishDayOf(new Date(d.created_at)).getTime() === todayStart.getTime()).length;
   }, [drafts, todayStart]);
+
+  const sentToday = useMemo(() => {
+    return drafts.filter((d) => {
+      if (publishDayOf(new Date(d.created_at)).getTime() !== todayStart.getTime()) return false;
+      return sentIds.has(d.id) || d.archive_reason === "sent" || !!d.sent_at;
+    }).length;
+  }, [drafts, todayStart, sentIds]);
 
   const draftsThisWeek = useMemo(() => {
     const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -547,16 +554,18 @@ export function ScoutDraftsTab() {
           <div>
             <div className="text-sm text-muted-foreground">Hands-Free Index — היום</div>
             <div className="text-3xl font-bold">
-              {draftsToday} <span className="text-base font-normal text-muted-foreground">/ {HANDS_FREE_DAILY_TARGET}</span>
+              הודעות שנשלחו: {sentToday} <span className="text-base font-normal text-muted-foreground">/ {draftsToday}</span>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">השבוע: {draftsThisWeek} / {HANDS_FREE_DAILY_TARGET * 7} • ממתינות: {pendingCount}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              דאטה בייס: נכנסו {draftsToday} מתוך {HANDS_FREE_DAILY_TARGET} • השבוע: {draftsThisWeek} / {HANDS_FREE_DAILY_TARGET * 7} • ממתינות: {pendingCount}
+            </div>
           </div>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ml-2 ${loading ? "animate-spin" : ""}`} />
             רענון
           </Button>
         </div>
-        <Progress className="mt-3" value={Math.min(100, (draftsToday / HANDS_FREE_DAILY_TARGET) * 100)} />
+        <Progress className="mt-3" value={draftsToday > 0 ? Math.min(100, (sentToday / draftsToday) * 100) : 0} />
       </Card>
 
       {/* Filters */}
