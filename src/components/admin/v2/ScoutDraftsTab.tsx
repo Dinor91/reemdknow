@@ -437,7 +437,7 @@ export function ScoutDraftsTab() {
 
 
   function scrollToDay(key: string) {
-    sectionRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    openAndScrollToDay(key);
   }
 
   const REASON_TABS: { value: ReasonFilter; label: string }[] = [
