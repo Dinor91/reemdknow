@@ -96,7 +96,18 @@ export function ScoutDraftsTab() {
   const [editedText, setEditedText] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const [openDays, setOpenDays] = useState<Record<string, boolean>>({});
   const [now, setNow] = useState(() => new Date());
+
+  function toggleDay(key: string) {
+    setOpenDays((s) => ({ ...s, [key]: !s[key] }));
+  }
+  function openAndScrollToDay(key: string) {
+    setOpenDays((s) => ({ ...s, [key]: true }));
+    requestAnimationFrame(() => {
+      sectionRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(new Date()), 60 * 1000);
