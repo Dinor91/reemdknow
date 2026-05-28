@@ -621,7 +621,10 @@ export function ScoutDraftsTab() {
               הודעות שנשלחו: {sentToday} <span className="text-base font-normal text-muted-foreground">/ {draftsToday}</span>
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              דאטה בייס: היום נכנסו {draftsToday} מתוך {HANDS_FREE_DAILY_TARGET} • השבוע: {draftsThisWeek} / {HANDS_FREE_DAILY_TARGET * 6} • ממתינות: {pendingCount}
+              דאטה בייס: היום נכנסו {draftsToday} מתוך {HANDS_FREE_DAILY_TARGET}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              השבוע: {draftsThisWeek} / {HANDS_FREE_DAILY_TARGET * 6} • ממתינות: {pendingCount}
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
