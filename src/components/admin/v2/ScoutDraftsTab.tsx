@@ -745,22 +745,36 @@ export function ScoutDraftsTab() {
           ))}
         </div>
       ) : (
-        <div className="space-y-6">
-          {dayGroups.map((group) => (
-            <section
-              key={group.key}
-              ref={(el) => (sectionRefs.current[group.key] = el)}
-              className="space-y-2 scroll-mt-4"
-            >
-              <div className="flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur z-10 py-1.5">
-                <h2 className="text-base font-bold">{group.label}</h2>
-                <Badge variant="secondary" className="text-[10px]">{group.items.length}</Badge>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {group.items.map(renderCard)}
-              </div>
-            </section>
-          ))}
+        <div className="space-y-3">
+          {dayGroups.map((group, idx) => {
+            const isOpen = openDays[group.key] ?? idx === 0;
+            return (
+              <section
+                key={group.key}
+                ref={(el) => (sectionRefs.current[group.key] = el)}
+                className="space-y-2 scroll-mt-4"
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleDay(group.key)}
+                  className="w-full flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur z-10 py-1.5 hover:bg-muted/40 rounded px-1 transition-colors text-right"
+                >
+                  {isOpen ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <h2 className="text-base font-bold">{group.label}</h2>
+                  <Badge variant="secondary" className="text-[10px]">{group.items.length}</Badge>
+                </button>
+                {isOpen && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {group.items.map(renderCard)}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
 
