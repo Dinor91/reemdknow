@@ -680,19 +680,19 @@ export function ScoutDraftsTab() {
       </Card>
 
       {/* Day quick-nav (active view only) */}
-      {!loading && !showArchived && dayGroups.length > 1 && (
+      {!loading && !showArchived && navCubes.length > 1 && (
         <Card className="p-2">
           <div className="flex gap-1.5 overflow-x-auto">
-            {dayGroups.map((g) => (
+            {navCubes.map((g) => (
               <Button
                 key={g.key}
                 size="sm"
                 variant="outline"
                 className="shrink-0 h-8 text-xs"
-                onClick={() => scrollToDay(g.key)}
+                onClick={() => scrollToDay(g.scrollKey)}
               >
                 {g.short}
-                <Badge variant="secondary" className="mr-1.5 text-[10px] px-1.5 py-0">{g.items.length}</Badge>
+                <Badge variant="secondary" className="mr-1.5 text-[10px] px-1.5 py-0">{g.count}</Badge>
               </Button>
             ))}
           </div>
