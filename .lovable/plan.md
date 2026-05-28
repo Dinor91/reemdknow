@@ -1,24 +1,8 @@
-## תיקון שבירת שורה ב-KPI של ScoutDraftsTab
+שינוי בקובץ `src/components/admin/v2/RevenueTab.tsx`:
 
-### מטרה
-לפצל את שורת המטא-דאטה הנוכחית בשורה אחת לשתי שורות נפרדות, כך שהשבוע / ממתינות יופיעו מתחת לדאטה בייס.
+1. בקומפוננטה `RevenueTab`, בתוך ה-Card שמציג "Hit of the Week — קליקים":
+   - **להשאיר** את הכותרת כפי שהיא.
+   - **להסיר** את לוגיקת `hitOfWeek` ואת התצוגה של רשימת הקליקים (ul עם פסי התקדמות).
+   - **במקומה** להציג הודעה קבועה: "לא ניתן להציג מידע - נדרש לחבר את המערכת לסוכן נתונים"
 
-### הנוכחי (שורה 622-624)
-```tsx
-<div className="text-xs text-muted-foreground mt-1">
-  דאטה בייס: היום נכנסו {draftsToday} מתוך {HANDS_FREE_DAILY_TARGET} • השבוע: {draftsThisWeek} / {HANDS_FREE_DAILY_TARGET * 6} • ממתינות: {pendingCount}
-</div>
-```
-
-### הרצוי
-```tsx
-<div className="text-xs text-muted-foreground mt-1">
-  דאטה בייס: היום נכנסו {draftsToday} מתוך {HANDS_FREE_DAILY_TARGET}
-</div>
-<div className="text-xs text-muted-foreground">
-  השבוע: {draftsThisWeek} / {HANDS_FREE_DAILY_TARGET * 6} • ממתינות: {pendingCount}
-</div>
-```
-
-### קובץ
-- `src/components/admin/v2/ScoutDraftsTab.tsx` — שורות 622-624
+זהו שינוי UI פשוט — אין צורך בשינויי backend או database.
