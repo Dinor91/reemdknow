@@ -252,9 +252,27 @@ export function RevenueTab() {
 
         <Card className="p-4">
           <h3 className="font-bold mb-3">Hit of the Week — קליקים</h3>
-          <div className="text-center text-muted-foreground py-8">
-            לא ניתן להציג מידע - נדרש לחבר את המערכת לסוכן נתונים
-          </div>
+          {hitOfWeek.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">אין קליקים השבוע</div>
+          ) : (
+            <ul className="space-y-2">
+              {hitOfWeek.map((row, i) => {
+                const max = Math.max(...hitOfWeek.map((r) => r.ils));
+                const pct = (row.ils / max) * 100;
+                return (
+                  <li key={i} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="truncate">{row.week}</span>
+                      <span className="font-bold tabular-nums text-primary">{row.ils}</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded overflow-hidden">
+                      <div className="h-full bg-primary rounded" style={{ width: `${pct}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </Card>
       </div>
 
