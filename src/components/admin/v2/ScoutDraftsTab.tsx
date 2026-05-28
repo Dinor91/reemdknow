@@ -171,8 +171,72 @@ export function ScoutDraftsTab() {
 
   const draftsThisWeek = useMemo(() => {
     const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    return drafts.filter((d) => new Date(d.created_at).getTime() > cutoff).length;
+    return drafts.filter((d) => {
+      const created = new Date(d.created_at);
+      if (created.getTime() <= cutoff) return false;
+      // Exclude Saturday (no work day) — count by publish day.
+      return publishDayOf(created).getDay() !== 6;
+    }).length;
   }, [drafts]);
+
+  // Hierarchical nav cubes: current week → day-by-day; older same month → week cube; older → month cube.
+  const monthNamesHe = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+  const navCubes = useMemo(() => {
+    if (showArchived) return [] as { key: string; short: string; count: number; scrollKey: string; anchor: number }[];
+    // Start of current calendar week (Sunday) based on todayStart (publish day anchor).
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // back to Sunday
+    weekStart.setHours(0, 0, 0, 0);
+    const currentMonth = todayStart.getMonth();
+    const currentYear = todayStart.getFullYear();
+
+    type Bucket = { key: string; short: string; count: number; scrollKey: string; anchor: number };
+    const buckets = new Map<string, Bucket>();
+
+    for (const d of visible) {
+      const pd = publishDayOf(new Date(d.created_at));
+      if (pd.getDay() === 6) continue; // skip Saturday entries (shouldn't exist, defensive)
+      const dKey = dayKey(pd);
+      let bucketKey: string;
+      let short: string;
+      let anchor: number;
+
+      if (pd.getTime() >= weekStart.getTime()) {
+        // Current week → per-day cube
+        bucketKey = `day:${dKey}`;
+        const diffDays = Math.round((todayStart.getTime() - pd.getTime()) / (24 * 60 * 60 * 1000));
+        if (diffDays === 0) short = "היום";
+        else if (diffDays === 1) short = "אתמול";
+        else short = `${String(pd.getDate()).padStart(2, "0")}/${String(pd.getMonth() + 1).padStart(2, "0")}`;
+        anchor = pd.getTime();
+      } else if (pd.getFullYear() === currentYear && pd.getMonth() === currentMonth) {
+        // Previous weeks of current month → week cube
+        const weekInMonth = Math.ceil(pd.getDate() / 7);
+        bucketKey = `week:${pd.getFullYear()}-${pd.getMonth() + 1}-${weekInMonth}`;
+        short = `${weekInMonth}/${pd.getMonth() + 1}`;
+        // anchor = end-of-week-in-month for sorting
+        anchor = new Date(pd.getFullYear(), pd.getMonth(), weekInMonth * 7).getTime();
+      } else {
+        // Older → month cube
+        bucketKey = `month:${pd.getFullYear()}-${pd.getMonth() + 1}`;
+        short = monthNamesHe[pd.getMonth()];
+        anchor = new Date(pd.getFullYear(), pd.getMonth() + 1, 0).getTime();
+      }
+
+      const existing = buckets.get(bucketKey);
+      if (existing) {
+        existing.count += 1;
+        if (pd.getTime() > existing.anchor || existing.scrollKey === "") {
+          // Keep newest scroll target inside the bucket
+          if (pd.getTime() > new Date(existing.scrollKey).getTime()) existing.scrollKey = dKey;
+        }
+      } else {
+        buckets.set(bucketKey, { key: bucketKey, short, count: 1, scrollKey: dKey, anchor });
+      }
+    }
+
+    return Array.from(buckets.values()).sort((a, b) => b.anchor - a.anchor);
+  }, [visible, showArchived, todayStart]);
 
   /**
    * Active view → group by the publish day: every draft created on calendar day X
