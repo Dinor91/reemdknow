@@ -159,8 +159,15 @@ export function ScoutDraftsTab() {
   const todayStart = useMemo(() => publishDayOf(now), [now]);
 
   const draftsToday = useMemo(() => {
-    return drafts.filter((d) => !d.archived_at && publishDayOf(new Date(d.created_at)).getTime() === todayStart.getTime()).length;
+    return drafts.filter((d) => publishDayOf(new Date(d.created_at)).getTime() === todayStart.getTime()).length;
   }, [drafts, todayStart]);
+
+  const sentToday = useMemo(() => {
+    return drafts.filter((d) => {
+      if (publishDayOf(new Date(d.created_at)).getTime() !== todayStart.getTime()) return false;
+      return sentIds.has(d.id) || d.archive_reason === "sent" || !!d.sent_at;
+    }).length;
+  }, [drafts, todayStart, sentIds]);
 
   const draftsThisWeek = useMemo(() => {
     const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
