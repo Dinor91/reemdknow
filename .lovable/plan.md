@@ -1,76 +1,48 @@
-# תוכנית מגירה — מקטע "היום" בדף ישראל
+# ניקוי מוצרי Scout v2 — שמירת 30 החדשים בלבד
 
-מקטע ציבורי חדש שמציג את המוצרים שראם "חתם עליהם" וטרם נשלחו לערוצים. הופך את דף הנחיתה לדאטה בייס חי של המלצות איכותיות.
+## מטרה
+להשאיר במערכת רק את **30 המוצרים החדשים ביותר** (סך הכל, בשתי הטבלאות יחד) שנכנסו תחת `source='scout_v2'` מאז 16/05/2026, ולמחוק את כל השאר במחיקה קשה.
 
-המקטע מיועד לדף ישראל בלבד. **לא ליישום כעת** — חיכינו עד שזרם ה-Scout v2 ייצר באופן עקבי דרפטים חתומים יומיומיים. אחרת המקטע יופיע ריק או חלקי.
+## מצב נוכחי
+- `israel_editor_products` (scout_v2): 29 רשומות
+- `amazon_editor_products` (scout_v2): 130 רשומות
+- סה״כ: **159 → ימחקו 129, יישארו 30**
 
----
+## איך נקבעים ה-30 שיישארו
+מיון משולב של שתי הטבלאות לפי `created_at DESC`, לוקחים את 30 המובילים בלבד — בלי קשר לפיזור בין ישראל לאמזון (יכול לצאת למשל 25 אמזון + 5 ישראל, תלוי בתאריכים בפועל).
 
-## מה המקטע יציג
-
-רצועה אופקית של עד 5 כרטיסי מוצר עם:
-- תמונה
-- שם בעברית
-- מחיר וכוכבים
-- שורה קצרה מ-`audit_notes` של ראם (הסיבה להמלצה)
-- כפתור "לעמוד המוצר" (לינק אפיליאט עם טראקינג)
-- תג "חדש היום" + שעת הוספה
-
-מקור הנתונים: `amazon_editor_products` + `israel_editor_products` עם `sent_at IS NULL` בחלון יום העבודה (18:30–21:30 שעון ישראל). אותו מקור כמו טאב "היום" באדמין.
-
-המקטע יציג רק את האחרונים מהיום הנוכחי. אם אין דרפטים פתוחים — המקטע נעלם לחלוטין (אין placeholder ריק).
-
----
-
-## תשובות לשאלות שלך
-
-**1. רק לישראל** — מעודכן. דף תאילנד (Lazada) נשאר כפי שהוא.
-
-**2. על מה לוותר מהמבנה הקיים?**
-
-```text
-מבנה היום                   מבנה מוצע
-─────────────              ─────────────
-Hero                       Hero
-FeaturedProductsIsrael     ◄── מקטע "היום" (חדש)
-JoinCTASection             FeaturedProductsIsrael
-IsraelCategories           JoinCTASection
-RequestBanner              IsraelCategories  ◄── מתכווץ ל-Top 3 קטגוריות
-                           RequestBanner
+## פעולה (SQL בודד, טרנזקציה אחת)
+```sql
+WITH ranked AS (
+  SELECT id, 'israel'::text AS tbl, created_at
+    FROM israel_editor_products WHERE source='scout_v2'
+  UNION ALL
+  SELECT id, 'amazon'::text AS tbl, created_at
+    FROM amazon_editor_products WHERE source='scout_v2'
+),
+keepers AS (
+  SELECT id, tbl FROM ranked ORDER BY created_at DESC LIMIT 30
+)
+-- מחיקה משתי הטבלאות במכה אחת
+, del_il AS (
+  DELETE FROM israel_editor_products
+   WHERE source='scout_v2'
+     AND id NOT IN (SELECT id FROM keepers WHERE tbl='israel')
+  RETURNING 1
+), del_az AS (
+  DELETE FROM amazon_editor_products
+   WHERE source='scout_v2'
+     AND id NOT IN (SELECT id FROM keepers WHERE tbl='amazon')
+  RETURNING 1
+)
+SELECT (SELECT count(*) FROM del_il) AS deleted_israel,
+       (SELECT count(*) FROM del_az) AS deleted_amazon;
 ```
 
-ההצעה: **לא לוותר על שום מקטע**, אלא:
-- להוסיף את "היום" כמקטע ראשון מתחת ל-Hero (הכי טרי, הכי חם)
-- לקצר את `IsraelCategories` כך שיציג רק 3 קטגוריות פתוחות כברירת מחדל + "הצג עוד"
-- `FeaturedProductsIsrael` נשאר כ"נצחיים" — הקלאסיקות שתמיד שווות
+## אזהרות
+- **בלתי הפיך** — DELETE קשה, אין rollback אחרי commit.
+- מוצרים שכבר נשלחו (`sent_at IS NOT NULL`) יימחקו גם הם אם לא בין 30 החדשים. אם זה לא רצוי — אגיד לי להחריג אותם.
+- רשומות ב-`deals_sent` שמפנות ל-id שנמחק: אבדוק תלות לפני הריצה ואחזיר אם יש בעיה (אם כן, אצטרך אישור איך לטפל: SET NULL / מחיקת deal / שמירת המוצר).
 
-**3. שורת חיפוש?**
-
-כן, מומלץ — אבל **כמקטע נפרד** (לא בתוך "היום"). הצעה: באנר חיפוש דק בין "היום" ל-FeaturedProducts:
-- שדה אחד: "מחפשים משהו ספציפי?"
-- שליחה → פותחת WhatsApp עם הטקסט מוכן ("שלום ראם, אני מחפש __")
-- אופציה מתקדמת בעתיד: חיפוש בתוך הקטלוג + fallback ל-WhatsApp
-
-זה ממנף את אותה אינטראקציה של RequestBanner אבל ממקם אותה גבוה יותר בדף, איפה שהמשתמש כבר במצב "אני מחפש משהו".
-
----
-
-## פרטים טכניים
-
-- **קומפוננטה חדשה:** `src/components/TodaySectionIsrael.tsx`
-- **שאילתה:** `israel_editor_products` + `amazon_editor_products` (UNION) WHERE `sent_at IS NULL` AND `created_at >= today_workday_start()`. סדר: `created_at DESC`. LIMIT 5.
-- **חלון יום עבודה:** פונקציה משותפת עם טאב האדמין (חילוץ ל-`src/lib/workday.ts`) כדי שתמיד יהיה מקור אמת אחד.
-- **נראות:** אם השאילתה מחזירה 0 שורות → `return null`.
-- **טראקינג:** `button_clicks` עם `source='today_section'` כדי למדוד CTR לעומת FeaturedProducts.
-- **רענון:** השאילתה רצה ב-mount + כל 5 דקות (אופציונלי). לא צריך realtime.
-- **חיפוש (אם נכלל):** קומפוננטה נפרדת `src/components/SearchBannerIsrael.tsx`, שולחת ל-WhatsApp עם פרמטר `text=`.
-
----
-
-## תנאי הפעלה (מתי לפתוח את המגירה)
-
-לא לפני שמתקיימים שני התנאים:
-1. זרם Scout v2 מייצר ≥3 דרפטים חתומים ביום, **5 ימים ברציפות**
-2. ראם מאשר ש-`audit_notes` נכתבות בטון שמתאים לתצוגה ציבורית (כרגע הן פנימיות)
-
-עד אז — התוכנית במגירה.
+## אישור לפני ביצוע
+לאחר מעבר ל-build, אריץ קודם בדיקה יבשה (`SELECT count`) שמראה כמה יימחקו לפי הקריטריון, ורק לאחר אישור — אבצע את ה-DELETE עצמו.
