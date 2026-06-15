@@ -526,6 +526,14 @@ export function ScoutDraftsTab() {
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                 {platformLabel(platform)}
               </Badge>
+              {(() => {
+                const cb = channelBadge(d);
+                return cb ? (
+                  <Badge className={`text-[10px] px-1.5 py-0 ${cb.className}`}>
+                    {cb.label}
+                  </Badge>
+                ) : null;
+              })()}
               {d.category_name_hebrew && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                   {d.category_name_hebrew}
