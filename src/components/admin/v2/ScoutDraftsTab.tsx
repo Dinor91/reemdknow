@@ -33,6 +33,8 @@ interface Draft {
   created_at: string;
   source: string | null;
   is_active: boolean | null;
+  channel: string | null;
+  country: string | null;
 }
 
 const HANDS_FREE_DAILY_TARGET = 12;
