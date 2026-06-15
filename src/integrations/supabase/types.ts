@@ -172,6 +172,8 @@ export type Database = {
           audit_notes: string | null
           brand: string | null
           category_name_hebrew: string
+          channel: string | null
+          country: string | null
           created_at: string
           discount_percentage: number | null
           id: string
@@ -198,6 +200,8 @@ export type Database = {
           audit_notes?: string | null
           brand?: string | null
           category_name_hebrew: string
+          channel?: string | null
+          country?: string | null
           created_at?: string
           discount_percentage?: number | null
           id?: string
@@ -224,6 +228,8 @@ export type Database = {
           audit_notes?: string | null
           brand?: string | null
           category_name_hebrew?: string
+          channel?: string | null
+          country?: string | null
           created_at?: string
           discount_percentage?: number | null
           id?: string
@@ -630,6 +636,8 @@ export type Database = {
           archived_at: string | null
           audit_notes: string | null
           category_name_hebrew: string
+          channel: string | null
+          country: string | null
           created_at: string
           discount_percentage: number | null
           id: string
@@ -654,6 +662,8 @@ export type Database = {
           archived_at?: string | null
           audit_notes?: string | null
           category_name_hebrew: string
+          channel?: string | null
+          country?: string | null
           created_at?: string
           discount_percentage?: number | null
           id?: string
@@ -678,6 +688,8 @@ export type Database = {
           archived_at?: string | null
           audit_notes?: string | null
           category_name_hebrew?: string
+          channel?: string | null
+          country?: string | null
           created_at?: string
           discount_percentage?: number | null
           id?: string

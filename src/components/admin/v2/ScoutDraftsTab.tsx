@@ -33,6 +33,8 @@ interface Draft {
   created_at: string;
   source: string | null;
   is_active: boolean | null;
+  channel: string | null;
+  country: string | null;
 }
 
 const HANDS_FREE_DAILY_TARGET = 12;
@@ -50,6 +52,28 @@ function platformLabel(p: "amazon" | "aliexpress" | "ksp" | "other") {
   if (p === "aliexpress") return "AE";
   if (p === "ksp") return "KSP";
   return "—";
+}
+
+/**
+ * Channel badge — surfaces sub-source from the pipeline.
+ * KSP: ksp_email / ksp_telegram
+ * Amazon: amazon_us / amazon_uk / amazon_de / amazon_fr
+ * Returns null for legacy rows (no channel set).
+ */
+function channelBadge(d: Draft): { label: string; className: string } | null {
+  const ch = (d.channel ?? "").toLowerCase();
+  if (!ch) return null;
+  if (ch === "ksp_email") {
+    return { label: "📧 KSP Mail", className: "bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200" };
+  }
+  if (ch === "ksp_telegram") {
+    return { label: "📱 KSP Tel", className: "bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200" };
+  }
+  if (ch.startsWith("amazon_")) {
+    const country = (d.country ?? ch.slice("amazon_".length)).toUpperCase();
+    return { label: `🛒 Amazon ${country}`, className: "bg-amber-100 text-amber-900 hover:bg-amber-100 border-amber-200" };
+  }
+  return null;
 }
 
 // Workday model — local browser time.
@@ -117,7 +141,7 @@ export function ScoutDraftsTab() {
   async function load() {
     setLoading(true);
     const select =
-      "id, product_name_hebrew, product_name_english, image_url, price_usd, rating, sales_count, category_name_hebrew, tracking_link, audit_notes, archived_at, archive_reason, sent_at, created_at, source, is_active";
+      "id, product_name_hebrew, product_name_english, image_url, price_usd, rating, sales_count, category_name_hebrew, tracking_link, audit_notes, archived_at, archive_reason, sent_at, created_at, source, is_active, channel, country";
     const [israelRes, amzRes] = await Promise.all([
       supabase
         .from("israel_editor_products")
@@ -502,6 +526,14 @@ export function ScoutDraftsTab() {
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                 {platformLabel(platform)}
               </Badge>
+              {(() => {
+                const cb = channelBadge(d);
+                return cb ? (
+                  <Badge className={`text-[10px] px-1.5 py-0 ${cb.className}`}>
+                    {cb.label}
+                  </Badge>
+                ) : null;
+              })()}
               {d.category_name_hebrew && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                   {d.category_name_hebrew}

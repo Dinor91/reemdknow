@@ -37,6 +37,8 @@ const BodySchema = z.object({
   content: z.string().trim().max(5000).optional(),
   external_id: z.string().trim().max(200).optional(),
   brand: z.string().trim().max(200).optional(),
+  channel: z.string().trim().max(50).optional(),
+  country: z.string().trim().length(2).optional(),
 });
 
 // Constant-time string compare to avoid timing attacks
@@ -132,6 +134,8 @@ Deno.serve(async (req) => {
     audit_notes: p.content ?? null,
     source: "scout_v2",
     is_active: false,
+    channel: p.channel ?? null,
+    country: p.country ? p.country.toUpperCase() : null,
   };
 
   const table =
