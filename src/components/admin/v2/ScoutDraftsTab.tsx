@@ -141,7 +141,7 @@ export function ScoutDraftsTab() {
   async function load() {
     setLoading(true);
     const select =
-      "id, product_name_hebrew, product_name_english, image_url, price_usd, rating, sales_count, category_name_hebrew, tracking_link, audit_notes, archived_at, archive_reason, sent_at, created_at, source, is_active";
+      "id, product_name_hebrew, product_name_english, image_url, price_usd, rating, sales_count, category_name_hebrew, tracking_link, audit_notes, archived_at, archive_reason, sent_at, created_at, source, is_active, channel, country";
     const [israelRes, amzRes] = await Promise.all([
       supabase
         .from("israel_editor_products")
