@@ -54,6 +54,28 @@ function platformLabel(p: "amazon" | "aliexpress" | "ksp" | "other") {
   return "—";
 }
 
+/**
+ * Channel badge — surfaces sub-source from the pipeline.
+ * KSP: ksp_email / ksp_telegram
+ * Amazon: amazon_us / amazon_uk / amazon_de / amazon_fr
+ * Returns null for legacy rows (no channel set).
+ */
+function channelBadge(d: Draft): { label: string; className: string } | null {
+  const ch = (d.channel ?? "").toLowerCase();
+  if (!ch) return null;
+  if (ch === "ksp_email") {
+    return { label: "📧 KSP Mail", className: "bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200" };
+  }
+  if (ch === "ksp_telegram") {
+    return { label: "📱 KSP Tel", className: "bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200" };
+  }
+  if (ch.startsWith("amazon_")) {
+    const country = (d.country ?? ch.slice("amazon_".length)).toUpperCase();
+    return { label: `🛒 Amazon ${country}`, className: "bg-amber-100 text-amber-900 hover:bg-amber-100 border-amber-200" };
+  }
+  return null;
+}
+
 // Workday model — local browser time.
 // A "workday" runs from yesterday 21:30 → today 21:30 (local).
 // Scan runs at 22:00 local, so reset at 21:30 sits safely 30min before it.
