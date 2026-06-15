@@ -37,6 +37,8 @@ const BodySchema = z.object({
   content: z.string().trim().max(5000).optional(),
   external_id: z.string().trim().max(200).optional(),
   brand: z.string().trim().max(200).optional(),
+  channel: z.string().trim().max(50).optional(),
+  country: z.string().trim().length(2).optional(),
 });
 
 // Constant-time string compare to avoid timing attacks
