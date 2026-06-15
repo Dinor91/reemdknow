@@ -134,6 +134,8 @@ Deno.serve(async (req) => {
     audit_notes: p.content ?? null,
     source: "scout_v2",
     is_active: false,
+    channel: p.channel ?? null,
+    country: p.country ? p.country.toUpperCase() : null,
   };
 
   const table =
