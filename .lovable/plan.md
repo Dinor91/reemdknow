@@ -1,42 +1,35 @@
-## מטרה
-לתמוך בתוויות מקור אחידות עבור KSP (Email/Telegram) ו-Amazon (US/UK/DE/FR) באמצעות שדה `channel` (+ `country` ל-Amazon) שמגיע מה-pipeline.
+## ניקוי טבלת feed_products (Lazada)
 
-## שינויים
+מאחר ולאזדה יורדת בסדר העדיפויות, נבצע ניקוי אגרסיבי יותר של הטבלה.
 
-### 1. DB — מיגרציה אחת
-הוסף לשתי הטבלאות:
-- `israel_editor_products`: `channel text`, `country text` (country יישאר NULL ל-KSP)
-- `amazon_editor_products`: `channel text`, `country text`
+### מה נעשה
 
-שתי עמודות nullable, ללא ברירת מחדל, ללא backfill (שורות ישנות פשוט לא יקבלו תווית חדשה). אינדקס על `channel` בשתי הטבלאות.
+**מחיקה קשה (Hard Delete) של מוצרים לא רלוונטיים מ-`feed_products`:**
 
-### 2. Edge Function — `auditor-ingest/index.ts`
-- הוסף ל-`BodySchema`:
-  ```ts
-  channel: z.string().trim().max(50).optional(),
-  country: z.string().trim().length(2).optional(),
-  ```
-- כתוב `channel` ו-`country` לתוך ה-row של שתי הפלטפורמות.
-- שדות אופציונליים — אם ה-publisher לא שלח, נכנס NULL (תאימות אחורה מלאה).
+נמחק מוצרים שעונים על **אחד** מהתנאים הבאים:
+1. `out_of_stock = true` **וגם** `updated_at` ישן מ-30 יום (לא נראו בסנכרון האחרון)
+2. `updated_at` ישן מ-60 יום (לא הופיעו ב-feed כבר חודשיים = הוסרו מהקטלוג של Lazada)
 
-### 3. Frontend — `ScoutDraftsTab.tsx`
-- הוסף `channel: string | null` ו-`country: string | null` ל-`Draft` ול-`SELECT`.
-- helper יחיד `channelBadge(d)` שמחזיר `{label, className}` לפי הכלל:
-  - `ksp_email` → `📧 KSP Mail` (כחול)
-  - `ksp_telegram` → `📱 KSP Tel` (סגול)
-  - `amazon_us|uk|de|fr` → `🛒 Amazon {COUNTRY}` (כתום/אמבר)
-  - אחרת → `null` (אין badge — תאימות לשורות ישנות)
-- רנדור ה-badge בשורת הפלטפורמה, ליד תווית AMAZON/הקטגוריה, בדיוק כפי שכבר נעשה היום.
+**הגנות:**
+- לא נמחק מוצרים עם `is_featured = true` (גם אם out of stock) — אלה מוצרים שבחרת ידנית
+- נריץ קודם `SELECT COUNT(*)` כדי לראות כמה ימחקו, ורק אחרי אישור שלך — נמחק
 
-### 4. ללא שינוי
-- אין שינוי ב-`post-scout-draft`, סינון, מיון, או טבלאות feed.
-- שורות ישנות (ללא `channel`) ממשיכות לעבוד — פשוט בלי ה-badge החדש.
+### מה לא נעשה
 
-## סדר עבודה
-1. מיגרציה (אישור משתמש).
-2. עדכון `auditor-ingest` לקבלת השדות.
-3. עדכון `ScoutDraftsTab.tsx` להצגת ה-badges.
-4. אימות: כשה-publisher יתחיל לשלוח `channel`, ה-badges מופיעים אוטומטית; שורות חדשות בלי `channel` לא נשברות.
+- לא ניגע ב-`aliexpress_feed_products` (זו הפלטפורמה הראשית)
+- לא ניגע ב-`israel_editor_products` / `amazon_editor_products` (מוצרי v2.1)
+- לא נשנה את לוגיקת הסנכרון היומי (`daily-feed-sync-batch-*`) — היא תמשיך להוסיף/לעדכן כרגיל
+- לא ניצור טבלת ארכיון — מחיקה מלאה
 
-## הערה לאסטרטגיה
-זה תואם 1:1 ל-spec של הסניור, מאחד KSP+Amazon תחת אותו מודל (`channel`), ולא חוסם את ה-pipeline — אפשר לפרוס DB+Frontend עכשיו, וה-publisher יוסיף `channel`/`country` בקצב שלו.
+### תוצאה צפויה
+
+- הטבלה תרד מ-15,716 ל-~5,000-7,000 שורות פעילות
+- שאילתות מהירות יותר באתר ובאדמין
+- אם מוצר ימחק בטעות ויחזור ל-feed של Lazada — הסנכרון הבא יוסיף אותו מחדש אוטומטית
+
+### שלבי ביצוע
+
+1. SELECT לספירת מועמדים למחיקה (לפי שני התנאים, בנפרד)
+2. הצגת התוצאה ובקשת אישור סופי
+3. DELETE בפועל
+4. VACUUM לפינוי המקום
